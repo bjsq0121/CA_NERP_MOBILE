@@ -319,20 +319,4 @@ function pick(item) {
 defineExpose({ open, close })
 </script>
 
-<style scoped>
-.filter-row { display: flex; align-items: center; gap: 6px; }
-.filter-row label { font-size: 11px; font-weight: 600; color: #64748b; min-width: 60px; flex-shrink: 0; }
-.filter-row select, .filter-row input { flex: 1; padding: 7px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; min-width: 0; }
-.btn-group { display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; font-size: 11px; cursor: pointer; color: #475569; }
-.chip.active { background: #1f2a44; color: #fff; border-color: #1f2a44; }
-.view-btn { padding: 4px 10px; border: 0; border-radius: 6px; font-size: 11px; cursor: pointer; background: #e5e7eb; color: #1f2a44; }
-.view-btn.active { background: #1f2a44; color: #fff; }
-.model-card { display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
-.model-card:active { background: #f8fafc; }
-.model-img-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
-.model-img { width: 80px; height: 80px; object-fit: contain; border-radius: 6px; background: #f1f5f9; }
-.model-img-ph { display: none; position: absolute; inset: 0; background: #f1f5f9; border-radius: 6px; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8; }
-.model-info { flex: 1; min-width: 0; }
-.model-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
-</style>
+<!-- styles moved to styles.css -->

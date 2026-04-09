@@ -1,9 +1,15 @@
+/* ═══════════════════════════════════════════════════════════
+   CA NERP Mobile — 공통 스타일
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Reset ─── */
 * { box-sizing: border-box; }
 html, body, #app { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #f5f6f8; color: #222; -webkit-tap-highlight-color: transparent; }
 button { font: inherit; }
 input, select, textarea { font: inherit; }
 a { color: inherit; text-decoration: none; }
 
+/* ─── Layout Shell ─── */
 .app-shell { max-width: 720px; margin: 0 auto; min-height: 100vh; background: #f5f6f8; display: flex; flex-direction: column; }
 .app-header { position: sticky; top: 0; z-index: 10; background: #1f2a44; color: #fff; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
 .app-header h1 { font-size: 16px; margin: 0; }
@@ -13,36 +19,117 @@ a { color: inherit; text-decoration: none; }
 .app-tabbar a { flex: 1; text-align: center; padding: 12px 0; font-size: 13px; color: #64748b; }
 .app-tabbar a.router-link-active { color: #1f2a44; font-weight: 600; }
 
+/* ─── Section Tabs (App.vue) ─── */
+.section-tabs { display: flex; background: #fff; border-radius: 10px; padding: 4px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.section-tabs a { flex: 1; text-align: center; padding: 10px 0; font-size: 13px; color: #64748b; border-radius: 8px; font-weight: 600; }
+.section-tabs a.router-link-exact-active { background: #1f2a44; color: #fff; }
+
+/* ─── Card ─── */
 .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); margin-bottom: 12px; }
+.card-info { background: #eef2ff; }
+.card-warn { background: #fffbeb; border: 1px solid #fde68a; }
+.card-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 12px; white-space: pre-wrap; }
+
+/* ─── Form Field ─── */
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .field label { font-size: 12px; color: #64748b; font-weight: 600; }
 .field input, .field select, .field textarea { padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; font-size: 15px; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #1f2a44; }
+.field input:disabled, .field select:disabled { background: #f1f5f9; color: #94a3b8; }
+.field input[readonly] { background: #f1f5f9; }
+
+/* ─── Buttons ─── */
 .btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 16px; border-radius: 10px; border: 0; background: #1f2a44; color: #fff; font-weight: 600; cursor: pointer; width: 100%; font-size: 15px; }
 .btn.secondary { background: #e5e7eb; color: #1f2a44; }
 .btn.danger { background: #dc2626; }
-.btn[disabled] { opacity: .5; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn-sm { width: auto; padding: 6px 12px; font-size: 12px; }
+.btn-xs { width: auto; padding: 6px 10px; font-size: 12px; }
 
-.list-row { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+/* Toggle Button (ON/OFF) */
+.toggle-btn { padding: 10px; max-width: 120px; }
+.toggle-mini { margin-left: 6px; padding: 2px 8px; border-radius: 6px; border: 0; font-size: 10px; cursor: pointer; }
+.toggle-on { background: #1f2a44; color: #fff; }
+.toggle-off { background: #e5e7eb; color: #1f2a44; }
+
+/* ─── List Row ─── */
+.list-row { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04); cursor: pointer; }
+.list-row:active { background: #f8fafc; }
 .list-row .title { font-weight: 600; font-size: 15px; }
 .list-row .meta { font-size: 12px; color: #64748b; margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
 
-.empty { text-align: center; color: #94a3b8; padding: 40px 0; font-size: 14px; }
-.error { color: #dc2626; font-size: 13px; margin-top: 8px; }
-.badge { display: inline-block; background: #eef2ff; color: #1f2a44; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+/* ─── Flex Row ─── */
 .row-flex { display: flex; gap: 8px; }
 .row-flex > * { flex: 1; min-width: 0; }
 .row-flex select, .row-flex input { width: 100%; min-width: 0; }
 .row-compact select, .row-compact input { padding: 8px 6px; font-size: 12px; }
 .row-compact .field label { font-size: 11px; }
 
+/* ─── Badge ─── */
+.badge { display: inline-block; background: #eef2ff; color: #1f2a44; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+
+/* ─── Chip (Button Filter) ─── */
+.btn-group { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; font-size: 11px; cursor: pointer; color: #475569; }
+.chip.active { background: #1f2a44; color: #fff; border-color: #1f2a44; }
+
+/* ─── View Toggle (도면/텍스트) ─── */
+.view-btn { padding: 4px 10px; border: 0; border-radius: 6px; font-size: 11px; cursor: pointer; background: #e5e7eb; color: #1f2a44; }
+.view-btn.active { background: #1f2a44; color: #fff; }
+
+/* ─── Filter Row ─── */
+.filter-row { display: flex; align-items: center; gap: 6px; }
+.filter-row label { font-size: 11px; font-weight: 600; color: #64748b; min-width: 60px; flex-shrink: 0; }
+.filter-row select, .filter-row input { flex: 1; padding: 7px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; min-width: 0; }
+
+/* ─── Typography Helpers ─── */
+.page-title { margin: 4px 4px 12px; font-size: 17px; }
+.section-title { font-size: 13px; font-weight: 600; color: #1f2a44; margin-bottom: 10px; }
+.label-sm { font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+.text-xs { font-size: 11px; color: #64748b; }
+.text-xxs { font-size: 10px; color: #94a3b8; }
+.text-success { color: #16a34a; }
+.text-info { color: #0ea5e9; }
+.text-price { font-size: 12px; color: #1f2a44; font-weight: 600; }
+
+/* ─── Spacing Helpers ─── */
+.mt-sm { margin-top: 6px; }
+.mt-md { margin-top: 12px; }
+.mb-sm { margin-bottom: 6px; }
+.mb-md { margin-bottom: 8px; }
+
+/* ─── Status ─── */
+.empty { text-align: center; color: #94a3b8; padding: 40px 0; font-size: 14px; }
+.error { color: #dc2626; font-size: 13px; margin-top: 8px; }
+
+/* ─── Loading Spinner ─── */
 .loading-spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top: 3px solid #1f2a44; border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── Modal (Bottom Sheet) ─── */
 .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: flex-end; z-index: 100; }
 .modal-sheet { background: #fff; width: 100%; max-width: 720px; margin: 0 auto; border-radius: 16px 16px 0 0; padding: 16px; max-height: 80vh; overflow-y: auto; }
 .modal-sheet h3 { margin: 0 0 12px; font-size: 16px; }
+.modal-sheet-tall { max-height: 95vh; padding-bottom: 0; }
+
+/* ─── BZPC/Select Row ─── */
 .bzpc-row { padding: 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
 .bzpc-row:active { background: #f1f5f9; }
 .bzpc-row .nm { font-weight: 600; }
 .bzpc-row .cd { font-size: 11px; color: #94a3b8; }
+
+/* ─── Model Card (모형 검색) ─── */
+.model-card { display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+.model-card:active { background: #f8fafc; }
+.model-img-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.model-img { width: 80px; height: 80px; object-fit: contain; border-radius: 6px; background: #f1f5f9; }
+.model-img-ph { display: none; position: absolute; inset: 0; background: #f1f5f9; border-radius: 6px; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8; }
+.model-info { flex: 1; min-width: 0; }
+.model-badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+
+/* ─── Details/Summary (토글 옵션) ─── */
+details.card summary { cursor: pointer; font-weight: 600; font-size: 13px; color: #1f2a44; }
+details summary { cursor: pointer; font-size: 11px; color: #0ea5e9; font-weight: 600; }
+
+/* ─── Debug Panel ─── */
+.debug-panel { background: #fffbeb; border: 1px solid #fde68a; font-size: 11px; font-family: monospace; }

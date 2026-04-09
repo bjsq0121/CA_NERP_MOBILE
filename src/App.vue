@@ -48,8 +48,4 @@ function logout() {
 }
 </script>
 
-<style scoped>
-.section-tabs { display: flex; background: #fff; border-radius: 10px; padding: 4px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-.section-tabs a { flex: 1; text-align: center; padding: 10px 0; font-size: 13px; color: #64748b; border-radius: 8px; font-weight: 600; }
-.section-tabs a.router-link-exact-active { background: #1f2a44; color: #fff; }
-</style>
+<!-- styles moved to styles.css -->
