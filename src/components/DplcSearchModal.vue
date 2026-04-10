@@ -1,17 +1,13 @@
 <template>
   <teleport to="body">
     <div v-if="visible" class="modal-mask" @click.self="close">
-      <div class="modal-sheet" style="max-height:90vh">
+      <div class="modal-sheet modal-sheet-tall">
         <h3>거래처 검색</h3>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">영업소: {{ bzpcNm || bzpc || '(미선택)' }}</div>
+        <div class="modal-subtitle">영업소: {{ bzpcNm || bzpc || '(미선택)' }}</div>
 
         <div class="field">
           <label>거래처명</label>
           <input v-model="form.searchDplcNm" placeholder="거래처명" @keyup.enter="search" />
-        </div>
-        <div class="field">
-          <label>거래처코드</label>
-          <input v-model="form.searchDplcCd" placeholder="DPLC 코드" @keyup.enter="search" />
         </div>
         <div class="field">
           <label>사업자번호</label>
@@ -25,27 +21,27 @@
         </div>
         <div v-if="error" class="error">{{ error }}</div>
 
-        <div style="margin-top:12px">
+        <div class="mt-md">
           <div v-if="loading" class="empty">불러오는 중...</div>
           <div v-else-if="!rows.length" class="empty">결과가 없습니다.</div>
           <div v-for="row in rows" :key="row.dplcCd" class="bzpc-row" @click="pick(row)">
             <div class="nm">{{ row.dplcNm || row.dplcCdNm }}</div>
             <div class="cd">
               {{ row.dplcCd }}
-              <span v-if="row.bzno"> · 사업자 {{ row.bzno }}</span>
-              <span v-if="row.repNm"> · 대표 {{ row.repNm }}</span>
+              <span v-if="row.bzno"> / 사업자 {{ row.bzno }}</span>
+              <span v-if="row.repNm"> / 대표 {{ row.repNm }}</span>
             </div>
           </div>
         </div>
 
-        <button class="btn secondary" style="margin-top:12px" @click="close">닫기</button>
+        <button class="btn secondary mt-md" @click="close">닫기</button>
       </div>
     </div>
   </teleport>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { searchClientList } from '../api/client'
 
 const props = defineProps({
@@ -58,7 +54,7 @@ const visible = ref(false)
 const loading = ref(false)
 const error = ref('')
 const rows = ref([])
-const form = ref({ searchDplcNm: '', searchDplcCd: '', searchBzno: '' })
+const form = ref({ searchDplcNm: '', searchBzno: '' })
 
 function open() {
   visible.value = true
@@ -66,7 +62,7 @@ function open() {
 }
 function close() { visible.value = false }
 function reset() {
-  form.value = { searchDplcNm: '', searchDplcCd: '', searchBzno: '' }
+  form.value = { searchDplcNm: '', searchBzno: '' }
   rows.value = []
 }
 
@@ -78,12 +74,15 @@ async function search() {
   error.value = ''
   loading.value = true
   try {
-    const { data } = await searchClientList({
-      bzpc: props.bzpc,
+    const payload = {
+      searchBzpc: props.bzpc,
+      searchDplcScn: '02',
+      searchBztcSt: '01',
       ...form.value,
       curPage: 1,
       perPage: 50,
-    })
+    }
+    const { data } = await searchClientList(payload)
     rows.value = data?.resultList || []
     if (!rows.value.length) error.value = '조회된 거래처가 없습니다.'
   } catch (e) {

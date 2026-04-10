@@ -1,10 +1,10 @@
 <template>
   <div>
-    <h2 style="margin:4px 4px 12px;font-size:17px">신규 견적</h2>
+    <h2 class="page-title">신규 견적</h2>
 
     <!-- 1. 영업소 + 견적 기본 -->
     <div class="card">
-      <BzpcSelector v-model="selectedBzpc" />
+      <BzpcSelector v-model="selectedBzpc" :locked="bzpcLocked" />
 
       <div class="field">
         <label>견적제목 *</label>
@@ -29,14 +29,14 @@
         <label>거래처 *</label>
         <input
           readonly
+          data-clickable
           :value="dplcDisplay"
           :placeholder="selectedBzpc.bzpc ? '터치해서 거래처 검색' : '먼저 영업소를 선택하세요'"
-          :style="{ background: '#fff', cursor: selectedBzpc.bzpc ? 'pointer' : 'not-allowed' }"
+          :style="{ cursor: selectedBzpc.bzpc ? 'pointer' : 'not-allowed' }"
           @click="openDplcSearch"
         />
       </div>
 
-      <!-- 거래처 선택 후 자동 채워진 정보 -->
       <template v-if="form.dplcCd">
         <div class="row-flex">
           <div class="field">
@@ -51,6 +51,34 @@
         <div class="field">
           <label>전화번호</label>
           <input v-model="form.dplcCrgrTel" />
+        </div>
+
+        <!-- 할인등급 표시 -->
+        <div class="grade-row">
+          <div class="grade-item">
+            <span class="grade-label">샤시</span>
+            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrd || '-' }}</span>
+          </div>
+          <div class="grade-item">
+            <span class="grade-label">도어</span>
+            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdDoor || '-' }}</span>
+          </div>
+          <div class="grade-item">
+            <span class="grade-label">유리</span>
+            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdGlas || '-' }}</span>
+          </div>
+          <div class="grade-item">
+            <span class="grade-label">몰딩</span>
+            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdMlng || '-' }}</span>
+          </div>
+          <div class="grade-item">
+            <span class="grade-label">판넬</span>
+            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdPannel || '-' }}</span>
+          </div>
+          <div class="grade-item">
+            <span class="grade-label">타사</span>
+            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdEtc || '-' }}</span>
+          </div>
         </div>
       </template>
     </div>
@@ -95,29 +123,12 @@
       </div>
     </div>
 
-    <!-- 할인등급 자동 채움 미리보기 (읽기 전용) -->
-    <details v-if="form.dplcCd" class="card" style="padding:12px 16px">
-      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#64748b">
-        할인등급 / 가율 (자동, 클릭해서 펼치기)
-      </summary>
-      <div style="margin-top:12px;font-size:12px;color:#475569">
-        <div>샤시 등급 {{ form.dplcGrpGrade.dplcDcGrd || '-' }} / 가율 {{ form.dplcRate.dplcRt || '-' }}</div>
-        <div>도어 등급 {{ form.dplcGrpGrade.dplcDcGrdDoor || '-' }} / 가율 {{ form.dplcRate.dplcDoorRt || '-' }}</div>
-        <div>판넬 등급 {{ form.dplcGrpGrade.dplcDcGrdPannel || '-' }} / 가율 {{ form.dplcRate.dplcPannelRt || '-' }}</div>
-        <div>유리 등급 {{ form.dplcGrpGrade.dplcDcGrdGlas || '-' }} / 가율 {{ form.dplcRate.dplcGlasRt || '-' }}</div>
-        <div>몰딩 등급 {{ form.dplcGrpGrade.dplcDcGrdMlng || '-' }} / 가율 {{ form.dplcRate.dplcMlngRt || '-' }}</div>
-        <div>유통자재 등급 {{ form.dplcGrpGrade.dplcDcGrdMtrl || '-' }} / 가율 {{ form.dplcRate.dplcMtrlRt || '-' }}</div>
-        <div>유통상품 등급 {{ form.dplcGrpGrade.dplcDcGrdProd || '-' }} / 가율 {{ form.dplcRate.dplcProdRt || '-' }}</div>
-        <div>타사 등급 {{ form.dplcGrpGrade.dplcDcGrdEtc || '-' }} / 가율 {{ form.dplcRate.dplcEtcRt || '-' }}</div>
-      </div>
-    </details>
-
     <!-- 저장 -->
     <button class="btn" :disabled="loading || !canSubmit" @click="submit">
       {{ loading ? '저장 중...' : '견적 헤더 저장' }}
     </button>
     <div v-if="error" class="error">{{ error }}</div>
-    <div v-if="result" class="error" style="color:#16a34a">저장 완료. 견적번호 {{ result }}</div>
+    <div v-if="result" class="success-msg">{{ result }}</div>
 
     <DplcSearchModal
       ref="dplcModal"
@@ -129,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BzpcSelector from '../components/BzpcSelector.vue'
 import DplcSearchModal from '../components/DplcSearchModal.vue'
@@ -145,6 +156,21 @@ function plusDays(n) {
 }
 
 const selectedBzpc = ref({ bzpc: '', bzpcNm: '' })
+const bzpcLocked = ref(false)
+
+// 견적 목록에서 선택한 영업소가 있으면 고정
+onMounted(() => {
+  try {
+    const saved = sessionStorage.getItem('mobile_selected_bzpc')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (parsed?.bzpc) {
+        selectedBzpc.value = parsed
+        bzpcLocked.value = true
+      }
+    }
+  } catch (_) {}
+})
 const dplcModal = ref(null)
 const loading = ref(false)
 const error = ref('')
@@ -155,7 +181,6 @@ const form = ref({
   estiVldDt: plusDays(7),
   delivryDt: today(),
 
-  // 거래처 (모달로 채워짐)
   dplcCd: '',
   dplcNm: '',
   dplcCrgrNm: '',
@@ -170,7 +195,6 @@ const form = ref({
   ordrInfo: '',
   unprInfo: '',
 
-  // 거래처 선택 시 자동 채움 (백엔드 saveEstiHeader 가 flat 필드로 복사함)
   dplcGrpGrade: {
     dplcDcGrd: '', dplcDcGrdDoor: '', dplcDcGrdPannel: '', dplcDcGrdEtc: '',
     dplcDcGrdGlas: '', dplcDcGrdMlng: '', dplcDcGrdMtrl: '', dplcDcGrdProd: '',
@@ -191,7 +215,6 @@ const canSubmit = computed(
     !!form.value.estiVldDt
 )
 
-// 영업소 변경 시 이미 고른 거래처 초기화 (영업소 컨텍스트가 달라짐)
 watch(
   () => selectedBzpc.value.bzpc,
   (next, prev) => {
@@ -213,12 +236,10 @@ function clearDplc() {
   form.value.dplcRate = { dplcRt: '', dplcDoorRt: '', dplcPannelRt: '', dplcEtcRt: '', dplcGlasRt: '', dplcMlngRt: '', dplcMtrlRt: '', dplcProdRt: '' }
 }
 
-// NewEstimate.vue:2153~2249 패턴을 모바일 1차 범위로 옮긴 자동 채움
 function onDplcPick(row) {
   form.value.dplcCd = row.dplcCd || ''
   form.value.dplcNm = row.dplcNm || row.dplcCdNm || ''
 
-  // 담당자 우선순위: dplcCrgrNm > billCrgr > repNm
   form.value.dplcCrgrNm = row.dplcCrgrNm || row.billCrgr || row.repNm || ''
   form.value.dplcCrgrTel = row.dplcCrgrCcpc || row.billCrgrTel || row.tel || ''
   form.value.dplcCrgrMobile = row.dplcCrgrMobile || row.billCrgrMobile || row.repMobile || ''
@@ -226,24 +247,21 @@ function onDplcPick(row) {
   form.value.adr1 = row.adr1 || ''
   form.value.adr2 = row.adr2 || ''
 
-  // 주문자 기본값: 담당자명
   if (!form.value.ordrInfo && form.value.dplcCrgrNm) {
     form.value.ordrInfo = form.value.dplcCrgrNm
   }
 
-  // 할인등급 (8종)
   form.value.dplcGrpGrade = {
     dplcDcGrd:        row.dcGrd        || '',
     dplcDcGrdDoor:    row.dcGrdDoor    || '',
     dplcDcGrdPannel:  row.dcGrdPannel  || '',
-    dplcDcGrdEtc:     row.dcGrdEtc     || '',
+    dplcDcGrdEtc:     row.dcGrdOtherComp || row.dcGrdEtc || '',
     dplcDcGrdGlas:    row.dcGrdGlas    || '',
-    dplcDcGrdMlng:    row.dcGrdMlng    || '',
-    dplcDcGrdMtrl:    row.dcGrdMtrl    || '',
-    dplcDcGrdProd:    row.dcGrdProd    || '',
+    dplcDcGrdMlng:    row.dcGrdMold    || row.dcGrdMlng  || '',
+    dplcDcGrdMtrl:    row.dcGrdDtbtMtrl || row.dcGrdMtrl || '',
+    dplcDcGrdProd:    row.dcGrdDtbtGoods || row.dcGrdProd || '',
   }
 
-  // 가율 (NewEstimate.vue 에서 addInfo* 로 들어오는 것과 동일 키명)
   form.value.dplcRate = {
     dplcRt:        row.dplcRt       || row.addInfo1  || '',
     dplcDoorRt:    row.dplcDoorRt   || row.addInfo5  || '',
@@ -260,7 +278,6 @@ async function submit() {
   error.value = ''
   result.value = ''
 
-  // 검증
   if (!selectedBzpc.value.bzpc) return (error.value = '영업소를 선택하세요')
   if (!form.value.itgEstiNm)    return (error.value = '견적제목을 입력하세요')
   if (!form.value.dplcCd)       return (error.value = '거래처를 선택하세요')
@@ -282,8 +299,7 @@ async function submit() {
     }
 
     const itgEstiNo = data.itgEstiNo
-    result.value = `저장 완료. 견적번호 ${itgEstiNo} → 상세 화면으로 이동...`
-    // 헤더 저장만. 샤시/도어 견적은 상세 화면에서 추가.
+    result.value = `저장 완료. 견적번호 ${itgEstiNo} — 상세 화면으로 이동...`
     setTimeout(() => router.push(`/estimates/${itgEstiNo}`), 700)
   } catch (e) {
     error.value = e?.response?.data?.message || e.message || '저장 실패'

@@ -1,35 +1,40 @@
 <template>
   <div>
-    <div v-if="pageLoading" style="text-align:center;padding:60px 0">
-      <div style="font-size:14px;color:#64748b;margin-bottom:12px">견적 데이터 불러오는 중...</div>
+    <div v-if="pageLoading" class="loading-center">
+      <div class="loading-text">견적 데이터 불러오는 중...</div>
       <div class="loading-spinner"></div>
     </div>
-    <h2 v-else style="margin:4px 4px 12px;font-size:17px">{{ isEditMode ? `샤시 견적 #${editEstiSeq} 편집` : '샤시 견적 작성' }}</h2>
-
-    <div class="card" style="background:#eef2ff">
-      <div style="font-size:11px;color:#64748b">통합견적번호 / 샤시견적번호</div>
-      <div style="font-weight:600;font-size:13px">{{ itgEstiNo }}</div>
-      <div style="font-size:12px;color:#1f2a44">wEstiNo: {{ wEstiNo || '(없음)' }}</div>
+    <div v-else class="page-title-row">
+      <h2 class="page-title">{{ isReadonly ? `샤시 견적 #${editEstiSeq} 조회` : isEditMode ? `샤시 견적 #${editEstiSeq} 편집` : '샤시 견적 작성' }}</h2>
+      <button class="btn-back" @click="router.push(`/estimates/${itgEstiNo}`)">뒤로</button>
     </div>
 
-    <!-- ─── 필수 ─── -->
+    <div class="card card-info">
+      <div class="sash-info">
+        <div class="sash-label">통합견적번호 / 샤시견적번호</div>
+        <div class="sash-value">{{ itgEstiNo }}</div>
+        <div class="text-xs">wEstiNo: {{ wEstiNo || '(없음)' }}</div>
+      </div>
+    </div>
+
+    <!-- 필수 -->
     <div v-if="!pageLoading" class="card">
       <!-- 모형 -->
       <div class="field">
         <label>모형 *</label>
         <input
           readonly
+          data-clickable
           :value="modelDisplay"
           placeholder="터치해서 모형 검색"
-          style="cursor:pointer;background:#fff"
           @click="modelModal?.open()"
         />
-        <div v-if="form.mdlCd" style="font-size:11px;color:#64748b;margin-top:4px">
-          자재사 {{ form.mtrlCoNm || '-' }} · 사이즈코드 {{ form.sizCd || '-' }}
+        <div v-if="form.mdlCd" class="text-xs mt-xs">
+          자재사 {{ form.mtrlCoNm || '-' }} / 사이즈코드 {{ form.sizCd || '-' }}
         </div>
       </div>
 
-      <!-- 창형태 (모형 바로 아래) -->
+      <!-- 창형태 -->
       <div class="field">
         <label>창형태 *</label>
         <select v-model="form.wintydiCd" @change="onWintydiChange">
@@ -38,7 +43,7 @@
             {{ w.commCdNm }} ({{ w.commCdId }})
           </option>
         </select>
-        <div v-if="form.wintydiCd" style="font-size:11px;color:#0ea5e9;margin-top:2px">
+        <div v-if="form.wintydiCd" class="text-xs text-info mt-xs">
           입력가능: W={{ cntW }}개, H={{ cntH }}개, CS={{ cntCS }}개
         </div>
       </div>
@@ -55,9 +60,9 @@
           </select>
         </div>
         <div class="field">
-          <label>SF외 자재 *</label>
-          <select v-model="form.ousdSf">
-            <option value="">선택</option>
+          <label>SF외 자재 {{ ousdSfList.length ? '*' : '' }}</label>
+          <select v-model="form.ousdSf" :disabled="!ousdSfList.length">
+            <option value="">{{ ousdSfList.length ? '선택' : '해당없음' }}</option>
             <option v-for="s in ousdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
               {{ s.mtrlProdCd }}
             </option>
@@ -75,7 +80,7 @@
           <label>H (높이) *</label>
           <input v-model.number="form.h" type="number" inputmode="numeric" />
         </div>
-        <div class="field" style="max-width:80px">
+        <div class="field field-qty">
           <label>수량 *</label>
           <input v-model.number="form.qty" type="number" inputmode="numeric" min="1" />
         </div>
@@ -104,8 +109,8 @@
       </div>
 
       <!-- 특수조건 CS -->
-      <div v-if="cntCS > 0" style="margin-top:6px">
-        <div style="font-size:11px;color:#64748b;margin-bottom:4px">특수조건 (사이즈 mm)</div>
+      <div v-if="cntCS > 0" class="mt-sm">
+        <div class="field-cs-label">특수조건 (사이즈 mm)</div>
         <div class="row-flex">
           <div v-if="cntCS > 0" class="field"><label>CS</label><input v-model.number="form.cs" type="number" /></div>
           <div v-if="cntCS > 1" class="field"><label>CS1</label><input v-model.number="form.cs1" type="number" /></div>
@@ -129,11 +134,11 @@
         </select>
       </div>
 
-      <!-- 색상: 기본(고정 WH) / 내부 / 외부 한 줄 -->
+      <!-- 색상: 기본(고정 WH) / 내부 / 외부 -->
       <div class="row-flex row-compact">
         <div class="field" style="max-width:80px">
           <label>기본색상</label>
-          <input :value="form.crtnColrCd" readonly style="background:#f1f5f9;text-align:center" />
+          <input :value="form.crtnColrCd" readonly />
         </div>
         <div class="field">
           <label>내부색상 *</label>
@@ -147,7 +152,7 @@
         <div class="field">
           <label>
             외부색상
-            <span v-if="syncOusd" style="font-size:9px;color:#0ea5e9;font-weight:normal">· 동기화</span>
+            <span v-if="syncOusd" class="sync-badge">동기화</span>
           </label>
           <select v-model="form.ousdColrCd" @change="onOusdColorChange">
             <option v-for="c in colorList" :key="'o'+c.commCdId" :value="c.commCdId">
@@ -158,10 +163,10 @@
       </div>
     </div>
 
-    <!-- ─── 상세 옵션 1: VENT / 스크린 / 안전망 ─── -->
+    <!-- 상세 옵션 1: VENT / 스크린 / 안전망 -->
     <details class="card">
-      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#1f2a44">VENT / 스크린 / 안전망</summary>
-      <div style="margin-top:12px">
+      <summary>VENT / 스크린 / 안전망</summary>
+      <div class="details-body">
         <div class="field">
           <label>VENT 위치</label>
           <select v-model="form.ventLoc">
@@ -170,7 +175,7 @@
               {{ v.commCdNm }}
             </option>
           </select>
-          <div v-if="form.wintydiCd && !ventOptions.length" style="font-size:11px;color:#94a3b8;margin-top:2px">
+          <div v-if="form.wintydiCd && !ventOptions.length" class="text-xs text-muted mt-xs">
             이 창형태에는 VENT 옵션이 없습니다
           </div>
         </div>
@@ -189,35 +194,30 @@
             <label>안전망</label>
             <button
               type="button"
-              class="btn"
-              :class="form.isAluMf ? '' : 'secondary'"
-              style="padding:10px"
+              class="toggle-btn"
+              :class="form.isAluMf ? 'toggle-on' : 'toggle-off'"
               @click="toggleAluMf"
-            >
-              {{ form.isAluMf ? 'ON' : 'OFF' }}
-            </button>
+            >{{ form.isAluMf ? 'ON' : 'OFF' }}</button>
           </div>
         </div>
 
-        <div class="field" style="margin-top:8px">
+        <div class="field mt-sm">
           <label>실리콘 마감</label>
           <button
             type="button"
-            class="btn"
-            :class="form.slcnFnshYn ? '' : 'secondary'"
-            style="padding:10px;max-width:120px"
+            class="toggle-btn"
+            :class="form.slcnFnshYn ? 'toggle-on' : 'toggle-off'"
+            style="max-width:120px"
             @click="form.slcnFnshYn = !form.slcnFnshYn"
-          >
-            {{ form.slcnFnshYn ? 'ON' : 'OFF' }}
-          </button>
+          >{{ form.slcnFnshYn ? 'ON' : 'OFF' }}</button>
         </div>
       </div>
     </details>
 
-    <!-- ─── 상세 옵션 2: 핸들 ─── -->
+    <!-- 상세 옵션 2: 핸들 -->
     <details class="card">
-      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#1f2a44">핸들 (내부 / 외부)</summary>
-      <div style="margin-top:12px">
+      <summary>핸들 (내부 / 외부)</summary>
+      <div class="details-body">
         <div class="row-flex">
           <div class="field">
             <label>내부 핸들 종류</label>
@@ -231,8 +231,8 @@
               내부 핸들 높이
               <button
                 type="button"
-                style="margin-left:6px;padding:2px 8px;border-radius:6px;border:0;font-size:10px;cursor:pointer"
-                :style="{ background: form.insdHndlHEnabled ? '#1f2a44' : '#e5e7eb', color: form.insdHndlHEnabled ? '#fff' : '#1f2a44' }"
+                class="toggle-mini"
+                :class="form.insdHndlHEnabled ? 'toggle-on' : 'toggle-off'"
                 @click="toggleInsdHndlH"
               >{{ form.insdHndlHEnabled ? 'ON' : 'OFF' }}</button>
             </label>
@@ -241,7 +241,6 @@
               type="number"
               placeholder="mm"
               :disabled="!form.insdHndlHEnabled"
-              :style="{ background: form.insdHndlHEnabled ? '#fff' : '#f1f5f9' }"
             />
           </div>
         </div>
@@ -258,8 +257,8 @@
               외부 핸들 높이
               <button
                 type="button"
-                style="margin-left:6px;padding:2px 8px;border-radius:6px;border:0;font-size:10px;cursor:pointer"
-                :style="{ background: form.ousdHndlHEnabled ? '#1f2a44' : '#e5e7eb', color: form.ousdHndlHEnabled ? '#fff' : '#1f2a44' }"
+                class="toggle-mini"
+                :class="form.ousdHndlHEnabled ? 'toggle-on' : 'toggle-off'"
                 @click="toggleOusdHndlH"
               >{{ form.ousdHndlHEnabled ? 'ON' : 'OFF' }}</button>
             </label>
@@ -268,17 +267,16 @@
               type="number"
               placeholder="mm"
               :disabled="!form.ousdHndlHEnabled"
-              :style="{ background: form.ousdHndlHEnabled ? '#fff' : '#f1f5f9' }"
             />
           </div>
         </div>
       </div>
     </details>
 
-    <!-- ─── 상세 옵션 3: 유리 (모형이 지원하는 종류만 노출) ─── -->
+    <!-- 상세 옵션 3: 유리 -->
     <details class="card" v-if="hasAnyGlas">
-      <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#1f2a44">유리 자재 (SF / BF)</summary>
-      <div style="margin-top:12px">
+      <summary>유리 자재 (SF / BF)</summary>
+      <div class="details-body">
         <div v-if="glas.sfIn.length || glas.sfOut.length" class="row-flex">
           <div v-if="glas.sfIn.length" class="field">
             <label>SF 유리 (내)</label>
@@ -318,25 +316,33 @@
       </div>
     </div>
 
-    <!-- DEBUG: 저장 버튼 비활성 원인 진단 -->
-    <div class="card" style="background:#fffbeb;border:1px solid #fde68a;font-size:11px;font-family:monospace">
-      <div style="font-weight:600;margin-bottom:6px">저장 활성 조건 ({{ canSubmit ? '✅ 모두 OK' : '❌ 누락 있음' }})</div>
-      <div :style="{color: itgEstiNo ? '#16a34a' : '#dc2626'}">itgEstiNo: {{ itgEstiNo || '(빈값)' }}</div>
-      <div :style="{color: form.mdlCd ? '#16a34a' : '#dc2626'}">mdlCd: {{ form.mdlCd || '(빈값)' }}</div>
-      <div :style="{color: form.wintydiCd ? '#16a34a' : '#dc2626'}">wintydiCd: {{ form.wintydiCd || '(빈값)' }} · 옵션수: {{ wintydiList.length }}</div>
-      <div :style="{color: form.w ? '#16a34a' : '#dc2626'}">w: {{ form.w || '(빈값)' }}</div>
-      <div :style="{color: form.h ? '#16a34a' : '#dc2626'}">h: {{ form.h || '(빈값)' }}</div>
-      <div :style="{color: form.qty ? '#16a34a' : '#dc2626'}">qty: {{ form.qty || '(빈값)' }}</div>
-      <div :style="{color: form.insdColrCd ? '#16a34a' : '#dc2626'}">insdColrCd: {{ form.insdColrCd || '(빈값)' }} · 색상수: {{ colorList.length }}</div>
-      <div :style="{color: form.insdSf ? '#16a34a' : '#dc2626'}">insdSf: {{ form.insdSf || '(빈값)' }} · SF내옵션수: {{ insdSfList.length }}</div>
-      <div :style="{color: form.ousdSf ? '#16a34a' : '#dc2626'}">ousdSf: {{ form.ousdSf || '(빈값)' }} · SF외옵션수: {{ ousdSfList.length }}</div>
+    <!-- readonly: 조회 모드 -->
+    <div v-if="isReadonly" class="card card-info">
+      <div class="text-xs">이 견적은 현재 수정할 수 없는 상태입니다.</div>
     </div>
 
-    <button class="btn" :disabled="loading || !canSubmit" @click="submit">
-      {{ loading ? '저장 중...' : '샤시 견적 저장' }}
-    </button>
-    <div v-if="error" class="card" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:12px;white-space:pre-wrap">{{ error }}</div>
-    <div v-if="ok" class="error" style="color:#16a34a">샤시 견적 저장 완료 (estiSeq {{ ok }})</div>
+    <!-- 저장/추가 버튼 (편집 가능할 때만) -->
+    <template v-else-if="!savedSeq">
+      <div class="row-flex">
+        <button class="btn" :disabled="loading || !canSubmit" @click="submit">
+          {{ loading ? '저장 중...' : isEditMode ? '수정 저장' : '샤시 견적 저장' }}
+        </button>
+        <button v-if="isEditMode" class="btn accent" :disabled="loading || !canSubmit" @click="submitAndAdd">
+          {{ loading ? '저장 중...' : '저장 + 추가' }}
+        </button>
+      </div>
+    </template>
+
+    <!-- 저장 성공 후 선택 -->
+    <div v-if="savedSeq" class="card card-success">
+      <div class="fw-700 mb-sm">샤시 견적 저장 완료 (#{{ savedSeq }})</div>
+      <div class="row-flex">
+        <button class="btn accent" @click="addAnother">+ 샤시 추가</button>
+        <button class="btn secondary" @click="goBack">목록으로</button>
+      </div>
+    </div>
+
+    <div v-if="error" class="card card-error">{{ error }}</div>
 
     <ModelSearchModal ref="modelModal" @select="onModelPick" />
   </div>
@@ -354,18 +360,18 @@ const modelModal = ref(null)
 
 const itgEstiNo = ref(route.query.itgEstiNo || '')
 const wEstiNo = ref(route.query.wEstiNo || '')
-const editEstiSeq = ref(route.query.estiSeq || '')   // 편집 모드면 값 있음
+const editEstiSeq = ref(route.query.estiSeq || '')
 const isEditMode = computed(() => !!editEstiSeq.value)
+const isReadonly = computed(() => route.query.readonly === 'Y')
 
-// 코드 마스터
-const wintydiList = ref([])     // 창형태 — 모형 선택 시 모형이 지원하는 것만 채워짐
-const wintydiMap = ref({})      // wintydiCd → {cntW, cntH, cntCS}
-const ventAllList = ref([])     // VENT 전체 (commCdGrpId=48), 클라이언트 필터링
-const screenAllList = ref([])   // 스크린 전체 (commCdGrpId=379), 클라이언트 필터링
-const handleAllList = ref([])   // 핸들 전체 (commCdGrpId=378), 모형 자재사 따라 필터링
-const ordTypList = ref([])      // 샤시 발주구분 (selectOrdTypCd)
+const wintydiList = ref([])
+const wintydiMap = ref({})
+const ventAllList = ref([])
+const screenAllList = ref([])
+const handleAllList = ref([])
+const ordTypList = ref([])
 const colorList = ref([])
-const pickedMdlMtrlCo = ref('') // 선택된 모형의 자재회사 코드 (HC/HW/LX 등)
+const pickedMdlMtrlCo = ref('')
 
 const form = ref({
   mdlCd: '', mdlNm: '', wintydiCd: '', mtrlCoNm: '',
@@ -374,15 +380,15 @@ const form = ref({
   w1: null, w2: null, w3: null, w4: null, w5: null,
   h1: null, h2: null, h3: null, h4: null, h5: null,
   cs: null, cs1: null, cs2: null, cs3: null, cs4: null, cs5: null,
-  crtnColrCd: 'WH',  // 웹 SashForm 라인 7810: 항상 "WH" 하드코딩
+  crtnColrCd: 'WH',
   insdColrCd: '', ousdColrCd: '',
   insdSf: '', ousdSf: '',
-  sashOrdTypCd: '',                                  // 발주구분
+  sashOrdTypCd: '',
   ventLoc: '', screenType: '',
   isAluMf: false,
-  slcnFnshYn: false,                                   // 실리콘 마감 여부
+  slcnFnshYn: false,
   insdHandleType: '', ousdHandleType: '',
-  insdHndlHEnabled: false, ousdHndlHEnabled: false,    // 핸들 높이 직접 입력 토글
+  insdHndlHEnabled: false, ousdHndlHEnabled: false,
   insdHndlH: null, ousdHndlH: null,
   mtrlCds1: '', mtrlCds2: '', mtrlCds3: '', mtrlCds4: '',
   remSrc: '',
@@ -395,72 +401,61 @@ const glas = ref({ sfIn: [], sfOut: [], bfIn: [], bfOut: [] })
 const loading = ref(false)
 const pageLoading = ref(false)
 const error = ref('')
-const ok = ref('')
+const savedSeq = ref('')
 const syncOusd = ref(true)
 
 const modelDisplay = computed(() => (form.value.mdlCd ? `${form.value.mdlNm} (${form.value.mdlCd})` : ''))
 
-// 창형태 → 카운트
 const cntInfo = computed(() => wintydiMap.value[form.value.wintydiCd] || {})
 const cntW = computed(() => Number(cntInfo.value.cntW) || 0)
 const cntH = computed(() => Number(cntInfo.value.cntH) || 0)
 const cntCS = computed(() => Number(cntInfo.value.cntCS) || 0)
 
-// VENT: 창형태에 묶임 (web SashForm getVent: addInfo1='30', addInfo2=wintydiCd)
 const ventOptions = computed(() =>
   ventAllList.value.filter((v) => v.addInfo1 === '30' && v.addInfo2 === form.value.wintydiCd)
 )
 
-// 스크린: 안전망(isAluMf) 여부에 따라 ALU/PVC 필터 (web SashForm getScreen: addInfo4)
 const screenOptions = computed(() => {
   const target = form.value.isAluMf ? 'ALU' : 'PVC'
   return screenAllList.value.filter((s) => s.addInfo4 === target)
 })
 
-// 핸들: HC/HW/LX 자재회사면 전체, 그 외는 addInfo7 !== 'Y' 만 (web SashForm getHandle 동일)
 const handleOptions = computed(() => {
   const isCheckMtrlCo = ['HC', 'HW', 'LX'].includes(pickedMdlMtrlCo.value)
   return handleAllList.value.filter((h) => isCheckMtrlCo || h.addInfo7 !== 'Y')
 })
 
-// 유리 카드 노출 여부 (4가지 중 하나라도 옵션 있으면)
 const hasAnyGlas = computed(() => glas.value.sfIn.length || glas.value.sfOut.length || glas.value.bfIn.length || glas.value.bfOut.length)
 
 const canSubmit = computed(
   () =>
     !!itgEstiNo.value && !!form.value.mdlCd && !!form.value.wintydiCd &&
     !!form.value.w && !!form.value.h && !!form.value.qty &&
-    !!form.value.insdColrCd && !!form.value.insdSf && !!form.value.ousdSf
+    !!form.value.insdColrCd && !!form.value.insdSf &&
+    (!ousdSfList.value.length || !!form.value.ousdSf)
 )
 
 onMounted(async () => {
-  // 편집 모드면 기존 샤시 데이터 로드
   if (isEditMode.value) {
     pageLoading.value = true
     try {
-      sessionStorage.removeItem('mobile_sash_edit_row')   // 사용 안 함, cleanup
+      sessionStorage.removeItem('mobile_sash_edit_row')
       const payload = {
         itgEstiNo: itgEstiNo.value,
         estiNo: wEstiNo.value,
         estiNos: route.query.estiNos || '1',
         estiSeq: String(editEstiSeq.value),
       }
-      console.log('[SashNew] selectSashDetail payload', payload)
       const { data } = await selectSashDetail(payload)
-      console.log('[SashNew] selectSashDetail response', data)
       let r = data?.resultData
 
       if (r) {
-        // Lombok-Jackson 직렬화 이슈 보정 (wSize → WSize 등)
-        // Java 필드 wSize → getWSize() → Jackson 키 "WSize" (앞두자가 모두 대문자처럼 인식)
-        // wEstiNo, wSize, hSize 동일 패턴
         const pick = (...keys) => {
           for (const k of keys) {
             if (r[k] != null && r[k] !== '') return r[k]
           }
           return null
         }
-        // 모든 wXxx / hXxx 형태 필드 alias 매핑
         r.wSize = pick('wSize', 'WSize', 'w_size', 'W_SIZE')
         r.hSize = pick('hSize', 'HSize', 'h_size', 'H_SIZE')
         r.w1Size = pick('w1Size', 'W1Size')
@@ -473,7 +468,6 @@ onMounted(async () => {
         r.h3Size = pick('h3Size', 'H3Size')
         r.h4Size = pick('h4Size', 'H4Size')
         r.h5Size = pick('h5Size', 'H5Size')
-        // 핵심 필드 매핑 (백엔드 EstiClWindInfo → form)
         Object.assign(form.value, {
           mdlCd: r.mdlCd || '',
           mdlNm: r.mdlNm || '',
@@ -489,9 +483,13 @@ onMounted(async () => {
           w1: r.w1Size ? Number(r.w1Size) : null,
           w2: r.w2Size ? Number(r.w2Size) : null,
           w3: r.w3Size ? Number(r.w3Size) : null,
+          w4: r.w4Size ? Number(r.w4Size) : null,
+          w5: r.w5Size ? Number(r.w5Size) : null,
           h1: r.h1Size ? Number(r.h1Size) : null,
           h2: r.h2Size ? Number(r.h2Size) : null,
           h3: r.h3Size ? Number(r.h3Size) : null,
+          h4: r.h4Size ? Number(r.h4Size) : null,
+          h5: r.h5Size ? Number(r.h5Size) : null,
           cs: r.csSize ? Number(r.csSize) : null,
           cs1: r.cs1Size ? Number(r.cs1Size) : null,
           cs2: r.cs2Size ? Number(r.cs2Size) : null,
@@ -509,7 +507,6 @@ onMounted(async () => {
           mtrlCds4: r.mtrlCds4 || r.ousdBfGlasMtrlCd || '',
           remSrc: r.remSrc || '',
         })
-        // 모형 옵션 마스터 로드 (창형태/SF자재/유리/핸들)
         if (r.mdlCd) await onModelPick({ ...r })
       }
     } catch (e) {
@@ -517,9 +514,7 @@ onMounted(async () => {
     }
   }
 
-  // 색상 + 창형태/VENT/스크린 코드 동시 로드 (편집/신규 공용)
   try {
-    // 창형태(30)는 모형 선택 시 /model/wintydi 로 모형별 제한 리스트만 받음 → 마운트 시 미로드
     const [colorRes, ventRes, screenRes, handleRes, ordRes] = await Promise.all([
       searchColorList(),
       searchCodeList('48'),
@@ -527,13 +522,11 @@ onMounted(async () => {
       searchCodeList('378'),
       searchSashOrdTypCd(),
     ])
-    // 매퍼가 commCdVal 로 내려보냄 → commCdId 별칭 추가해서 일관 사용
     const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
     colorList.value = normCd(colorRes.data?.resultList)
     ventAllList.value = normCd(ventRes.data?.resultList)
     screenAllList.value = normCd(screenRes.data?.resultList)
     handleAllList.value = normCd(handleRes.data?.resultList)
-    // 발주구분: 공통코드 143 중 addInfo2='Y' (샤시 전용) 만 필터링 — 웹 SashForm.getOrdTypCode 와 동일
     ordTypList.value = normCd(ordRes.data?.resultList).filter((c) => c.addInfo2 === 'Y')
     if (ordTypList.value.length && !form.value.sashOrdTypCd) {
       form.value.sashOrdTypCd = ordTypList.value[0].commCdId
@@ -554,7 +547,6 @@ async function onModelPick(row) {
   form.value.bsmfOrdUtmCd = row.bsmfOrdUtmCd || ''
   pickedMdlMtrlCo.value = row.mtrlCo || ''
 
-  // 모형별 창형태 리스트 (제한적) — 웹 getWintyDi 와 동일
   try {
     const { data } = await searchModelWintydi(row.mdlCd)
     const list = (data?.resultList || []).map((it) => ({
@@ -566,7 +558,6 @@ async function onModelPick(row) {
     const map = {}
     for (const it of list) map[it.commCdId] = { cntW: it.addInfo1, cntH: it.addInfo2, cntCS: it.addInfo3 }
     wintydiMap.value = map
-    // 모형 row 의 wintydiCd 가 리스트에 있으면 그걸 선택, 아니면 첫 항목
     const rowWin = row.wintydiCd
     form.value.wintydiCd = (rowWin && map[rowWin]) ? rowWin : (list[0]?.commCdId ?? '')
   } catch (e) {
@@ -575,14 +566,12 @@ async function onModelPick(row) {
     form.value.wintydiCd = ''
   }
 
-  // 모형 변경 시 추가 사이즈 / CS 초기화
   Object.assign(form.value, {
     w1: null, w2: null, w3: null, w4: null, w5: null,
     h1: null, h2: null, h3: null, h4: null, h5: null,
     cs: null, cs1: null, cs2: null, cs3: null, cs4: null, cs5: null,
   })
 
-  // SF/유리 마스터 로드 (유리는 itgEstiNo/wEstiNo 같이 전달 필요)
   try {
     const [sfRes, glasRes] = await Promise.all([
       searchModelSf(row.mdlCd).catch(() => ({ data: {} })),
@@ -596,8 +585,17 @@ async function onModelPick(row) {
     ])
     insdSfList.value = sfRes.data?.insdSf || sfRes.data?.resultList || []
     ousdSfList.value = sfRes.data?.ousdSf || sfRes.data?.resultList3 || []
-    if (insdSfList.value.length) form.value.insdSf = insdSfList.value[0].mtrlProdCd
-    if (ousdSfList.value.length) form.value.ousdSf = ousdSfList.value[0].mtrlProdCd
+    // 편집 모드에서 기존 SF자재 유지
+    if (!form.value.insdSf || !insdSfList.value.some(s => s.mtrlProdCd === form.value.insdSf)) {
+      if (insdSfList.value.length) form.value.insdSf = insdSfList.value[0].mtrlProdCd
+    }
+    if (ousdSfList.value.length) {
+      if (!form.value.ousdSf || !ousdSfList.value.some(s => s.mtrlProdCd === form.value.ousdSf)) {
+        form.value.ousdSf = ousdSfList.value[0].mtrlProdCd
+      }
+    } else {
+      form.value.ousdSf = ''
+    }
 
     glas.value = {
       sfIn: glasRes.data?.resultList || [],
@@ -611,21 +609,35 @@ async function onModelPick(row) {
     if (glas.value.bfOut.length) form.value.mtrlCds4 = glas.value.bfOut[0].mtrlCd
   } catch (e) {}
 
-  // 색상 디폴트: crtnColrCd 는 'WH' 고정, 내부/외부는 첫 색상으로 세팅
   form.value.crtnColrCd = 'WH'
   if (colorList.value.length) {
     const def = colorList.value[0].commCdId
-    form.value.insdColrCd = def
-    form.value.ousdColrCd = def
-    syncOusd.value = true
+    // 편집 모드에서 기존 색상 유지
+    if (!form.value.insdColrCd || !colorList.value.some(c => c.commCdId === form.value.insdColrCd)) {
+      form.value.insdColrCd = def
+    }
+    if (!form.value.ousdColrCd || !colorList.value.some(c => c.commCdId === form.value.ousdColrCd)) {
+      form.value.ousdColrCd = def
+    }
+    syncOusd.value = form.value.insdColrCd === form.value.ousdColrCd
   }
 
-  // 창형태 변경에 따른 VENT/스크린 첫 옵션 자동 선택
+  // ventAllList가 아직 로드 안 됐으면 여기서 직접 로드
+  if (!ventAllList.value.length) {
+    try {
+      const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
+      const [ventRes, screenRes] = await Promise.all([
+        searchCodeList('48'),
+        searchCodeList('379'),
+      ])
+      ventAllList.value = normCd(ventRes.data?.resultList)
+      screenAllList.value = normCd(screenRes.data?.resultList)
+    } catch (_) {}
+  }
+
   applyVentDefault()
   applyScreenDefault()
 
-  // 핸들 자동 선택 — 웹 SashForm: 모형 선택 후 getHandle("C") → 첫 옵션 자동 세팅
-  // handleAllList 가 아직 비어있으면 (마운트 비동기 미완) 여기서 로드
   if (!handleAllList.value.length) {
     try {
       const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
@@ -634,18 +646,21 @@ async function onModelPick(row) {
     } catch (_) {}
   }
   applyHandleDefault()
-  console.log('[SashNew] handle auto-select:', form.value.insdHandleType, '/', form.value.ousdHandleType, '/ options:', handleOptions.value.length)
 }
 
 function applyHandleDefault() {
   const opts = handleOptions.value
   const first = opts.length ? opts[0].commCdId : ''
-  form.value.insdHandleType = first
-  form.value.ousdHandleType = first
+  // 기존 값이 옵션에 있으면 유지, 없으면 첫 번째로 세팅
+  if (!form.value.insdHandleType || !opts.some(o => o.commCdId === form.value.insdHandleType)) {
+    form.value.insdHandleType = first
+  }
+  if (!form.value.ousdHandleType || !opts.some(o => o.commCdId === form.value.ousdHandleType)) {
+    form.value.ousdHandleType = first
+  }
 }
 
 function onWintydiChange() {
-  // 사용자가 창형태 직접 변경 → CS/W#/H# 초기화
   Object.assign(form.value, {
     w1: null, w2: null, w3: null, w4: null, w5: null,
     h1: null, h2: null, h3: null, h4: null, h5: null,
@@ -656,16 +671,19 @@ function onWintydiChange() {
 
 function applyVentDefault() {
   const opts = ventOptions.value
-  form.value.ventLoc = opts.length ? opts[0].commCdId : ''
+  if (!form.value.ventLoc || !opts.some(o => o.commCdId === form.value.ventLoc)) {
+    form.value.ventLoc = opts.length ? opts[0].commCdId : ''
+  }
 }
 function applyScreenDefault() {
   const opts = screenOptions.value
-  form.value.screenType = opts.length ? opts[0].commCdId : ''
+  if (!form.value.screenType || !opts.some(o => o.commCdId === form.value.screenType)) {
+    form.value.screenType = opts.length ? opts[0].commCdId : ''
+  }
 }
 
 function toggleAluMf() {
   form.value.isAluMf = !form.value.isAluMf
-  // 스크린 옵션 필터 변경 → 첫 옵션 재선택
   applyScreenDefault()
 }
 
@@ -685,9 +703,32 @@ function onOusdColorChange() {
   syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
 }
 
+function goBack() {
+  router.push(`/estimates/${itgEstiNo.value}`)
+}
+
+function addAnother() {
+  savedSeq.value = ''
+  error.value = ''
+  editEstiSeq.value = ''
+  Object.assign(form.value, {
+    w: null, h: null, qty: 1,
+    w1: null, w2: null, w3: null, w4: null, w5: null,
+    h1: null, h2: null, h3: null, h4: null, h5: null,
+    cs: null, cs1: null, cs2: null, cs3: null, cs4: null, cs5: null,
+    remSrc: '',
+  })
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+async function submitAndAdd() {
+  await submit()
+  if (savedSeq.value) addAnother()
+}
+
 async function submit() {
   error.value = ''
-  ok.value = ''
+  savedSeq.value = ''
 
   if (!itgEstiNo.value) return (error.value = '통합견적번호가 없습니다')
   if (!form.value.mdlCd) return (error.value = '모형을 선택하세요')
@@ -695,7 +736,8 @@ async function submit() {
   if (!form.value.w || !form.value.h) return (error.value = 'W/H 사이즈를 입력하세요')
   if (!form.value.qty || form.value.qty < 1) return (error.value = '수량을 1 이상으로 입력하세요')
   if (!form.value.insdColrCd) return (error.value = '내부 색상을 선택하세요')
-  if (!form.value.insdSf || !form.value.ousdSf) return (error.value = 'SF내/외 자재를 선택하세요')
+  if (!form.value.insdSf) return (error.value = 'SF내 자재를 선택하세요')
+  if (ousdSfList.value.length && !form.value.ousdSf) return (error.value = 'SF외 자재를 선택하세요')
 
   loading.value = true
   try {
@@ -705,7 +747,7 @@ async function submit() {
       itgEstiNo: itgEstiNo.value,
       estiNo: wEstiNo.value,
       estiNos: route.query.estiNos || '1',
-      estiSeq: editEstiSeq.value || '',  // 편집 모드면 기존 seq, 신규면 백엔드 자동 채번
+      estiSeq: editEstiSeq.value || '',
 
       mdlCd: f.mdlCd,
       wintydiCd: f.wintydiCd,
@@ -722,13 +764,13 @@ async function submit() {
       csSize: s(f.cs), cs1Size: s(f.cs1), cs2Size: s(f.cs2),
       cs3Size: s(f.cs3), cs4Size: s(f.cs4), cs5Size: s(f.cs5),
 
-      crtnColrCd: 'WH',  // 웹과 동일하게 고정
+      crtnColrCd: 'WH',
       insdColrCd: f.insdColrCd,
       ousdColrCd: f.ousdColrCd || f.insdColrCd,
 
       insdSf: f.insdSf,
       ousdSf: f.ousdSf,
-      ventLoc: f.ventLoc,
+      ventLoc: f.ventLoc || '',
       screenType: f.screenType,
       aluMfYn: f.isAluMf ? 'Y' : 'N',
       bfSlcnFnshYn: f.slcnFnshYn ? 'Y' : 'N',
@@ -743,10 +785,15 @@ async function submit() {
 
       remSrc: f.remSrc,
     }
+    // ventLoc이 비면 첫 번째 VENT 옵션으로 자동 채움 (STEP1 프로시저 NULL 방지)
+    if (!payload.ventLoc && ventOptions.value.length) {
+      payload.ventLoc = ventOptions.value[0].commCdId
+      form.value.ventLoc = payload.ventLoc
+    }
     const { data } = await saveSashEsti(payload)
     if (data.resultCd === 'save.ok' || data.resultCd === 'save.success' || data.resultCd === 'procedure complete') {
-      ok.value = data.estiSeq || '저장됨'
-      setTimeout(() => router.push(`/estimates/${itgEstiNo.value}`), 1000)
+      savedSeq.value = data.estiSeq || '저장됨'
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       error.value = `저장 실패\nresultCd: ${data.resultCd}\nmessage: ${data.resultMessage || '(없음)'}\nresponse: ${JSON.stringify(data, null, 2)}`
     }

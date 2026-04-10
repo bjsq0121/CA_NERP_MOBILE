@@ -2,13 +2,14 @@
   <div>
     <div class="field">
       <label>영업소 (BZPC)</label>
-      <!-- 일반 USER: 본인 bzpc 고정 / ADMIN: 클릭해서 선택 -->
       <input
         readonly
+        :data-clickable="canOpen ? '' : null"
         :value="displayValue"
-        :placeholder="auth.isAdmin ? '영업소를 선택하세요' : ''"
-        :style="{ background: auth.isAdmin ? '#fff' : '#f1f5f9', cursor: auth.isAdmin ? 'pointer' : 'not-allowed' }"
-        @click="auth.isAdmin && open()"
+        :placeholder="canOpen ? '영업소를 선택하세요' : ''"
+        :disabled="!canOpen"
+        :style="{ cursor: canOpen ? 'pointer' : 'not-allowed' }"
+        @click="canOpen && open()"
       />
     </div>
 
@@ -16,7 +17,7 @@
       <div v-if="visible" class="modal-mask" @click.self="visible = false">
         <div class="modal-sheet">
           <h3>영업소 선택</h3>
-          <div class="field" style="margin-bottom:8px">
+          <div class="field mb-sm">
             <input v-model="keyword" placeholder="영업소명 검색" />
           </div>
           <div v-if="loading" class="empty">불러오는 중...</div>
@@ -24,10 +25,10 @@
           <div v-else>
             <div v-for="row in filtered" :key="row.bzpc" class="bzpc-row" @click="pick(row)">
               <div class="nm">{{ row.bzpcNm }}</div>
-              <div class="cd">{{ row.bzpc }} · {{ row.vkburNm || row.vkbur }}</div>
+              <div class="cd">{{ row.bzpc }} / {{ row.vkburNm || row.vkbur }}</div>
             </div>
           </div>
-          <button class="btn secondary" style="margin-top:12px" @click="visible = false">닫기</button>
+          <button class="btn secondary mt-md" @click="visible = false">닫기</button>
         </div>
       </div>
     </teleport>
@@ -39,10 +40,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { searchBzpcChoice } from '../api/bzpc'
 
-const props = defineProps({ modelValue: Object })
+const props = defineProps({
+  modelValue: Object,
+  locked: { type: Boolean, default: false },
+})
 const emit = defineEmits(['update:modelValue'])
 
 const auth = useAuthStore()
+const canOpen = computed(() => auth.isAdmin && !props.locked)
 const visible = ref(false)
 const loading = ref(false)
 const list = ref([])
@@ -60,7 +65,6 @@ const filtered = computed(() => {
   return list.value.filter((r) => (r.bzpcNm || '').toLowerCase().includes(k) || (r.bzpc || '').toLowerCase().includes(k))
 })
 
-// 일반 USER는 본인 bzpc 자동 세팅
 onMounted(() => {
   if (!auth.isAdmin && auth.bzpc && !props.modelValue?.bzpc) {
     emit('update:modelValue', { bzpc: auth.bzpc, bzpcNm: auth.bzpcNm })
@@ -79,7 +83,6 @@ async function open() {
   if (list.value.length) return
   loading.value = true
   try {
-    // ADMIN: vkgrp 제한 없이, 단 자신의 사업장 범위 내
     const { data } = await searchBzpcChoice({
       searchVkbur: auth.vkbur || '',
       searchVkgrp: auth.isAdmin ? '' : auth.vkgrp,

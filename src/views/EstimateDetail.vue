@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 4px 12px">
-      <h2 style="margin:0;font-size:17px">견적 상세</h2>
-      <button class="btn secondary" style="width:auto;padding:6px 12px;font-size:12px" @click="router.back()">← 뒤로</button>
+    <div class="page-title-row">
+      <h2 class="page-title">견적 상세</h2>
+      <button class="btn-back" @click="router.back()">뒤로</button>
     </div>
 
     <div v-if="loading" class="empty">불러오는 중...</div>
@@ -10,60 +10,96 @@
     <template v-else>
       <!-- 헤더 정보 -->
       <div class="card">
-        <div style="font-size:12px;color:#64748b">통합견적번호</div>
-        <div style="font-weight:700;font-size:15px;margin-bottom:6px">{{ header.itgEstiNo }}</div>
-        <div class="title" style="font-size:16px">{{ header.itgEstiNm }}</div>
+        <div class="detail-label">통합견적번호</div>
+        <div class="detail-value">{{ header.itgEstiNo }}</div>
+        <div class="detail-title mb-sm">{{ header.itgEstiNm }}</div>
         <div class="meta">
           <span class="badge">{{ header.bzpcNm || header.bzpc }}</span>
           <span>{{ header.dplcNm }}</span>
-          <span v-if="header.jobsNm">· {{ header.jobsNm }}</span>
+          <span v-if="header.jobsNm">{{ header.jobsNm }}</span>
         </div>
-        <div class="meta">
+        <div class="meta mt-xs">
           <span>등록 {{ formatDt(header.inputDtm) }}</span>
-          <span v-if="header.estiVldDt">· 유효 {{ formatDate(header.estiVldDt) }}</span>
+          <span v-if="header.estiVldDt">유효 {{ formatDate(header.estiVldDt) }}</span>
         </div>
-        <div v-if="header.dplcReqRemSrc" class="meta" style="white-space:pre-wrap">{{ header.dplcReqRemSrc }}</div>
+        <div v-if="header.dplcReqRemSrc" class="text-xs mt-sm" style="white-space:pre-wrap">{{ header.dplcReqRemSrc }}</div>
       </div>
 
-      <!-- 견적 추가 버튼 -->
-      <div class="card">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#1f2a44">견적 추가</div>
-        <div class="row-flex" style="flex-wrap:wrap;gap:8px">
-          <button class="btn" style="flex:1 1 45%" :disabled="issuing" @click="addSash">
+      <!-- 견적 추가 버튼: 견적(10) 상태일 때만 -->
+      <div v-if="canEdit" class="card">
+        <div class="section-title">견적 추가</div>
+        <div class="btn-grid">
+          <button class="btn accent" :disabled="issuing" @click="addSash">
             {{ issuing ? '준비 중...' : '+ 샤시' }}
           </button>
-          <button class="btn secondary" style="flex:1 1 45%" disabled>+ 도어 (준비중)</button>
-          <button class="btn secondary" style="flex:1 1 45%" disabled>+ 유리 (준비중)</button>
-          <button class="btn secondary" style="flex:1 1 45%" disabled>+ 몰딩 (준비중)</button>
+          <button class="btn secondary" disabled>+ 도어 (준비중)</button>
+          <button class="btn secondary" disabled>+ 유리 (준비중)</button>
+          <button class="btn secondary" disabled>+ 몰딩 (준비중)</button>
         </div>
         <div v-if="issueError" class="error">{{ issueError }}</div>
       </div>
 
       <!-- 샤시 견적 목록 -->
       <div class="card">
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#1f2a44">
+        <div class="section-title">
           샤시 견적 {{ sashRows.length ? `(${sashRows.length})` : '' }}
         </div>
         <div v-if="!sashRows.length" class="empty" style="padding:20px 0">등록된 샤시 견적이 없습니다.</div>
         <div
           v-for="row in sashRows"
           :key="row.estiSeq"
-          class="list-row"
-          style="margin-bottom:6px;cursor:pointer"
+          class="sash-card"
           @click="openSash(row)"
         >
-          <div class="title" style="font-size:14px">
-            #{{ row.estiSeq }} {{ row.mdlNm || row.mdlCd }}
+          <!-- 1행: 순번 + 모형명 + 상태 배지 -->
+          <div class="sash-card-header">
+            <span class="sash-seq">#{{ row.estiSeq }}</span>
+            <span class="sash-model">{{ row.mdlNm || row.mdlCd }}</span>
+            <span :class="statusBadgeClass(row)">{{ statusLabel(row) }}</span>
           </div>
-          <div class="meta" style="font-size:11px">
-            <span>색상 {{ row.colrNm || buildColor(row) }}</span>
-            <span>· 규격 {{ row.wh || ((row.wSize || row.WSize || '') + '×' + (row.hSize || row.HSize || '')) }}</span>
-            <span>· {{ row.qty }} SET</span>
+
+          <!-- 2행: 스펙 그리드 -->
+          <div class="sash-specs">
+            <div class="sash-spec">
+              <span class="sash-spec-label">규격</span>
+              <span class="sash-spec-value">{{ buildSize(row) }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">수량</span>
+              <span class="sash-spec-value">{{ row.qty || '-' }} SET</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">색상</span>
+              <span class="sash-spec-value">{{ row.color || row.colrNm || buildColor(row) || '-' }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">VENT</span>
+              <span class="sash-spec-value">{{ row.ventLocNm || '-' }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">핸들</span>
+              <span class="sash-spec-value">{{ buildHandle(row) }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">스크린</span>
+              <span class="sash-spec-value">{{ row.screenTypeNm || '-' }}</span>
+            </div>
           </div>
-          <div class="meta" style="font-size:12px;color:#1f2a44;margin-top:4px;font-weight:600">
-            <span>공급가 {{ Number(row.totCstAmtAddGlas || row.totSaleAmt || 0).toLocaleString() }}</span>
-            <span>· VAT {{ Number(row.vatAmt || row.totVatAmt || 0).toLocaleString() }}</span>
-            <span>· 합계 {{ Number(row.vatTotCstAmt || row.totAmt || 0).toLocaleString() }}원</span>
+
+          <!-- 3행: 가격 -->
+          <div class="sash-price-row">
+            <div class="sash-price">
+              <span class="sash-price-label">공급가</span>
+              <span class="sash-price-value">{{ fmtPrice(row.totCstAmtAddGlas || row.totSaleAmt) }}</span>
+            </div>
+            <div class="sash-price">
+              <span class="sash-price-label">VAT</span>
+              <span class="sash-price-value">{{ fmtPrice(row.vatAmt || row.totVatAmt) }}</span>
+            </div>
+            <div class="sash-price sash-price-total">
+              <span class="sash-price-label">합계</span>
+              <span class="sash-price-value">{{ fmtPrice(row.vatTotCstAmt || row.totAmt) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -72,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { selectEstiHeader, searchSashList, issueEstiNo } from '../api/estimate'
 
@@ -87,8 +123,66 @@ const loading = ref(false)
 const issuing = ref(false)
 const issueError = ref('')
 
-function formatDate(s) { if (!s) return ''; const t = String(s).replace(/-/g, ''); return `${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)}` }
+// 견적(10) 상태일 때만 추가/편집 가능
+const canEdit = computed(() => {
+  if (!sashRows.value.length) return true  // 아직 견적이 없으면 추가 가능
+  // 모든 항목이 견적(10) 상태인지 확인
+  return sashRows.value.every(r => !r.stCd || r.stCd === '10')
+})
+
+// 상태 코드 → 표시 이름
+function statusLabel(row) {
+  const cd = row.stCd || row.igStCd || '10'
+  if (row.stNm) return row.stNm
+  const map = { '10': '견적', '20': '장바구니', '50': '주문', '51': '수주', '65': '절단', '66': '생산', '80': '출고', '90': '완료' }
+  return map[cd] || cd
+}
+
+// 상태 코드 → 배지 CSS
+function statusBadgeClass(row) {
+  const cd = row.stCd || row.igStCd || '10'
+  if (cd === '10') return 'badge'
+  if (cd === '20') return 'badge badge-warn'
+  if (cd === '50' || cd === '51') return 'badge badge-success'
+  return 'badge badge-dark'
+}
+
+function formatDate(s) {
+  if (!s) return ''
+  const t = String(s).replace(/[-/.]/g, '')
+  if (t.length >= 8) return `${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)}`
+  if (String(s).includes('-')) return String(s).slice(0, 10)
+  return String(s)
+}
 function formatDt(s) { return s ? String(s).slice(0, 10) : '' }
+function fmtPrice(v) { return Number(v || 0).toLocaleString() }
+
+function buildSize(row) {
+  if (row.wh) return row.wh
+  const w = row.wSize || row.WSize || row.w0Size || ''
+  const h = row.hSize || row.HSize || row.h0Size || ''
+  if (!w && !h) return '-'
+  return `${w} x ${h}`
+}
+
+function buildColor(row) {
+  const parts = []
+  if (row.crtnColrNm) parts.push(row.crtnColrNm)
+  const inOut = [row.insdColrNm, row.ousdColrNm].filter(Boolean)
+  if (inOut.length === 2 && inOut[0] === inOut[1]) parts.push(inOut[0])
+  else if (inOut.length === 2) parts.push(`${inOut[0]}+${inOut[1]}`)
+  else if (inOut.length === 1) parts.push(inOut[0])
+  return parts.join('/') || '-'
+}
+
+function buildHandle(row) {
+  const inner = row.hdlInsd || ''
+  const outer = row.hdlOusd || ''
+  if (!inner && !outer) return '-'
+  if (inner === outer || !outer) return inner
+  if (!inner) return outer
+  return `${inner}/${outer}`
+}
 
 onMounted(async () => {
   loading.value = true
@@ -101,10 +195,9 @@ onMounted(async () => {
       try {
         const { data: sashData } = await searchSashList(itgEstiNo)
         const raw = sashData?.resultList || []
-        // 매퍼가 자재별로 행을 여러 개 반환하므로 estiSeq 단위로 dedupe
         const seen = new Map()
         for (const row of raw) {
-          const key = `${row.estiNo || row.windEstiNo || ''}_${row.estiNos || '1'}_${row.estiSeq}`
+          const key = `${row.estiNo || row.windEstiNo || ''}_${row.estiNos || '1'}_${row.estiSeq || '0'}`
           if (!seen.has(key)) seen.set(key, row)
         }
         sashRows.value = Array.from(seen.values())
@@ -117,33 +210,9 @@ onMounted(async () => {
   }
 })
 
-// 자재명/유리/스크린/창형태로 spec 문자열 조립
-// 예: "BF225R/SF115G/MF115D/5투/5투/스텐방충망/2W_정"
-function buildSpec(row) {
-  const parts = []
-  if (row.bfNm) parts.push(row.bfNm)
-  if (row.insdSfNm) parts.push(row.insdSfNm)
-  if (row.mfNm) parts.push(row.mfNm)
-  if (row.insdGlasThikCd) parts.push(`${row.insdGlasThikCd}투`)
-  if (row.ousdGlasThikCd) parts.push(`${row.ousdGlasThikCd}투`)
-  if (row.screenTypeNm) parts.push(row.screenTypeNm)
-  if (row.wintydiNm) parts.push(row.wintydiNm)
-  return parts.join('/')
-}
-// "백/백+백/백" 형식: 기준/내+외/내 (또는 sashForm 의 표시 패턴)
-function buildColor(row) {
-  const parts = []
-  if (row.crtnColrNm) parts.push(row.crtnColrNm)
-  const inOut = [row.insdColrNm, row.ousdColrNm].filter(Boolean)
-  if (inOut.length === 2 && inOut[0] === inOut[1]) parts.push(inOut[0])
-  else if (inOut.length === 2) parts.push(`${inOut[0]}+${inOut[1]}`)
-  else if (inOut.length === 1) parts.push(inOut[0])
-  return parts.join('/')
-}
-
 function openSash(row) {
-  // 클릭한 row 전체를 sessionStorage 에 저장 → SashNew 에서 즉시 form 채움
-  // (selectEstiClWindInfo 매퍼 의존 없이 list 데이터를 그대로 활용)
+  const cd = row.stCd || row.igStCd || '10'
+  const editable = cd === '10'
   try {
     sessionStorage.setItem('mobile_sash_edit_row', JSON.stringify(row))
   } catch (_) {}
@@ -154,18 +223,17 @@ function openSash(row) {
       wEstiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
       estiNos: row.estiNos || '1',
       estiSeq: row.estiSeq,
+      readonly: editable ? '' : 'Y',
     },
   })
 }
 
 async function addSash() {
   issueError.value = ''
-  // 이미 wEstiNo 가 있으면 그대로 이동
   if (wEstiNo.value) {
     router.push({ path: '/estimates/sash/new', query: { itgEstiNo, wEstiNo: wEstiNo.value } })
     return
   }
-  // 없으면 발번
   issuing.value = true
   try {
     const { data } = await issueEstiNo(itgEstiNo, 'wind')

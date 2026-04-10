@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 style="margin:4px 4px 12px;font-size:17px">거래처 목록</h2>
+    <h2 class="page-title">거래처 목록</h2>
     <div class="card">
       <BzpcSelector v-model="selectedBzpc" />
       <div class="field">
@@ -19,7 +19,7 @@
       <div class="meta">
         <span class="badge">{{ row.dplcCd }}</span>
         <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
-        <span v-if="row.repNm">· 대표 {{ row.repNm }}</span>
+        <span v-if="row.repNm">대표 {{ row.repNm }}</span>
       </div>
     </div>
   </div>
@@ -50,12 +50,15 @@ async function search() {
   error.value = ''
   loading.value = true
   try {
-    const { data } = await searchClientList({
-      bzpc: selectedBzpc.value.bzpc,
+    const payload = {
+      searchBzpc: selectedBzpc.value.bzpc,
+      searchDplcScn: '02',
+      searchBztcSt: '01',
       searchDplcNm: keyword.value || '',
       curPage: 1,
       perPage: 50,
-    })
+    }
+    const { data } = await searchClientList(payload)
     rows.value = data?.resultList || []
   } catch (e) {
     error.value = e?.response?.data?.message || e.message || '조회 실패'

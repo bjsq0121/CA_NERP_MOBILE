@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 style="margin:4px 4px 12px;font-size:17px">견적 목록</h2>
+    <h2 class="page-title">견적 목록</h2>
     <div class="card">
       <BzpcSelector v-model="selectedBzpc" />
       <div class="row-flex">
@@ -15,7 +15,7 @@
       </div>
       <div class="field">
         <label>견적제목 검색</label>
-        <input v-model="keyword" placeholder="제목/현장 검색" />
+        <input v-model="keyword" placeholder="제목/현장 검색" @keyup.enter="search" />
       </div>
       <button class="btn" :disabled="loading || !selectedBzpc.bzpc" @click="search">
         {{ loading ? '조회 중...' : '조회' }}
@@ -28,19 +28,18 @@
       v-for="row in rows"
       :key="row.itgEstiNo"
       class="list-row"
-      style="cursor:pointer"
       @click="goDetail(row)"
     >
       <div class="title">{{ row.itgEstiNm || '(제목없음)' }}</div>
       <div class="meta">
         <span class="badge">{{ row.itgEstiNo }}</span>
         <span>{{ row.dplcNm }}</span>
-        <span v-if="row.jobsNm">· {{ row.jobsNm }}</span>
+        <span v-if="row.jobsNm">{{ row.jobsNm }}</span>
       </div>
       <div class="meta">
         <span>등록 {{ formatDt(row.inputDtm) }}</span>
-        <span v-if="row.estiVldDt">· 유효 {{ formatDate(row.estiVldDt) }}</span>
-        <span v-if="row.bzpcNm">· {{ row.bzpcNm }}</span>
+        <span v-if="row.estiVldDt">유효 {{ formatDate(row.estiVldDt) }}</span>
+        <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
       </div>
     </div>
   </div>
@@ -72,18 +71,29 @@ function daysAgo(n) {
   d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
 }
-function formatDate(s) { if (!s) return ''; const t = String(s).replace(/-/g, ''); return `${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)}` }
+function formatDate(s) {
+  if (!s) return ''
+  const t = String(s).replace(/[-/.]/g, '')
+  if (t.length >= 8) return `${t.slice(0,4)}-${t.slice(4,6)}-${t.slice(6,8)}`
+  if (String(s).includes('-')) return String(s).slice(0, 10)
+  return String(s)
+}
 function formatDt(s) { return s ? String(s).slice(0, 10) : '' }
 
 onMounted(() => {
-  // 일반 USER는 본인 bzpc 자동 세팅 → 즉시 조회
   if (!auth.isAdmin && auth.bzpc) {
     selectedBzpc.value = { bzpc: auth.bzpc, bzpcNm: auth.bzpcNm }
     search()
   }
 })
 
-watch(selectedBzpc, (v) => { if (v?.bzpc) search() })
+watch(selectedBzpc, (v) => {
+  if (v?.bzpc) {
+    // 신규 견적에서 영업소 고정용
+    sessionStorage.setItem('mobile_selected_bzpc', JSON.stringify(v))
+    search()
+  }
+})
 
 async function search() {
   error.value = ''

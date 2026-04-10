@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 style="margin:4px 4px 12px;font-size:17px">거래처 등록</h2>
+    <h2 class="page-title">거래처 등록</h2>
     <div class="card">
       <BzpcSelector v-model="selectedBzpc" />
       <div class="field">
@@ -25,7 +25,7 @@
         {{ loading ? '저장 중...' : '저장' }}
       </button>
       <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="ok" class="error" style="color:#16a34a">저장되었습니다.</div>
+      <div v-if="ok" class="success-msg">저장되었습니다.</div>
     </div>
   </div>
 </template>
