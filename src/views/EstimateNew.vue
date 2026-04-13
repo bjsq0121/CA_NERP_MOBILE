@@ -48,9 +48,15 @@
             <input v-model="form.dplcCrgrMobile" />
           </div>
         </div>
-        <div class="field">
-          <label>전화번호</label>
-          <input v-model="form.dplcCrgrTel" />
+        <div class="row-flex">
+          <div class="field">
+            <label>전화번호</label>
+            <input v-model="form.dplcCrgrTel" />
+          </div>
+          <div class="field">
+            <label>월 신용한도</label>
+            <input readonly :value="form.monCreditLimit ? Number(form.monCreditLimit).toLocaleString() + '원' : '-'" />
+          </div>
         </div>
 
         <!-- 할인등급 표시 -->
@@ -186,6 +192,7 @@ const form = ref({
   dplcCrgrNm: '',
   dplcCrgrTel: '',
   dplcCrgrMobile: '',
+  monCreditLimit: '',
   adr1: '',
   adr2: '',
 
@@ -230,7 +237,7 @@ function openDplcSearch() {
 function clearDplc() {
   Object.assign(form.value, {
     dplcCd: '', dplcNm: '', dplcCrgrNm: '', dplcCrgrTel: '', dplcCrgrMobile: '',
-    adr1: '', adr2: '', ordrInfo: '',
+    monCreditLimit: '', adr1: '', adr2: '', ordrInfo: '',
   })
   form.value.dplcGrpGrade = { dplcDcGrd: '', dplcDcGrdDoor: '', dplcDcGrdPannel: '', dplcDcGrdEtc: '', dplcDcGrdGlas: '', dplcDcGrdMlng: '', dplcDcGrdMtrl: '', dplcDcGrdProd: '' }
   form.value.dplcRate = { dplcRt: '', dplcDoorRt: '', dplcPannelRt: '', dplcEtcRt: '', dplcGlasRt: '', dplcMlngRt: '', dplcMtrlRt: '', dplcProdRt: '' }
@@ -244,6 +251,7 @@ function onDplcPick(row) {
   form.value.dplcCrgrTel = row.dplcCrgrCcpc || row.billCrgrTel || row.tel || ''
   form.value.dplcCrgrMobile = row.dplcCrgrMobile || row.billCrgrMobile || row.repMobile || ''
 
+  form.value.monCreditLimit = row.monCreditLimit || ''
   form.value.adr1 = row.adr1 || ''
   form.value.adr2 = row.adr2 || ''
 

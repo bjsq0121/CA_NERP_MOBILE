@@ -31,6 +31,9 @@
               <span v-if="row.bzno"> / 사업자 {{ row.bzno }}</span>
               <span v-if="row.repNm"> / 대표 {{ row.repNm }}</span>
             </div>
+            <div v-if="row.monCreditLimit != null" class="cd">
+              신용한도: {{ Number(row.monCreditLimit).toLocaleString() }}원
+            </div>
           </div>
         </div>
 
@@ -59,6 +62,7 @@ const form = ref({ searchDplcNm: '', searchBzno: '' })
 function open() {
   visible.value = true
   rows.value = []
+  search()
 }
 function close() { visible.value = false }
 function reset() {
