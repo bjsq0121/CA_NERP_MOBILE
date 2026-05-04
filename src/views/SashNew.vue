@@ -17,296 +17,36 @@
       </div>
     </div>
 
-    <!-- 필수 -->
-    <div v-if="!pageLoading" class="card">
-      <!-- 모형 -->
-      <div class="field">
-        <label>모형 *</label>
-        <input
-          readonly
-          data-clickable
-          :value="modelDisplay"
-          placeholder="터치해서 모형 검색"
-          @click="modelModal?.open()"
-        />
-        <div v-if="form.mdlCd" class="text-xs mt-xs">
-          자재사 {{ form.mtrlCoNm || '-' }} / 사이즈코드 {{ form.sizCd || '-' }}
-        </div>
-      </div>
+    <!-- 필수 필드 -->
+    <SashFormMain
+      v-if="!pageLoading"
+      :form="form"
+      :wintydi-list="wintydiList"
+      :wintydi-map="wintydiMap"
+      :insd-sf-list="insdSfList"
+      :ousd-sf-list="ousdSfList"
+      :ord-typ-list="ordTypList"
+      :color-list="colorList"
+      :sync-ousd="syncOusd"
+      @open-model="modelModal?.open()"
+      @wintydi-change="onWintydiChange"
+      @insd-color-change="onInsdColorChange"
+      @ousd-color-change="onOusdColorChange"
+    />
 
-      <!-- 창형태 -->
-      <div class="field">
-        <label>창형태 *</label>
-        <select v-model="form.wintydiCd" @change="onWintydiChange">
-          <option value="">선택</option>
-          <option v-for="w in wintydiList" :key="w.commCdId" :value="w.commCdId">
-            {{ w.commCdNm }} ({{ w.commCdId }})
-          </option>
-        </select>
-        <div v-if="form.wintydiCd" class="text-xs text-info mt-xs">
-          입력가능: W={{ cntW }}개, H={{ cntH }}개, CS={{ cntCS }}개
-        </div>
-      </div>
+    <!-- 옵션: VENT / 스크린 / 안전망 -->
+    <SashOptionVent
+      :form="form"
+      :vent-options="ventOptions"
+      :screen-options="screenOptions"
+      @toggle-alu-mf="toggleAluMf"
+    />
 
-      <!-- SF 자재 -->
-      <div class="row-flex">
-        <div class="field">
-          <label>SF내 자재 *</label>
-          <select v-model="form.insdSf">
-            <option value="">선택</option>
-            <option v-for="s in insdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
-              {{ s.mtrlProdCd }}
-            </option>
-          </select>
-        </div>
-        <div class="field">
-          <label>SF외 자재 {{ ousdSfList.length ? '*' : '' }}</label>
-          <select v-model="form.ousdSf" :disabled="!ousdSfList.length">
-            <option value="">{{ ousdSfList.length ? '선택' : '해당없음' }}</option>
-            <option v-for="s in ousdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
-              {{ s.mtrlProdCd }}
-            </option>
-          </select>
-        </div>
-      </div>
+    <!-- 옵션: 핸들 -->
+    <SashOptionHandle :form="form" :handle-options="handleOptions" />
 
-      <!-- 사이즈 W/H/수량 -->
-      <div class="row-flex">
-        <div class="field">
-          <label>W (폭) *</label>
-          <input v-model.number="form.w" type="number" inputmode="numeric" />
-        </div>
-        <div class="field">
-          <label>H (높이) *</label>
-          <input v-model.number="form.h" type="number" inputmode="numeric" />
-        </div>
-        <div class="field field-qty">
-          <label>수량 *</label>
-          <input v-model.number="form.qty" type="number" inputmode="numeric" min="1" />
-        </div>
-      </div>
-
-      <!-- 추가 W -->
-      <div v-if="cntW > 1" class="row-flex">
-        <div v-if="cntW > 1" class="field"><label>W1</label><input v-model.number="form.w1" type="number" /></div>
-        <div v-if="cntW > 2" class="field"><label>W2</label><input v-model.number="form.w2" type="number" /></div>
-        <div v-if="cntW > 3" class="field"><label>W3</label><input v-model.number="form.w3" type="number" /></div>
-      </div>
-      <div v-if="cntW > 4" class="row-flex">
-        <div v-if="cntW > 4" class="field"><label>W4</label><input v-model.number="form.w4" type="number" /></div>
-        <div v-if="cntW > 5" class="field"><label>W5</label><input v-model.number="form.w5" type="number" /></div>
-      </div>
-
-      <!-- 추가 H -->
-      <div v-if="cntH > 1" class="row-flex">
-        <div v-if="cntH > 1" class="field"><label>H1</label><input v-model.number="form.h1" type="number" /></div>
-        <div v-if="cntH > 2" class="field"><label>H2</label><input v-model.number="form.h2" type="number" /></div>
-        <div v-if="cntH > 3" class="field"><label>H3</label><input v-model.number="form.h3" type="number" /></div>
-      </div>
-      <div v-if="cntH > 4" class="row-flex">
-        <div v-if="cntH > 4" class="field"><label>H4</label><input v-model.number="form.h4" type="number" /></div>
-        <div v-if="cntH > 5" class="field"><label>H5</label><input v-model.number="form.h5" type="number" /></div>
-      </div>
-
-      <!-- 특수조건 CS -->
-      <div v-if="cntCS > 0" class="mt-sm">
-        <div class="field-cs-label">특수조건 (사이즈 mm)</div>
-        <div class="row-flex">
-          <div v-if="cntCS > 0" class="field"><label>CS</label><input v-model.number="form.cs" type="number" /></div>
-          <div v-if="cntCS > 1" class="field"><label>CS1</label><input v-model.number="form.cs1" type="number" /></div>
-          <div v-if="cntCS > 2" class="field"><label>CS2</label><input v-model.number="form.cs2" type="number" /></div>
-        </div>
-        <div v-if="cntCS > 3" class="row-flex">
-          <div v-if="cntCS > 3" class="field"><label>CS3</label><input v-model.number="form.cs3" type="number" /></div>
-          <div v-if="cntCS > 4" class="field"><label>CS4</label><input v-model.number="form.cs4" type="number" /></div>
-          <div v-if="cntCS > 5" class="field"><label>CS5</label><input v-model.number="form.cs5" type="number" /></div>
-        </div>
-      </div>
-
-      <!-- 발주구분 -->
-      <div class="field">
-        <label>발주구분 *</label>
-        <select v-model="form.sashOrdTypCd">
-          <option value="">선택</option>
-          <option v-for="o in ordTypList" :key="o.commCdId" :value="o.commCdId">
-            {{ o.commCdNm }}
-          </option>
-        </select>
-      </div>
-
-      <!-- 색상: 기본(고정 WH) / 내부 / 외부 -->
-      <div class="row-flex row-compact">
-        <div class="field" style="max-width:80px">
-          <label>기본색상</label>
-          <input :value="form.crtnColrCd" readonly />
-        </div>
-        <div class="field">
-          <label>내부색상 *</label>
-          <select v-model="form.insdColrCd" @change="onInsdColorChange">
-            <option value="">선택</option>
-            <option v-for="c in colorList" :key="'i'+c.commCdId" :value="c.commCdId">
-              {{ c.commCdNm }}
-            </option>
-          </select>
-        </div>
-        <div class="field">
-          <label>
-            외부색상
-            <span v-if="syncOusd" class="sync-badge">동기화</span>
-          </label>
-          <select v-model="form.ousdColrCd" @change="onOusdColorChange">
-            <option v-for="c in colorList" :key="'o'+c.commCdId" :value="c.commCdId">
-              {{ c.commCdNm }}
-            </option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- 상세 옵션 1: VENT / 스크린 / 안전망 -->
-    <details class="card">
-      <summary>VENT / 스크린 / 안전망</summary>
-      <div class="details-body">
-        <div class="field">
-          <label>VENT 위치</label>
-          <select v-model="form.ventLoc">
-            <option value="">없음</option>
-            <option v-for="v in ventOptions" :key="v.commCdId" :value="v.commCdId">
-              {{ v.commCdNm }}
-            </option>
-          </select>
-          <div v-if="form.wintydiCd && !ventOptions.length" class="text-xs text-muted mt-xs">
-            이 창형태에는 VENT 옵션이 없습니다
-          </div>
-        </div>
-
-        <div class="row-flex" style="align-items:flex-end">
-          <div class="field" style="flex:2">
-            <label>스크린 종류</label>
-            <select v-model="form.screenType">
-              <option value="">선택</option>
-              <option v-for="s in screenOptions" :key="s.commCdId" :value="s.commCdId">
-                {{ s.commCdNm }}
-              </option>
-            </select>
-          </div>
-          <div class="field" style="flex:1;max-width:120px">
-            <label>안전망</label>
-            <button
-              type="button"
-              class="toggle-btn"
-              :class="form.isAluMf ? 'toggle-on' : 'toggle-off'"
-              @click="toggleAluMf"
-            >{{ form.isAluMf ? 'ON' : 'OFF' }}</button>
-          </div>
-        </div>
-
-        <div class="field mt-sm">
-          <label>실리콘 마감</label>
-          <button
-            type="button"
-            class="toggle-btn"
-            :class="form.slcnFnshYn ? 'toggle-on' : 'toggle-off'"
-            style="max-width:120px"
-            @click="form.slcnFnshYn = !form.slcnFnshYn"
-          >{{ form.slcnFnshYn ? 'ON' : 'OFF' }}</button>
-        </div>
-      </div>
-    </details>
-
-    <!-- 상세 옵션 2: 핸들 -->
-    <details class="card">
-      <summary>핸들 (내부 / 외부)</summary>
-      <div class="details-body">
-        <div class="row-flex">
-          <div class="field">
-            <label>내부 핸들 종류</label>
-            <select v-model="form.insdHandleType">
-              <option value="">선택</option>
-              <option v-for="h in handleOptions" :key="'i'+h.commCdId" :value="h.commCdId">{{ h.commCdNm }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>
-              내부 핸들 높이
-              <button
-                type="button"
-                class="toggle-mini"
-                :class="form.insdHndlHEnabled ? 'toggle-on' : 'toggle-off'"
-                @click="toggleInsdHndlH"
-              >{{ form.insdHndlHEnabled ? 'ON' : 'OFF' }}</button>
-            </label>
-            <input
-              v-model.number="form.insdHndlH"
-              type="number"
-              placeholder="mm"
-              :disabled="!form.insdHndlHEnabled"
-            />
-          </div>
-        </div>
-        <div class="row-flex">
-          <div class="field">
-            <label>외부 핸들 종류</label>
-            <select v-model="form.ousdHandleType">
-              <option value="">선택</option>
-              <option v-for="h in handleOptions" :key="'o'+h.commCdId" :value="h.commCdId">{{ h.commCdNm }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>
-              외부 핸들 높이
-              <button
-                type="button"
-                class="toggle-mini"
-                :class="form.ousdHndlHEnabled ? 'toggle-on' : 'toggle-off'"
-                @click="toggleOusdHndlH"
-              >{{ form.ousdHndlHEnabled ? 'ON' : 'OFF' }}</button>
-            </label>
-            <input
-              v-model.number="form.ousdHndlH"
-              type="number"
-              placeholder="mm"
-              :disabled="!form.ousdHndlHEnabled"
-            />
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <!-- 상세 옵션 3: 유리 -->
-    <details class="card" v-if="hasAnyGlas">
-      <summary>유리 자재 (SF / BF)</summary>
-      <div class="details-body">
-        <div v-if="glas.sfIn.length || glas.sfOut.length" class="row-flex">
-          <div v-if="glas.sfIn.length" class="field">
-            <label>SF 유리 (내)</label>
-            <select v-model="form.mtrlCds1">
-              <option v-for="g in glas.sfIn" :key="g.mtrlCd" :value="g.mtrlCd">{{ g.mtrlNm }}</option>
-            </select>
-          </div>
-          <div v-if="glas.sfOut.length" class="field">
-            <label>SF 유리 (외)</label>
-            <select v-model="form.mtrlCds2">
-              <option v-for="g in glas.sfOut" :key="g.mtrlCd" :value="g.mtrlCd">{{ g.mtrlNm }}</option>
-            </select>
-          </div>
-        </div>
-        <div v-if="glas.bfIn.length || glas.bfOut.length" class="row-flex">
-          <div v-if="glas.bfIn.length" class="field">
-            <label>BF 유리 (내)</label>
-            <select v-model="form.mtrlCds3">
-              <option v-for="g in glas.bfIn" :key="g.mtrlCd" :value="g.mtrlCd">{{ g.mtrlNm }}</option>
-            </select>
-          </div>
-          <div v-if="glas.bfOut.length" class="field">
-            <label>BF 유리 (외)</label>
-            <select v-model="form.mtrlCds4">
-              <option v-for="g in glas.bfOut" :key="g.mtrlCd" :value="g.mtrlCd">{{ g.mtrlNm }}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </details>
+    <!-- 옵션: 유리 -->
+    <SashOptionGlass :form="form" :glas="glas" />
 
     <!-- 비고 -->
     <div class="card">
@@ -352,7 +92,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ModelSearchModal from '../components/ModelSearchModal.vue'
+import SashFormMain from '../components/SashFormMain.vue'
+import SashOptionVent from '../components/SashOptionVent.vue'
+import SashOptionHandle from '../components/SashOptionHandle.vue'
+import SashOptionGlass from '../components/SashOptionGlass.vue'
 import { saveSashEsti, searchColorList, searchModelSf, searchGlasList, searchCodeList, searchModelWintydi, searchSashOrdTypCd, selectSashDetail } from '../api/estimate'
+import { buildSashSavePayload } from '../utils/sashPayload'
 
 const route = useRoute()
 const router = useRouter()
@@ -404,12 +149,7 @@ const error = ref('')
 const savedSeq = ref('')
 const syncOusd = ref(true)
 
-const modelDisplay = computed(() => (form.value.mdlCd ? `${form.value.mdlNm} (${form.value.mdlCd})` : ''))
-
-const cntInfo = computed(() => wintydiMap.value[form.value.wintydiCd] || {})
-const cntW = computed(() => Number(cntInfo.value.cntW) || 0)
-const cntH = computed(() => Number(cntInfo.value.cntH) || 0)
-const cntCS = computed(() => Number(cntInfo.value.cntCS) || 0)
+// --- Computed ---
 
 const ventOptions = computed(() =>
   ventAllList.value.filter((v) => v.addInfo1 === '30' && v.addInfo2 === form.value.wintydiCd)
@@ -425,8 +165,6 @@ const handleOptions = computed(() => {
   return handleAllList.value.filter((h) => isCheckMtrlCo || h.addInfo7 !== 'Y')
 })
 
-const hasAnyGlas = computed(() => glas.value.sfIn.length || glas.value.sfOut.length || glas.value.bfIn.length || glas.value.bfOut.length)
-
 const canSubmit = computed(
   () =>
     !!itgEstiNo.value && !!form.value.mdlCd && !!form.value.wintydiCd &&
@@ -435,108 +173,123 @@ const canSubmit = computed(
     (!ousdSfList.value.length || !!form.value.ousdSf)
 )
 
+// --- 코드 마스터 정규화 ---
+
+const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
+
+// --- 초기 로드 ---
+
 onMounted(async () => {
   if (isEditMode.value) {
     pageLoading.value = true
     try {
-      sessionStorage.removeItem('mobile_sash_edit_row')
-      const payload = {
-        itgEstiNo: itgEstiNo.value,
-        estiNo: wEstiNo.value,
-        estiNos: route.query.estiNos || '1',
-        estiSeq: String(editEstiSeq.value),
-      }
-      const { data } = await selectSashDetail(payload)
-      let r = data?.resultData
-
-      if (r) {
-        const pick = (...keys) => {
-          for (const k of keys) {
-            if (r[k] != null && r[k] !== '') return r[k]
-          }
-          return null
-        }
-        r.wSize = pick('wSize', 'WSize', 'w_size', 'W_SIZE')
-        r.hSize = pick('hSize', 'HSize', 'h_size', 'H_SIZE')
-        r.w1Size = pick('w1Size', 'W1Size')
-        r.w2Size = pick('w2Size', 'W2Size')
-        r.w3Size = pick('w3Size', 'W3Size')
-        r.w4Size = pick('w4Size', 'W4Size')
-        r.w5Size = pick('w5Size', 'W5Size')
-        r.h1Size = pick('h1Size', 'H1Size')
-        r.h2Size = pick('h2Size', 'H2Size')
-        r.h3Size = pick('h3Size', 'H3Size')
-        r.h4Size = pick('h4Size', 'H4Size')
-        r.h5Size = pick('h5Size', 'H5Size')
-        Object.assign(form.value, {
-          mdlCd: r.mdlCd || '',
-          mdlNm: r.mdlNm || '',
-          wintydiCd: r.wintydiCd || '',
-          mtrlCoNm: r.mtrlCoNm || '',
-          bftydiCd: r.bftydiCd || '',
-          sizCd: r.sizCd || '',
-          bsmfOrdUtmCd: r.bsmfOrdUtmCd || '',
-          sashOrdTypCd: r.sashOrdTypCd || '',
-          w: r.wSize ? Number(r.wSize) : null,
-          h: r.hSize ? Number(r.hSize) : null,
-          qty: r.qty ? Number(r.qty) : 1,
-          w1: r.w1Size ? Number(r.w1Size) : null,
-          w2: r.w2Size ? Number(r.w2Size) : null,
-          w3: r.w3Size ? Number(r.w3Size) : null,
-          w4: r.w4Size ? Number(r.w4Size) : null,
-          w5: r.w5Size ? Number(r.w5Size) : null,
-          h1: r.h1Size ? Number(r.h1Size) : null,
-          h2: r.h2Size ? Number(r.h2Size) : null,
-          h3: r.h3Size ? Number(r.h3Size) : null,
-          h4: r.h4Size ? Number(r.h4Size) : null,
-          h5: r.h5Size ? Number(r.h5Size) : null,
-          cs: r.csSize ? Number(r.csSize) : null,
-          cs1: r.cs1Size ? Number(r.cs1Size) : null,
-          cs2: r.cs2Size ? Number(r.cs2Size) : null,
-          insdColrCd: r.insdColrCd || '',
-          ousdColrCd: r.ousdColrCd || '',
-          insdSf: r.insdSf || '',
-          ousdSf: r.ousdSf || '',
-          ventLoc: r.ventLoc || '',
-          screenType: r.screenType || '',
-          insdHandleType: r.insdHandleType || '',
-          ousdHandleType: r.ousdHandleType || '',
-          mtrlCds1: r.mtrlCds1 || r.insdSfGlasMtrlCd || '',
-          mtrlCds2: r.mtrlCds2 || r.ousdSfGlasMtrlCd || '',
-          mtrlCds3: r.mtrlCds3 || r.insdBfGlasMtrlCd || '',
-          mtrlCds4: r.mtrlCds4 || r.ousdBfGlasMtrlCd || '',
-          remSrc: r.remSrc || '',
-        })
-        if (r.mdlCd) await onModelPick({ ...r })
-      }
+      await loadEditData()
     } catch (e) {
       error.value = '편집 데이터 로드 실패: ' + (e.message || '')
     }
   }
 
   try {
-    const [colorRes, ventRes, screenRes, handleRes, ordRes] = await Promise.all([
-      searchColorList(),
-      searchCodeList('48'),
-      searchCodeList('379'),
-      searchCodeList('378'),
-      searchSashOrdTypCd(),
-    ])
-    const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
-    colorList.value = normCd(colorRes.data?.resultList)
-    ventAllList.value = normCd(ventRes.data?.resultList)
-    screenAllList.value = normCd(screenRes.data?.resultList)
-    handleAllList.value = normCd(handleRes.data?.resultList)
-    ordTypList.value = normCd(ordRes.data?.resultList).filter((c) => c.addInfo2 === 'Y')
-    if (ordTypList.value.length && !form.value.sashOrdTypCd) {
-      form.value.sashOrdTypCd = ordTypList.value[0].commCdId
-    }
+    await loadMasters()
   } catch (e) {
     error.value = '코드 마스터 로드 실패: ' + (e.message || '')
   } finally {
     pageLoading.value = false
   }
 })
+
+async function loadEditData() {
+  sessionStorage.removeItem('mobile_sash_edit_row')
+  const payload = {
+    itgEstiNo: itgEstiNo.value,
+    estiNo: wEstiNo.value,
+    estiNos: route.query.estiNos || '1',
+    estiSeq: String(editEstiSeq.value),
+  }
+  const { data } = await selectSashDetail(payload)
+  let r = data?.resultData
+  if (!r) return
+
+  const pick = (...keys) => {
+    for (const k of keys) {
+      if (r[k] != null && r[k] !== '') return r[k]
+    }
+    return null
+  }
+  r.wSize = pick('wSize', 'WSize', 'w_size', 'W_SIZE')
+  r.hSize = pick('hSize', 'HSize', 'h_size', 'H_SIZE')
+  r.w1Size = pick('w1Size', 'W1Size')
+  r.w2Size = pick('w2Size', 'W2Size')
+  r.w3Size = pick('w3Size', 'W3Size')
+  r.w4Size = pick('w4Size', 'W4Size')
+  r.w5Size = pick('w5Size', 'W5Size')
+  r.h1Size = pick('h1Size', 'H1Size')
+  r.h2Size = pick('h2Size', 'H2Size')
+  r.h3Size = pick('h3Size', 'H3Size')
+  r.h4Size = pick('h4Size', 'H4Size')
+  r.h5Size = pick('h5Size', 'H5Size')
+
+  Object.assign(form.value, {
+    mdlCd: r.mdlCd || '',
+    mdlNm: r.mdlNm || '',
+    wintydiCd: r.wintydiCd || '',
+    mtrlCoNm: r.mtrlCoNm || '',
+    bftydiCd: r.bftydiCd || '',
+    sizCd: r.sizCd || '',
+    bsmfOrdUtmCd: r.bsmfOrdUtmCd || '',
+    sashOrdTypCd: r.sashOrdTypCd || '',
+    w: r.wSize ? Number(r.wSize) : null,
+    h: r.hSize ? Number(r.hSize) : null,
+    qty: r.qty ? Number(r.qty) : 1,
+    w1: r.w1Size ? Number(r.w1Size) : null,
+    w2: r.w2Size ? Number(r.w2Size) : null,
+    w3: r.w3Size ? Number(r.w3Size) : null,
+    w4: r.w4Size ? Number(r.w4Size) : null,
+    w5: r.w5Size ? Number(r.w5Size) : null,
+    h1: r.h1Size ? Number(r.h1Size) : null,
+    h2: r.h2Size ? Number(r.h2Size) : null,
+    h3: r.h3Size ? Number(r.h3Size) : null,
+    h4: r.h4Size ? Number(r.h4Size) : null,
+    h5: r.h5Size ? Number(r.h5Size) : null,
+    cs: r.csSize ? Number(r.csSize) : null,
+    cs1: r.cs1Size ? Number(r.cs1Size) : null,
+    cs2: r.cs2Size ? Number(r.cs2Size) : null,
+    insdColrCd: r.insdColrCd || '',
+    ousdColrCd: r.ousdColrCd || '',
+    insdSf: r.insdSf || '',
+    ousdSf: r.ousdSf || '',
+    ventLoc: r.ventLoc || '',
+    screenType: r.screenType || '',
+    insdHandleType: r.insdHandleType || '',
+    ousdHandleType: r.ousdHandleType || '',
+    mtrlCds1: r.mtrlCds1 || r.insdSfGlasMtrlCd || '',
+    mtrlCds2: r.mtrlCds2 || r.ousdSfGlasMtrlCd || '',
+    mtrlCds3: r.mtrlCds3 || r.insdBfGlasMtrlCd || '',
+    mtrlCds4: r.mtrlCds4 || r.ousdBfGlasMtrlCd || '',
+    remSrc: r.remSrc || '',
+  })
+  if (r.mdlCd) await onModelPick({ ...r })
+}
+
+async function loadMasters() {
+  const [colorRes, ventRes, screenRes, handleRes, ordRes] = await Promise.all([
+    searchColorList(),
+    searchCodeList('48'),
+    searchCodeList('379'),
+    searchCodeList('378'),
+    searchSashOrdTypCd(),
+  ])
+  colorList.value = normCd(colorRes.data?.resultList)
+  ventAllList.value = normCd(ventRes.data?.resultList)
+  screenAllList.value = normCd(screenRes.data?.resultList)
+  handleAllList.value = normCd(handleRes.data?.resultList)
+  ordTypList.value = normCd(ordRes.data?.resultList).filter((c) => c.addInfo2 === 'Y')
+  if (ordTypList.value.length && !form.value.sashOrdTypCd) {
+    form.value.sashOrdTypCd = ordTypList.value[0].commCdId
+  }
+}
+
+// --- 모형 선택 ---
 
 async function onModelPick(row) {
   form.value.mdlCd = row.mdlCd || ''
@@ -547,6 +300,17 @@ async function onModelPick(row) {
   form.value.bsmfOrdUtmCd = row.bsmfOrdUtmCd || ''
   pickedMdlMtrlCo.value = row.mtrlCo || ''
 
+  await loadWintydiData(row)
+  clearSizeFields()
+  await loadSfAndGlas(row)
+  applyColorDefaults()
+  await ensureCodeMasters()
+  applyVentDefault()
+  applyScreenDefault()
+  applyHandleDefault()
+}
+
+async function loadWintydiData(row) {
   try {
     const { data } = await searchModelWintydi(row.mdlCd)
     const list = (data?.resultList || []).map((it) => ({
@@ -565,13 +329,17 @@ async function onModelPick(row) {
     wintydiMap.value = {}
     form.value.wintydiCd = ''
   }
+}
 
+function clearSizeFields() {
   Object.assign(form.value, {
     w1: null, w2: null, w3: null, w4: null, w5: null,
     h1: null, h2: null, h3: null, h4: null, h5: null,
     cs: null, cs1: null, cs2: null, cs3: null, cs4: null, cs5: null,
   })
+}
 
+async function loadSfAndGlas(row) {
   try {
     const [sfRes, glasRes] = await Promise.all([
       searchModelSf(row.mdlCd).catch(() => ({ data: {} })),
@@ -585,7 +353,7 @@ async function onModelPick(row) {
     ])
     insdSfList.value = sfRes.data?.insdSf || sfRes.data?.resultList || []
     ousdSfList.value = sfRes.data?.ousdSf || sfRes.data?.resultList3 || []
-    // 편집 모드에서 기존 SF자재 유지
+
     if (!form.value.insdSf || !insdSfList.value.some(s => s.mtrlProdCd === form.value.insdSf)) {
       if (insdSfList.value.length) form.value.insdSf = insdSfList.value[0].mtrlProdCd
     }
@@ -608,11 +376,12 @@ async function onModelPick(row) {
     if (glas.value.bfIn.length)  form.value.mtrlCds3 = glas.value.bfIn[0].mtrlCd
     if (glas.value.bfOut.length) form.value.mtrlCds4 = glas.value.bfOut[0].mtrlCd
   } catch (e) {}
+}
 
+function applyColorDefaults() {
   form.value.crtnColrCd = 'WH'
   if (colorList.value.length) {
     const def = colorList.value[0].commCdId
-    // 편집 모드에서 기존 색상 유지
     if (!form.value.insdColrCd || !colorList.value.some(c => c.commCdId === form.value.insdColrCd)) {
       form.value.insdColrCd = def
     }
@@ -621,11 +390,11 @@ async function onModelPick(row) {
     }
     syncOusd.value = form.value.insdColrCd === form.value.ousdColrCd
   }
+}
 
-  // ventAllList가 아직 로드 안 됐으면 여기서 직접 로드
+async function ensureCodeMasters() {
   if (!ventAllList.value.length) {
     try {
-      const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
       const [ventRes, screenRes] = await Promise.all([
         searchCodeList('48'),
         searchCodeList('379'),
@@ -634,24 +403,54 @@ async function onModelPick(row) {
       screenAllList.value = normCd(screenRes.data?.resultList)
     } catch (_) {}
   }
-
-  applyVentDefault()
-  applyScreenDefault()
-
   if (!handleAllList.value.length) {
     try {
-      const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || x.commCdVal }))
       const handleRes = await searchCodeList('378')
       handleAllList.value = normCd(handleRes.data?.resultList)
     } catch (_) {}
   }
-  applyHandleDefault()
+}
+
+// --- 이벤트 핸들러 ---
+
+function onWintydiChange(val) {
+  form.value.wintydiCd = val
+  clearSizeFields()
+  applyVentDefault()
+}
+
+function onInsdColorChange() {
+  if (syncOusd.value) form.value.ousdColrCd = form.value.insdColrCd
+}
+
+function onOusdColorChange() {
+  syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
+}
+
+function toggleAluMf() {
+  form.value.isAluMf = !form.value.isAluMf
+  applyScreenDefault()
+}
+
+// --- 옵션 기본값 적용 ---
+
+function applyVentDefault() {
+  const opts = ventOptions.value
+  if (!form.value.ventLoc || !opts.some(o => o.commCdId === form.value.ventLoc)) {
+    form.value.ventLoc = opts.length ? opts[0].commCdId : ''
+  }
+}
+
+function applyScreenDefault() {
+  const opts = screenOptions.value
+  if (!form.value.screenType || !opts.some(o => o.commCdId === form.value.screenType)) {
+    form.value.screenType = opts.length ? opts[0].commCdId : ''
+  }
 }
 
 function applyHandleDefault() {
   const opts = handleOptions.value
   const first = opts.length ? opts[0].commCdId : ''
-  // 기존 값이 옵션에 있으면 유지, 없으면 첫 번째로 세팅
   if (!form.value.insdHandleType || !opts.some(o => o.commCdId === form.value.insdHandleType)) {
     form.value.insdHandleType = first
   }
@@ -660,48 +459,7 @@ function applyHandleDefault() {
   }
 }
 
-function onWintydiChange() {
-  Object.assign(form.value, {
-    w1: null, w2: null, w3: null, w4: null, w5: null,
-    h1: null, h2: null, h3: null, h4: null, h5: null,
-    cs: null, cs1: null, cs2: null, cs3: null, cs4: null, cs5: null,
-  })
-  applyVentDefault()
-}
-
-function applyVentDefault() {
-  const opts = ventOptions.value
-  if (!form.value.ventLoc || !opts.some(o => o.commCdId === form.value.ventLoc)) {
-    form.value.ventLoc = opts.length ? opts[0].commCdId : ''
-  }
-}
-function applyScreenDefault() {
-  const opts = screenOptions.value
-  if (!form.value.screenType || !opts.some(o => o.commCdId === form.value.screenType)) {
-    form.value.screenType = opts.length ? opts[0].commCdId : ''
-  }
-}
-
-function toggleAluMf() {
-  form.value.isAluMf = !form.value.isAluMf
-  applyScreenDefault()
-}
-
-function toggleInsdHndlH() {
-  form.value.insdHndlHEnabled = !form.value.insdHndlHEnabled
-  if (!form.value.insdHndlHEnabled) form.value.insdHndlH = null
-}
-function toggleOusdHndlH() {
-  form.value.ousdHndlHEnabled = !form.value.ousdHndlHEnabled
-  if (!form.value.ousdHndlHEnabled) form.value.ousdHndlH = null
-}
-
-function onInsdColorChange() {
-  if (syncOusd.value) form.value.ousdColrCd = form.value.insdColrCd
-}
-function onOusdColorChange() {
-  syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
-}
+// --- 네비게이션 ---
 
 function goBack() {
   router.push(`/estimates/${itgEstiNo.value}`)
@@ -720,6 +478,8 @@ function addAnother() {
   })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
+
+// --- 저장 ---
 
 async function submitAndAdd() {
   await submit()
@@ -741,51 +501,7 @@ async function submit() {
 
   loading.value = true
   try {
-    const f = form.value
-    const s = (v) => (v == null || v === '' ? '' : String(v))
-    const payload = {
-      itgEstiNo: itgEstiNo.value,
-      estiNo: wEstiNo.value,
-      estiNos: route.query.estiNos || '1',
-      estiSeq: editEstiSeq.value || '',
-
-      mdlCd: f.mdlCd,
-      wintydiCd: f.wintydiCd,
-      bftydiCd: f.bftydiCd,
-      sizCd: f.sizCd,
-      bsmfOrdUtmCd: f.bsmfOrdUtmCd,
-      sashOrdTypCd: f.sashOrdTypCd,
-
-      w0Size: s(f.w),
-      h0Size: s(f.h),
-      qty: s(f.qty),
-      w1Size: s(f.w1), w2Size: s(f.w2), w3Size: s(f.w3), w4Size: s(f.w4), w5Size: s(f.w5),
-      h1Size: s(f.h1), h2Size: s(f.h2), h3Size: s(f.h3), h4Size: s(f.h4), h5Size: s(f.h5),
-      csSize: s(f.cs), cs1Size: s(f.cs1), cs2Size: s(f.cs2),
-      cs3Size: s(f.cs3), cs4Size: s(f.cs4), cs5Size: s(f.cs5),
-
-      crtnColrCd: 'WH',
-      insdColrCd: f.insdColrCd,
-      ousdColrCd: f.ousdColrCd || f.insdColrCd,
-
-      insdSf: f.insdSf,
-      ousdSf: f.ousdSf,
-      ventLoc: f.ventLoc || '',
-      screenType: f.screenType,
-      aluMfYn: f.isAluMf ? 'Y' : 'N',
-      bfSlcnFnshYn: f.slcnFnshYn ? 'Y' : 'N',
-
-      insdHandleType: f.insdHandleType,
-      ousdHandleType: f.ousdHandleType,
-      insdHndlH: s(f.insdHndlH),
-      ousdHndlH: s(f.ousdHndlH),
-
-      mtrlCds1: f.mtrlCds1, mtrlCds2: f.mtrlCds2,
-      mtrlCds3: f.mtrlCds3, mtrlCds4: f.mtrlCds4,
-
-      remSrc: f.remSrc,
-    }
-    // ventLoc이 비면 첫 번째 VENT 옵션으로 자동 채움 (STEP1 프로시저 NULL 방지)
+    const payload = buildPayload()
     if (!payload.ventLoc && ventOptions.value.length) {
       payload.ventLoc = ventOptions.value[0].commCdId
       form.value.ventLoc = payload.ventLoc
@@ -802,5 +518,15 @@ async function submit() {
   } finally {
     loading.value = false
   }
+}
+
+function buildPayload() {
+  return buildSashSavePayload({
+    form: form.value,
+    itgEstiNo: itgEstiNo.value,
+    wEstiNo: wEstiNo.value,
+    estiNos: route.query.estiNos || '1',
+    editEstiSeq: editEstiSeq.value,
+  })
 }
 </script>

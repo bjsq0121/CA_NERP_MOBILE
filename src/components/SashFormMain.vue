@@ -1,0 +1,170 @@
+<template>
+  <div class="card">
+    <!-- 모형 -->
+    <div class="field">
+      <label>모형 *</label>
+      <input
+        readonly
+        data-clickable
+        :value="modelDisplay"
+        placeholder="터치해서 모형 검색"
+        @click="$emit('openModel')"
+      />
+      <div v-if="form.mdlCd" class="text-xs mt-xs">
+        자재사 {{ form.mtrlCoNm || '-' }} / 사이즈코드 {{ form.sizCd || '-' }}
+      </div>
+    </div>
+
+    <!-- 창형태 -->
+    <div class="field">
+      <label>창형태 *</label>
+      <select :value="form.wintydiCd" @change="$emit('wintydiChange', $event.target.value)">
+        <option value="">선택</option>
+        <option v-for="w in wintydiList" :key="w.commCdId" :value="w.commCdId">
+          {{ w.commCdNm }} ({{ w.commCdId }})
+        </option>
+      </select>
+      <div v-if="form.wintydiCd" class="text-xs text-info mt-xs">
+        입력가능: W={{ cntW }}개, H={{ cntH }}개, CS={{ cntCS }}개
+      </div>
+    </div>
+
+    <!-- SF 자재 -->
+    <div class="row-flex">
+      <div class="field">
+        <label>SF내 자재 *</label>
+        <select v-model="form.insdSf">
+          <option value="">선택</option>
+          <option v-for="s in insdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
+            {{ s.mtrlProdCd }}
+          </option>
+        </select>
+      </div>
+      <div class="field">
+        <label>SF외 자재 {{ ousdSfList.length ? '*' : '' }}</label>
+        <select v-model="form.ousdSf" :disabled="!ousdSfList.length">
+          <option value="">{{ ousdSfList.length ? '선택' : '해당없음' }}</option>
+          <option v-for="s in ousdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
+            {{ s.mtrlProdCd }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 사이즈 W/H/수량 -->
+    <div class="row-flex">
+      <div class="field">
+        <label>W (폭) *</label>
+        <input v-model.number="form.w" type="number" inputmode="numeric" />
+      </div>
+      <div class="field">
+        <label>H (높이) *</label>
+        <input v-model.number="form.h" type="number" inputmode="numeric" />
+      </div>
+      <div class="field field-qty">
+        <label>수량 *</label>
+        <input v-model.number="form.qty" type="number" inputmode="numeric" min="1" />
+      </div>
+    </div>
+
+    <!-- 추가 W -->
+    <div v-if="cntW > 1" class="row-flex">
+      <div v-if="cntW > 1" class="field"><label>W1</label><input v-model.number="form.w1" type="number" /></div>
+      <div v-if="cntW > 2" class="field"><label>W2</label><input v-model.number="form.w2" type="number" /></div>
+      <div v-if="cntW > 3" class="field"><label>W3</label><input v-model.number="form.w3" type="number" /></div>
+    </div>
+    <div v-if="cntW > 4" class="row-flex">
+      <div v-if="cntW > 4" class="field"><label>W4</label><input v-model.number="form.w4" type="number" /></div>
+      <div v-if="cntW > 5" class="field"><label>W5</label><input v-model.number="form.w5" type="number" /></div>
+    </div>
+
+    <!-- 추가 H -->
+    <div v-if="cntH > 1" class="row-flex">
+      <div v-if="cntH > 1" class="field"><label>H1</label><input v-model.number="form.h1" type="number" /></div>
+      <div v-if="cntH > 2" class="field"><label>H2</label><input v-model.number="form.h2" type="number" /></div>
+      <div v-if="cntH > 3" class="field"><label>H3</label><input v-model.number="form.h3" type="number" /></div>
+    </div>
+    <div v-if="cntH > 4" class="row-flex">
+      <div v-if="cntH > 4" class="field"><label>H4</label><input v-model.number="form.h4" type="number" /></div>
+      <div v-if="cntH > 5" class="field"><label>H5</label><input v-model.number="form.h5" type="number" /></div>
+    </div>
+
+    <!-- 특수조건 CS -->
+    <div v-if="cntCS > 0" class="mt-sm">
+      <div class="field-cs-label">특수조건 (사이즈 mm)</div>
+      <div class="row-flex">
+        <div v-if="cntCS > 0" class="field"><label>CS</label><input v-model.number="form.cs" type="number" /></div>
+        <div v-if="cntCS > 1" class="field"><label>CS1</label><input v-model.number="form.cs1" type="number" /></div>
+        <div v-if="cntCS > 2" class="field"><label>CS2</label><input v-model.number="form.cs2" type="number" /></div>
+      </div>
+      <div v-if="cntCS > 3" class="row-flex">
+        <div v-if="cntCS > 3" class="field"><label>CS3</label><input v-model.number="form.cs3" type="number" /></div>
+        <div v-if="cntCS > 4" class="field"><label>CS4</label><input v-model.number="form.cs4" type="number" /></div>
+        <div v-if="cntCS > 5" class="field"><label>CS5</label><input v-model.number="form.cs5" type="number" /></div>
+      </div>
+    </div>
+
+    <!-- 발주구분 -->
+    <div class="field">
+      <label>발주구분 *</label>
+      <select v-model="form.sashOrdTypCd">
+        <option value="">선택</option>
+        <option v-for="o in ordTypList" :key="o.commCdId" :value="o.commCdId">
+          {{ o.commCdNm }}
+        </option>
+      </select>
+    </div>
+
+    <!-- 색상 -->
+    <div class="row-flex row-compact">
+      <div class="field" style="max-width:80px">
+        <label>기본색상</label>
+        <input :value="form.crtnColrCd" readonly />
+      </div>
+      <div class="field">
+        <label>내부색상 *</label>
+        <select v-model="form.insdColrCd" @change="$emit('insdColorChange')">
+          <option value="">선택</option>
+          <option v-for="c in colorList" :key="'i'+c.commCdId" :value="c.commCdId">
+            {{ c.commCdNm }}
+          </option>
+        </select>
+      </div>
+      <div class="field">
+        <label>
+          외부색상
+          <span v-if="syncOusd" class="sync-badge">동기화</span>
+        </label>
+        <select v-model="form.ousdColrCd" @change="$emit('ousdColorChange')">
+          <option v-for="c in colorList" :key="'o'+c.commCdId" :value="c.commCdId">
+            {{ c.commCdNm }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  form: { type: Object, required: true },
+  wintydiList: { type: Array, default: () => [] },
+  wintydiMap: { type: Object, default: () => ({}) },
+  insdSfList: { type: Array, default: () => [] },
+  ousdSfList: { type: Array, default: () => [] },
+  ordTypList: { type: Array, default: () => [] },
+  colorList: { type: Array, default: () => [] },
+  syncOusd: { type: Boolean, default: true },
+})
+
+defineEmits(['openModel', 'wintydiChange', 'insdColorChange', 'ousdColorChange'])
+
+const modelDisplay = computed(() => (props.form.mdlCd ? `${props.form.mdlNm} (${props.form.mdlCd})` : ''))
+
+const cntInfo = computed(() => props.wintydiMap[props.form.wintydiCd] || {})
+const cntW = computed(() => Number(cntInfo.value.cntW) || 0)
+const cntH = computed(() => Number(cntInfo.value.cntH) || 0)
+const cntCS = computed(() => Number(cntInfo.value.cntCS) || 0)
+</script>
