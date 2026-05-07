@@ -1,12 +1,13 @@
-# CA NERP Mobile
+# CA NERP MOBILE2
 
-CA NERP 웹 ERP 시스템의 모바일 견적 프로그램. Vue3 + Vite 기반.
+CA NERP/CA_NERP2 백엔드를 사용하는 모바일 견적 웹앱입니다. Vue 3 + Vite 기반이며, 현재는 모바일 샤시 견적 작성/조회 흐름을 중심으로 구현되어 있습니다.
 
 ## 기술 스택
 
 - **Frontend**: Vue 3.5 + Vite 5 + Vue Router 4 + Pinia 2
 - **HTTP**: Axios (JWT Bearer 인증)
-- **Backend**: CA_NERP2 Spring Boot (Oracle DB) — 모바일 전용 컨트롤러/서비스 레이어
+- **Backend**: CA_NERP2 Spring Boot (Oracle DB) — 모바일 전용 API + 기존 웹 ERP API 일부 재사용
+- **Repository**: `https://github.com/bjsq0121/CA_NERP_MOBILE2.git`
 
 ## 프로젝트 구조
 
@@ -26,7 +27,17 @@ src/
 ├── components/
 │   ├── BzpcSelector.vue       # 영업소 선택 (ADMIN=모달, USER=고정)
 │   ├── DplcSearchModal.vue    # 거래처 검색 모달
-│   └── ModelSearchModal.vue   # 모형 검색 모달 (필터+도면+텍스트 뷰)
+│   ├── ModelSearchModal.vue   # 모형 검색 모달 (필터+도면+텍스트 뷰)
+│   ├── SashFormMain.vue       # 샤시 기본정보/사이즈/도면
+│   ├── SashOptionVent.vue     # VENT/스크린/안전망/실리콘마감
+│   ├── SashOptionHandle.vue   # 핸들/브래킷/알유리견적/발주구분
+│   ├── SashOptionGlass.vue    # SF/BF 유리자재
+│   ├── SashOptionFactory.vue  # BF/SF/MF 생산옵션
+│   └── common/OptionToggle.vue
+├── utils/
+│   ├── estimateDetail.js      # 샤시 목록/상세 도면 매칭
+│   ├── sashOptions.js         # 틀짝망 등 옵션 보정
+│   └── sashPayload.js         # 샤시 저장 payload 조립
 └── views/
     ├── Login.vue              # 로그인
     ├── EstimateList.vue       # 견적 목록 (영업소별, 날짜 필터)
@@ -57,19 +68,21 @@ src/
 ### 샤시 견적
 - **견적 상세**에서 `+ 샤시` 버튼 → wEstiNo 자동 발번(issueEstiNo, idempotent) → SashNew 이동
 - **복합키**: `(itgEstiNo, estiNo, estiNos, estiSeq)` — estiSeq는 `selectNextEstiSeq` 매퍼로 정확한 MAX+1 채번
-- **모형 검색**: 자재회사(버튼)/이중창(버튼)/카테고리(버튼)/키워드 필터 + 도면/텍스트 뷰 전환
+- **모형 검색**: 자재회사/이중창/카테고리/키워드 필터 + 도면/텍스트 뷰 전환 + 안전망 가능 여부 표시
 - **자동 채움**: 모형 선택 시 → 창형태(모형별 제한) → SF내/외 → VENT → 스크린 → 핸들 → 유리(SF/BF) → 색상(내/외 동기화) 자동 선택
 - **W1~W5/H1~H5/CS~CS5**: 창형태 코드의 `addInfo1/2/3`(cntW/cntH/cntCS)에 따라 동적 노출
-- **상세옵션 토글**: VENT/스크린/안전망, 핸들(종류+높이ON/OFF), 유리(모형별 조건부), 실리콘마감
+- **상세옵션 토글**: VENT/스크린/안전망, 핸들(종류+높이 ON/OFF), 브래킷높이 ON/OFF, 알유리견적, 유리, 실리콘마감
+- **생산옵션**: BF/SF/MF 옵션 카드 제공. 배수홀/통기홀/밀링/래핑/직송/외주유리/윈드클로저/외짝/망핸들 등 웹 샤시폼의 주요 옵션 반영
+- **웹 기준 검증**: 규격사양, 밀링상세, 안전망 가능 모형, 알유리견적 가능 카테고리, SF 외짝 위치, 유리X, 유리제외, 실리콘마감 제한 검증
 - **편집 모드**: 목록에서 클릭 → selectSashDetail(reflection Map) → 기존 데이터 자동 로드
+- **금액 표시**: 상세 하단 금액은 웹과 동일하게 `/ItgEstiOne/searchWindEstiAmt`로 별도 조회하여 읽기 전용 표시
 - **프로시저**: STEP1(틀짝망/자재 셋업) → STEP2(수량/금액 계산) — 백엔드 `fillSashDefaults`가 ~150개 옵션 안전 디폴트 채움
 
 ### 견적 상세 표시
-- 품명 스펙: `BF225R/SF115G/MF115D/5투/5투/스텐방충망/2W_정` (기존 매퍼 활용)
-- 색상: `백+백` (매퍼 조립)
-- 규격: `2000×1000`
-- 가격: 공급가/VAT/합계
-- estiSeq 단위 dedupe (매퍼가 자재별 다중행 반환하므로)
+- 샤시 목록 카드에 품명 전체, 규격, 수량, 틀짝망, 색상, VENT, 스크린종류, 상태 표시
+- 샤시 도면 썸네일 표시 및 상세 진입 시 로딩 표시
+- 공급가/VAT/합계 표시
+- estiSeq 단위 dedupe 처리
 
 ## 백엔드 모바일 전용 엔드포인트
 
@@ -94,6 +107,12 @@ src/
 | `POST /mobile/dplc/list` | 거래처 목록 |
 | `POST /mobile/dplc/save` | 거래처 등록 |
 
+## 기존 웹 ERP 재사용 엔드포인트
+
+| 엔드포인트 | 설명 |
+|---|---|
+| `POST /ItgEstiOne/searchWindEstiAmt` | 샤시 상세 하단 금액 조회 |
+
 ## 해결한 주요 이슈
 
 ### Lombok-Jackson 직렬화
@@ -116,6 +135,10 @@ src/
 - 모바일이 잘못된 매퍼(searchWindEstiAmt) 사용 → 0건 반환 → 항상 1
 - **해결**: 웹과 동일하게 `selectNextEstiSeq(WindEstiH)` 매퍼 사용 (MAX+1 정확 채번)
 
+### 샤시 상세 금액 표시
+- 상세 응답의 동명 금액 필드를 그대로 표시하면 웹 하단 금액과 다른 기준의 값이 나올 수 있음
+- **해결**: 웹과 동일하게 `searchWindEstiAmt`를 별도 호출하고, 실패 시 잘못된 금액을 표시하지 않음
+
 ## 실행 방법
 
 ```bash
@@ -137,10 +160,9 @@ Vite 프록시가 `/api/*` → 백엔드, `/data/*` → 도면 이미지 경로�
 ## 향후 작업
 
 - [ ] 도어/유리/몰딩 견적 추가 (EstimateDetail 의 `+ 도어` 등 버튼 활성화)
-- [ ] BF/SF/MF 상세 옵션 카드 추가 (직송/배수홀/통기홀/락/래핑/밀링 등)
 - [ ] 거래처 등록 폼 상세화 (사업자번호/대표자/주소/연락처)
 - [ ] 회계증빙서류/영세율/선입금 (견적 헤더 2차 필드)
 - [ ] 영업사원 배분 (1/2/3 + 비율)
 - [ ] 견적 상태 변경 (장바구니→주문)
 - [ ] 권한별 자재회사 필터 (addInfo4~9 auth store 연동)
-- [ ] 디버그 패널 제거 (SashNew 노란 카드)
+- [ ] 샤시 생산옵션 중 웹 전용 특수 옵션 추가 비교/보완
