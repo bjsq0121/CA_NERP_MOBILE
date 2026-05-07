@@ -16,16 +16,40 @@
     </div>
 
     <!-- 창형태 -->
-    <div class="field">
-      <label>창형태 *</label>
-      <select :value="form.wintydiCd" @change="$emit('wintydiChange', $event.target.value)">
-        <option value="">선택</option>
-        <option v-for="w in wintydiList" :key="w.commCdId" :value="w.commCdId">
-          {{ w.commCdNm }} ({{ w.commCdId }})
-        </option>
-      </select>
-      <div v-if="form.wintydiCd" class="text-xs text-info mt-xs">
-        입력가능: W={{ cntW }}개, H={{ cntH }}개, CS={{ cntCS }}개
+    <div class="sash-form-drawing-row">
+      <div class="sash-form-drawing-controls">
+        <div class="row-flex">
+          <div class="field">
+            <label>창형태 *</label>
+            <select :value="form.wintydiCd" @change="$emit('wintydiChange', $event.target.value)">
+              <option value="">선택</option>
+              <option v-for="w in wintydiList" :key="w.commCdId" :value="w.commCdId">
+                {{ w.commCdNm }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>틀짝망 *</label>
+            <select v-model="form.bsmfOrdUtmCd">
+              <option value="">선택</option>
+              <option v-for="b in bsmfList" :key="b.commCdId" :value="b.commCdId">
+                {{ b.commCdNm }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="sash-drawing-inline">
+        <img
+          v-if="drawingUrl"
+          :src="drawingUrl"
+          alt=""
+          loading="lazy"
+          @error="$emit('drawingError')"
+        />
+        <div v-else class="sash-drawing-inline-fallback">
+          <span>{{ drawingFallback || '샤시' }}</span>
+        </div>
       </div>
     </div>
 
@@ -36,7 +60,7 @@
         <select v-model="form.insdSf">
           <option value="">선택</option>
           <option v-for="s in insdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
-            {{ s.mtrlProdCd }}
+            {{ sfDisplayName(s) }}
           </option>
         </select>
       </div>
@@ -45,7 +69,7 @@
         <select v-model="form.ousdSf" :disabled="!ousdSfList.length">
           <option value="">{{ ousdSfList.length ? '선택' : '해당없음' }}</option>
           <option v-for="s in ousdSfList" :key="s.mtrlProdCd" :value="s.mtrlProdCd">
-            {{ s.mtrlProdCd }}
+            {{ sfDisplayName(s) }}
           </option>
         </select>
       </div>
@@ -104,17 +128,6 @@
       </div>
     </div>
 
-    <!-- 발주구분 -->
-    <div class="field">
-      <label>발주구분 *</label>
-      <select v-model="form.sashOrdTypCd">
-        <option value="">선택</option>
-        <option v-for="o in ordTypList" :key="o.commCdId" :value="o.commCdId">
-          {{ o.commCdNm }}
-        </option>
-      </select>
-    </div>
-
     <!-- 색상 -->
     <div class="row-flex row-compact">
       <div class="field" style="max-width:80px">
@@ -152,14 +165,16 @@ const props = defineProps({
   form: { type: Object, required: true },
   wintydiList: { type: Array, default: () => [] },
   wintydiMap: { type: Object, default: () => ({}) },
+  bsmfList: { type: Array, default: () => [] },
   insdSfList: { type: Array, default: () => [] },
   ousdSfList: { type: Array, default: () => [] },
-  ordTypList: { type: Array, default: () => [] },
   colorList: { type: Array, default: () => [] },
   syncOusd: { type: Boolean, default: true },
+  drawingUrl: { type: String, default: '' },
+  drawingFallback: { type: String, default: '' },
 })
 
-defineEmits(['openModel', 'wintydiChange', 'insdColorChange', 'ousdColorChange'])
+defineEmits(['openModel', 'wintydiChange', 'insdColorChange', 'ousdColorChange', 'drawingError'])
 
 const modelDisplay = computed(() => (props.form.mdlCd ? `${props.form.mdlNm} (${props.form.mdlCd})` : ''))
 
@@ -167,4 +182,6 @@ const cntInfo = computed(() => props.wintydiMap[props.form.wintydiCd] || {})
 const cntW = computed(() => Number(cntInfo.value.cntW) || 0)
 const cntH = computed(() => Number(cntInfo.value.cntH) || 0)
 const cntCS = computed(() => Number(cntInfo.value.cntCS) || 0)
+
+const sfDisplayName = (item) => item.mtrlProdNm || item.mtrlNm || item.prodNm || item.commCdNm || item.mtrlProdCd
 </script>

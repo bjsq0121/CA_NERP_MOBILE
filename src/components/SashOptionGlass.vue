@@ -1,5 +1,5 @@
 <template>
-  <details v-if="hasAnyGlas" class="card">
+  <details v-if="hasAnyGlas" class="card" open>
     <summary>유리 자재 (SF / BF)</summary>
     <div class="details-body">
       <div v-if="glas.sfIn.length || glas.sfOut.length" class="row-flex">

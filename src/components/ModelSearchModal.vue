@@ -134,6 +134,9 @@
                   <span v-if="item.sizNm" class="badge">{{ item.sizNm }}</span>
                   <span v-if="item.mtrlCoNm" class="badge">{{ item.mtrlCoNm }}</span>
                   <span v-if="item.dblWindYnNm" class="badge">{{ item.dblWindYnNm }}</span>
+                  <span class="badge" :class="{ muted: item.aluMdlYn !== 'Y' }">
+                    안전망 {{ item.aluMdlYn === 'Y' ? '가능' : '불가' }}
+                  </span>
                 </div>
                 <div class="model-detail-text">
                   창형태 {{ item.wintydiNm || item.wintydiCd || '-' }}
@@ -151,6 +154,7 @@
               <div class="cd">
                 {{ item.mtrlCoNm || '-' }} / {{ item.ctgr2Nm || '-' }} / {{ item.bftydiNm || '-' }}
                 / {{ item.dblWindYnNm || '-' }} / 창형태 {{ item.wintydiNm || '-' }}
+                / 안전망 {{ item.aluMdlYn === 'Y' ? '가능' : '불가' }}
               </div>
             </div>
           </template>

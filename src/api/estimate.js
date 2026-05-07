@@ -32,6 +32,9 @@ export function searchColorList(payload = {}) {
 export function searchCodeList(commCdGrpId) {
   return http.post('/mobile/esti/code/list', { commCdGrpId })
 }
+export function searchCodeDetail(commCdGrpId, commCdVal) {
+  return http.post('/mobile/esti/code/list', { commCdGrpId, commCdVal })
+}
 export function searchModelSf(searchMdlCd) {
   return http.post('/mobile/esti/model/sf', { searchMdlCd })
 }
@@ -52,9 +55,12 @@ export function searchSashOrdTypCd() {
 export function saveSashEsti(payload) {
   return http.post('/mobile/esti/sash/save', payload)
 }
-export function searchSashList(itgEstiNo) {
-  return http.post('/mobile/esti/sash/list', { itgEstiNo })
+export function searchSashList(payload) {
+  return http.post('/mobile/esti/sash/list', typeof payload === 'string' ? { itgEstiNo: payload } : payload)
 }
 export function selectSashDetail(payload) {
   return http.post('/mobile/esti/sash/detail', payload)
+}
+export function searchWindEstiAmt(payload) {
+  return http.post('/ItgEstiOne/searchWindEstiAmt', payload)
 }

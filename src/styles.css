@@ -219,6 +219,13 @@ a { color: inherit; text-decoration: none; }
   margin: 4px 4px 14px;
 }
 .page-title-row .page-title { margin: 0; }
+.page-subtitle {
+  margin-top: 3px;
+  color: var(--c-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
 
 /* ─── Card ─── */
 .card {
@@ -401,7 +408,7 @@ a { color: inherit; text-decoration: none; }
 
 /* Toggle Button */
 .toggle-btn {
-  height: 40px;
+  height: 44px;
   padding: 0 16px;
   max-width: 120px;
   border-radius: var(--radius-sm);
@@ -431,6 +438,72 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
   transition: all var(--transition);
   vertical-align: middle;
+}
+
+.option-inline-field {
+  max-width: 160px;
+}
+.switch-toggle {
+  width: 100%;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  transition: border-color var(--transition), background var(--transition), color var(--transition), box-shadow var(--transition);
+}
+.switch-toggle.is-on {
+  border-color: var(--c-accent);
+  background: #eff6ff;
+  color: var(--c-accent);
+  box-shadow: 0 2px 8px var(--c-accent-glow);
+}
+.switch-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 42px;
+  border-radius: var(--radius-full);
+  background: #cbd5e1;
+  transition: background var(--transition);
+}
+.switch-toggle.is-on .switch-track {
+  background: var(--c-accent);
+}
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .2);
+  transition: transform var(--transition);
+}
+.switch-toggle.is-on .switch-thumb {
+  transform: translateX(18px);
+}
+.switch-text {
+  min-width: 24px;
+  text-align: right;
+}
+.option-row {
+  align-items: stretch;
+}
+.option-toggle-field {
+  flex: 1;
+  max-width: 120px;
+}
+.option-toggle-field .toggle-btn {
+  width: 100%;
 }
 
 /* ─── List Row ─── */
@@ -665,6 +738,32 @@ a { color: inherit; text-decoration: none; }
   margin-bottom: 14px;
 }
 
+.route-loading-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(2px);
+}
+.route-loading-panel {
+  min-width: 190px;
+  padding: 22px 20px;
+  border-radius: 8px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-light);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.route-loading-panel .loading-text {
+  font-size: 13px;
+  color: var(--c-text);
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
 /* ─── Modal ─── */
 .modal-mask {
   position: fixed;
@@ -812,6 +911,66 @@ details:not(.card) summary {
 .sash-info { font-size: 11px; color: var(--c-text-secondary); }
 .sash-info .sash-label { color: var(--c-text-muted); font-size: 10px; }
 .sash-info .sash-value { font-weight: 700; color: var(--c-text); font-size: 14px; }
+.sash-bottom-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: center;
+  margin: 14px 0 4px;
+  color: var(--c-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.sash-bottom-meta span {
+  white-space: nowrap;
+}
+
+.sash-amount-summary {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.amount-summary-title {
+  margin-bottom: 10px;
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.amount-grid > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--c-border-light);
+  border-radius: 8px;
+  background: var(--c-bg);
+}
+
+.amount-grid span {
+  color: var(--c-text-muted);
+  font-size: 11px;
+}
+
+.amount-grid strong {
+  min-width: 0;
+  color: var(--c-text);
+  font-size: 13px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
 
 /* ─── Grade Row (할인등급) ─── */
 .grade-row {
@@ -976,66 +1135,209 @@ details:not(.card) summary {
   box-shadow: var(--shadow-sm);
 }
 
-.sash-card-header {
+.sash-card-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 10px;
+  align-items: start;
+}
+
+.sash-thumb {
+  width: 96px;
+  height: 126px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: #f8fafc;
+  overflow: hidden;
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.sash-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+}
+
+.sash-thumb-fallback {
+  width: 70%;
+  height: 48%;
+  border: 2px solid #94a3b8;
+  border-top-width: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sash-card-content {
+  min-width: 0;
+}
+
+.sash-card-header {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 10px;
 }
 .sash-seq {
+  order: 1;
   font-size: 11px;
   font-weight: 800;
   color: var(--c-accent);
   min-width: 24px;
 }
 .sash-model {
+  order: 1;
   font-size: 14px;
   font-weight: 700;
   color: var(--c-text);
-  flex: 1;
+  flex: 0 0 100%;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .sash-card-header .badge {
+  order: 3;
+  margin-left: auto;
   height: 18px;
   font-size: 9px;
   padding: 0 6px;
   flex-shrink: 0;
 }
 
+.sash-primary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sash-size {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+
+.sash-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sash-form-drawing-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+  align-items: start;
+}
+
+.sash-form-drawing-controls {
+  min-width: 0;
+}
+
+.sash-form-drawing-controls .field {
+  min-width: 0;
+}
+
+.sash-drawing-inline {
+  width: 112px;
+  height: 92px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.sash-drawing-inline img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+}
+
+.sash-drawing-inline-fallback {
+  width: 68%;
+  height: 48%;
+  border: 2px solid #94a3b8;
+  border-top-width: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+@media (max-width: 360px) {
+  .sash-form-drawing-row {
+    grid-template-columns: minmax(0, 1fr) 96px;
+    gap: 8px;
+  }
+
+  .sash-drawing-inline {
+    width: 96px;
+    height: 82px;
+  }
+}
+
 .sash-specs {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
   margin-bottom: 10px;
-  padding: 10px;
-  background: var(--c-bg);
-  border-radius: var(--radius-sm);
+  padding: 1px;
+  border: 1px solid var(--c-border-light);
+  border-radius: 8px;
+  background: var(--c-border-light);
+  overflow: hidden;
 }
 .sash-spec {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  min-height: 35px;
+  padding: 5px 7px;
+  background: #f8fafc;
 }
 .sash-spec-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 800;
   color: var(--c-text-muted);
-  letter-spacing: .3px;
-  text-transform: uppercase;
+  line-height: 1;
 }
 .sash-spec-value {
-  font-size: 12px;
-  font-weight: 600;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 750;
   color: var(--c-text);
-  line-height: 1.2;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .sash-price-row {
   display: flex;
   gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border-light);
 }
 .sash-price {
   flex: 1;

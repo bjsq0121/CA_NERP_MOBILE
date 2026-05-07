@@ -37,11 +37,95 @@ test('buildSashSavePayload maps required sash fields for a new estimate', () => 
       ventLoc: 'L',
       screenType: 'PVC',
       isAluMf: false,
+      aluMfHandleType: '',
+      aluMfMdlYn: 'Y',
+      aluMfHndlH: '',
       slcnFnshYn: true,
+      drnHoleYn: true,
+      ventHoleYn: true,
+      bfMillingType: '2',
+      bfArmatureType: 'F',
+      bfLockCnt: '2',
+      bfWrapping: '1',
+      bfThrSidePack: '2',
+      bfMillingDetail: '4',
+      bfMillingUp: true,
+      bfMillingDown: false,
+      bfMillingLeft: true,
+      bfMillingRight: false,
+      bfWeldNoneYn: true,
+      bfWeld: true,
+      fillingPiecesYn: true,
+      bfRackShip: true,
+      bfStopper: true,
+      bfDirectShip: true,
+      bfShipAddr: 'BF address',
+      bfForesidePackYn: true,
+      bfKsmarkYn: true,
+      bfLxHiddenOptYn: true,
+      bfSideView: '1',
+      bfFmGbYn: true,
+      bfFmGbShipYn: true,
+      bfFmGbUpDownYn: true,
+      bfFmGbRlYn: true,
+      bfFmGbCutYn: true,
+      bfSsOpt: true,
+      bfFixBuild: true,
+      bfFdHd: true,
+      bfTurnDoorPullType: '1',
+      bfTurnDoorOneSideWrapType: '2',
+      bfOneSideWrapColrNm: '다크그레이',
+      bfAptCmType: '1',
+      bfApt1pjMethod: '2',
+      bfApt2pjLoc: '3',
+      bfApt2pjMethod: '1',
+      bfTurnDoorOnlyMakeYn: true,
+      bfVentPiecesIncludeYn: true,
+      bfWinOnefixUpHoleYn: true,
+      bfWinFmThreeSideYn: true,
+      bfWinTopBottomFmYn: true,
+      bfWinSpDdlnShpmYn: true,
+      bfIhyFixHghtDirYn: true,
+      sfLandscape: true,
+      sfOppositeTypeYn: true,
+      sfRackShip: true,
+      sfDirectShip: true,
+      sfShipAddr: 'SF address',
+      sfOutGlasYn: true,
+      sfOutGlasInfo: '24T 로이',
+      sfRoller: '1',
+      sfCreHook: true,
+      sfCreSize: '3',
+      sfOutType: '4',
+      sfOutType0: '1',
+      sfOutType1: '2',
+      sfOutType2: '3',
+      sfOutType3: '4',
+      sfSontaLoca: '8',
+      deco1: ['1', 3],
+      winCloser: [1, '2'],
+      mfRackShip: true,
+      mfCi4wStickYn: true,
+      mfDirectShip: true,
+      mfShipAddr: 'MF address',
+      mfHandle: '2',
+      mfHandleHsize: 1234,
+      mfAptArmatureType: 'F',
+      alGlass: true,
+      glasAdmsYn: 'Y',
       insdHandleType: 'H1',
       ousdHandleType: 'H2',
+      insdHndlHEnabled: true,
+      ousdHndlHEnabled: false,
       insdHndlH: 900,
       ousdHndlH: '',
+      insdBrcktHEnabled: false,
+      ousdBrcktHEnabled: true,
+      insdBrcktH: 800,
+      ousdBrcktH: 850,
+      secondFloorEnabled: true,
+      insd2FBrcktH: 700,
+      ousd2FBrcktH: 750,
       mtrlCds1: 'G1',
       mtrlCds2: 'G2',
       mtrlCds3: '',
@@ -58,6 +142,7 @@ test('buildSashSavePayload maps required sash fields for a new estimate', () => 
   assert.equal(payload.estiNo, 'W001')
   assert.equal(payload.estiNos, '1')
   assert.equal(payload.estiSeq, '')
+  assert.equal(payload.bsmfOrdUtmCd, '101')
   assert.equal(payload.w0Size, '2000')
   assert.equal(payload.h0Size, '1000')
   assert.equal(payload.qty, '2')
@@ -67,7 +152,94 @@ test('buildSashSavePayload maps required sash fields for a new estimate', () => 
   assert.equal(payload.crtnColrCd, 'WH')
   assert.equal(payload.ousdColrCd, 'WH')
   assert.equal(payload.aluMfYn, 'N')
+  assert.equal(payload.aluMfHandleType, '')
+  assert.equal(payload.aluMfMdlYn, 'N')
+  assert.equal(payload.aluMfHndlH, '')
   assert.equal(payload.bfSlcnFnshYn, 'Y')
+  assert.equal(payload.drnHoleYn, 'Y')
+  assert.equal(payload.ventHoleYn, 'Y')
+  assert.equal(payload.bfMillingType, '2')
+  assert.equal(payload.bfArmatureType, 'F')
+  assert.equal(payload.bfLockCnt, '2')
+  assert.equal(payload.bfWrapping, '1')
+  assert.equal(payload.bfThrSidePack, '2')
+  assert.equal(payload.bfMillingDetail, '4')
+  assert.equal(payload.bfMillingUp, 'Y')
+  assert.equal(payload.bfMillingDown, 'N')
+  assert.equal(payload.bfMillingLeft, 'Y')
+  assert.equal(payload.bfMillingRight, 'N')
+  assert.equal(payload.bfWeldNoneYn, 'Y')
+  assert.equal(payload.bfWeld, 'Y')
+  assert.equal(payload.fillingPiecesYn, 'Y')
+  assert.equal(payload.bfRackShip, 'Y')
+  assert.equal(payload.bfStopper, 'Y')
+  assert.equal(payload.bfDirectShip, 'Y')
+  assert.equal(payload.bfShipAddr, 'BF address')
+  assert.equal(payload.bfForesidePack, 'Y')
+  assert.equal(payload.bfKsmark, 'Y')
+  assert.equal(payload.bfLxHiddenOptYn, 'Y')
+  assert.equal(payload.bfSideView, '1')
+  assert.equal(payload.bfFmGbYn, 'Y')
+  assert.equal(payload.bfFmGbShipYn, 'Y')
+  assert.equal(payload.bfFmGbUpDownYn, 'Y')
+  assert.equal(payload.bfFmGbRlYn, 'Y')
+  assert.equal(payload.bfFmGbCutYn, 'Y')
+  assert.equal(payload.bfSsOpt, 'Y')
+  assert.equal(payload.bfFixBuild, 'Y')
+  assert.equal(payload.bfFdHd, 'Y')
+  assert.equal(payload.bfTurnDoorPullType, '1')
+  assert.equal(payload.bfTurnDoorOneSideWrapType, '2')
+  assert.equal(payload.bfOneSideWrapColrNm, '다크그레이')
+  assert.equal(payload.bfAptCmType, '1')
+  assert.equal(payload.bfApt1pjMethod, '2')
+  assert.equal(payload.bfApt2pjLoc, '3')
+  assert.equal(payload.bfApt2pjMethod, '1')
+  assert.equal(payload.bfTurnDoorOnlyMakeYn, 'Y')
+  assert.equal(payload.bfVentPiecesIncludeYn, 'Y')
+  assert.equal(payload.bfWinOnefixUpHoleYn, 'Y')
+  assert.equal(payload.bfWinFmThreeSideYn, 'Y')
+  assert.equal(payload.bfWinTopBottomFmYn, 'Y')
+  assert.equal(payload.bfWinSpDdlnShpmYn, 'Y')
+  assert.equal(payload.bfIhyFixHghtDirYn, 'Y')
+  assert.equal(payload.sfLandscape, 'Y')
+  assert.equal(payload.sfOppositeTypeYn, 'Y')
+  assert.equal(payload.sfRackShip, 'Y')
+  assert.equal(payload.sfDirectShip, 'Y')
+  assert.equal(payload.sfShipAddr, 'SF address')
+  assert.equal(payload.sfOutGlasYn, 'Y')
+  assert.equal(payload.sfOutGlasInfo, '24T 로이')
+  assert.equal(payload.sfRoller, '1')
+  assert.equal(payload.sfCreHook, 'Y')
+  assert.equal(payload.sfCreSize, '3')
+  assert.equal(payload.sfOutType, '4')
+  assert.equal(payload.sfOutType0, '1')
+  assert.equal(payload.sfOutType1, '2')
+  assert.equal(payload.sfOutType2, '3')
+  assert.equal(payload.sfOutType3, '4')
+  assert.equal(payload.sfSontaLoca, '8')
+  assert.equal(payload.insdDeckNoneYn, 'Y')
+  assert.equal(payload.insd2FDeckNoneYn, 'Y')
+  assert.equal(payload.insdWindClsYn, 'Y')
+  assert.equal(payload.ousdWindClsYn, 'Y')
+  assert.equal(payload.mfRackShip, 'Y')
+  assert.equal(payload.mfCi4wStickYn, 'Y')
+  assert.equal(payload.mfDirectShip, 'Y')
+  assert.equal(payload.mfShipAddr, 'MF address')
+  assert.equal(payload.mfHandle, '2')
+  assert.equal(payload.mfHandleHsize, '1234')
+  assert.equal(payload.mfAptArmatureType, 'F')
+  assert.equal(payload.glasStdalYn, 'Y')
+  assert.equal(payload.glasAdmsYn, 'Y')
+  assert.equal(payload.insdHndlHMiddle, 'Y')
+  assert.equal(payload.insdHndlH, '900')
+  assert.equal(payload.insd2FHndlHMiddle, 'N')
+  assert.equal(payload.ousdHndlH, '')
+  assert.equal(payload.insdBrcktHMiddle, 'N')
+  assert.equal(payload.insdBrcktH, '')
+  assert.equal(payload.ousdBrcktH, '')
+  assert.equal(payload.insd2FBrcktHMiddle, 'Y')
+  assert.equal(payload.insd2FBrcktH, '700')
+  assert.equal(payload.ousd2FBrcktH, '750')
   assert.equal(payload.mtrlCds4, '')
 })
 
@@ -90,11 +262,94 @@ test('buildSashSavePayload preserves edit sequence and outside color', () => {
       ventLoc: '',
       screenType: '',
       isAluMf: true,
+      aluMfHandleType: '2',
+      aluMfMdlYn: 'N',
+      aluMfHndlH: 950,
       slcnFnshYn: false,
+      drnHoleYn: false,
+      ventHoleYn: false,
+      bfMillingType: '',
+      bfArmatureType: '',
+      bfLockCnt: '',
+      bfWrapping: '',
+      bfThrSidePack: '',
+      bfMillingDetail: 'unused detail',
+      bfMillingUp: true,
+      bfMillingDown: true,
+      bfMillingLeft: true,
+      bfMillingRight: true,
+      bfWeldNoneYn: false,
+      bfWeld: false,
+      fillingPiecesYn: false,
+      bfRackShip: false,
+      bfStopper: false,
+      bfDirectShip: false,
+      bfShipAddr: 'unused BF',
+      bfForesidePackYn: false,
+      bfKsmarkYn: false,
+      bfLxHiddenOptYn: false,
+      bfSideView: '',
+      bfFmGbYn: false,
+      bfFmGbShipYn: false,
+      bfFmGbUpDownYn: false,
+      bfFmGbRlYn: false,
+      bfFmGbCutYn: false,
+      bfSsOpt: false,
+      bfFixBuild: false,
+      bfFdHd: false,
+      bfTurnDoorPullType: '',
+      bfTurnDoorOneSideWrapType: '',
+      bfOneSideWrapColrNm: 'unused wrap color',
+      bfAptCmType: '',
+      bfApt1pjMethod: '',
+      bfApt2pjLoc: '',
+      bfApt2pjMethod: '',
+      bfTurnDoorOnlyMakeYn: false,
+      bfVentPiecesIncludeYn: false,
+      bfWinOnefixUpHoleYn: false,
+      bfWinFmThreeSideYn: false,
+      bfWinTopBottomFmYn: false,
+      bfWinSpDdlnShpmYn: false,
+      bfIhyFixHghtDirYn: false,
+      sfLandscape: false,
+      sfOppositeTypeYn: false,
+      sfRackShip: false,
+      sfDirectShip: false,
+      sfShipAddr: 'unused SF',
+      sfOutGlasYn: false,
+      sfOutGlasInfo: 'unused glass',
+      sfRoller: '',
+      sfCreHook: false,
+      sfCreSize: '',
+      sfOutType: '',
+      sfOutType0: '',
+      sfOutType1: '',
+      sfOutType2: '',
+      sfOutType3: '',
+      sfSontaLoca: '',
+      deco1: [],
+      winCloser: [],
+      mfRackShip: false,
+      mfCi4wStickYn: false,
+      mfDirectShip: false,
+      mfShipAddr: 'unused MF',
+      mfHandle: '',
+      mfHandleHsize: 'unused',
+      mfAptArmatureType: '',
+      alGlass: false,
       insdHandleType: '',
       ousdHandleType: '',
+      insdHndlHEnabled: false,
+      ousdHndlHEnabled: false,
       insdHndlH: null,
       ousdHndlH: null,
+      secondFloorEnabled: false,
+      insdBrcktHEnabled: false,
+      ousdBrcktHEnabled: true,
+      insdBrcktH: 800,
+      ousdBrcktH: 850,
+      insd2FBrcktH: 700,
+      ousd2FBrcktH: 750,
       mtrlCds1: '',
       mtrlCds2: '',
       mtrlCds3: '',
@@ -111,5 +366,49 @@ test('buildSashSavePayload preserves edit sequence and outside color', () => {
   assert.equal(payload.estiSeq, '7')
   assert.equal(payload.ousdColrCd, 'BK')
   assert.equal(payload.aluMfYn, 'Y')
+  assert.equal(payload.aluMfHandleType, '2')
+  assert.equal(payload.aluMfMdlYn, 'N')
+  assert.equal(payload.aluMfHndlH, '950')
   assert.equal(payload.bfSlcnFnshYn, 'N')
+  assert.equal(payload.drnHoleYn, 'N')
+  assert.equal(payload.ventHoleYn, 'N')
+  assert.equal(payload.bfMillingType, '0')
+  assert.equal(payload.bfArmatureType, '')
+  assert.equal(payload.bfLockCnt, '')
+  assert.equal(payload.bfWrapping, '')
+  assert.equal(payload.bfThrSidePack, '')
+  assert.equal(payload.bfMillingDetail, '')
+  assert.equal(payload.bfMillingUp, 'N')
+  assert.equal(payload.bfMillingDown, 'N')
+  assert.equal(payload.bfMillingLeft, 'N')
+  assert.equal(payload.bfMillingRight, 'N')
+  assert.equal(payload.bfWeldNoneYn, 'N')
+  assert.equal(payload.sfOppositeTypeYn, 'N')
+  assert.equal(payload.bfDirectShip, 'N')
+  assert.equal(payload.bfShipAddr, '')
+  assert.equal(payload.bfForesidePack, 'N')
+  assert.equal(payload.bfSideView, '')
+  assert.equal(payload.bfOneSideWrapColrNm, '')
+  assert.equal(payload.bfTurnDoorOnlyMakeYn, 'N')
+  assert.equal(payload.sfDirectShip, 'N')
+  assert.equal(payload.sfShipAddr, '')
+  assert.equal(payload.sfOutGlasYn, 'N')
+  assert.equal(payload.sfOutGlasInfo, '')
+  assert.equal(payload.insdDeckNoneYn, 'N')
+  assert.equal(payload.insdWindClsYn, 'N')
+  assert.equal(payload.mfDirectShip, 'N')
+  assert.equal(payload.mfShipAddr, '')
+  assert.equal(payload.mfHandle, '')
+  assert.equal(payload.mfHandleHsize, '')
+  assert.equal(payload.mfAptArmatureType, '')
+  assert.equal(payload.glasStdalYn, 'N')
+  assert.equal(payload.insdHndlHMiddle, 'N')
+  assert.equal(payload.insdHndlH, '')
+  assert.equal(payload.insd2FHndlHMiddle, 'N')
+  assert.equal(payload.ousdHndlH, '')
+  assert.equal(payload.insd2FBrcktHMiddle, 'N')
+  assert.equal(payload.insdBrcktH, '')
+  assert.equal(payload.ousdBrcktH, '')
+  assert.equal(payload.insd2FBrcktH, '')
+  assert.equal(payload.ousd2FBrcktH, '')
 })

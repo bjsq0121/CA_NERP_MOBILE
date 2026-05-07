@@ -1,5 +1,12 @@
 <template>
   <div>
+    <div v-if="openingSash" class="route-loading-mask">
+      <div class="route-loading-panel">
+        <div class="loading-text">샤시 상세 불러오는 중...</div>
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+
     <div class="page-title-row">
       <h2 class="page-title">견적 상세</h2>
       <button class="btn-back" @click="router.back()">뒤로</button>
@@ -51,38 +58,57 @@
           class="sash-card"
           @click="openSash(row)"
         >
-          <!-- 1행: 순번 + 모형명 + 상태 배지 -->
           <div class="sash-card-header">
-            <span class="sash-seq">#{{ row.estiSeq }}</span>
             <span class="sash-model">{{ row.mdlNm || row.mdlCd }}</span>
+            <span class="sash-seq">#{{ row.estiSeq }}</span>
             <span :class="statusBadgeClass(row)">{{ statusLabel(row) }}</span>
           </div>
 
-          <!-- 2행: 스펙 그리드 -->
-          <div class="sash-specs">
-            <div class="sash-spec">
-              <span class="sash-spec-label">규격</span>
-              <span class="sash-spec-value">{{ buildSize(row) }}</span>
+          <div class="sash-card-main">
+            <div class="sash-card-content">
+              <div class="sash-specs">
+                <div class="sash-spec">
+                  <span class="sash-spec-label">사이즈</span>
+                  <span class="sash-spec-value">{{ buildSize(row) }}</span>
+                </div>
+                <div class="sash-spec">
+                  <span class="sash-spec-label">수량</span>
+                  <span class="sash-spec-value">{{ buildSashMeta(row).qtyText }}</span>
+                </div>
+                <div class="sash-spec">
+                  <span class="sash-spec-label">틀짝망</span>
+                  <span class="sash-spec-value">{{ buildSashMeta(row).bsmfText }}</span>
+                </div>
+                <div class="sash-spec">
+                  <span class="sash-spec-label">색상</span>
+                  <span class="sash-spec-value">{{ row.color || row.colrNm || buildColor(row) || '-' }}</span>
+                </div>
+                <div class="sash-spec">
+                  <span class="sash-spec-label">VENT</span>
+                  <span class="sash-spec-value">{{ row.ventLocNm || '-' }}</span>
+                </div>
+                <div class="sash-spec">
+                  <span class="sash-spec-label">스크린</span>
+                  <span class="sash-spec-value">{{ buildSashScreenText(row, screenList) }}</span>
+                </div>
+                <div class="sash-spec">
+                  <span class="sash-spec-label">핸들</span>
+                  <span class="sash-spec-value">{{ buildHandle(row) }}</span>
+                </div>
+              </div>
             </div>
-            <div class="sash-spec">
-              <span class="sash-spec-label">수량</span>
-              <span class="sash-spec-value">{{ row.qty || '-' }} SET</span>
-            </div>
-            <div class="sash-spec">
-              <span class="sash-spec-label">색상</span>
-              <span class="sash-spec-value">{{ row.color || row.colrNm || buildColor(row) || '-' }}</span>
-            </div>
-            <div class="sash-spec">
-              <span class="sash-spec-label">VENT</span>
-              <span class="sash-spec-value">{{ row.ventLocNm || '-' }}</span>
-            </div>
-            <div class="sash-spec">
-              <span class="sash-spec-label">핸들</span>
-              <span class="sash-spec-value">{{ buildHandle(row) }}</span>
-            </div>
-            <div class="sash-spec">
-              <span class="sash-spec-label">스크린</span>
-              <span class="sash-spec-value">{{ row.screenTypeNm || '-' }}</span>
+
+            <div class="sash-thumb">
+              <img
+                v-if="sashDrawingUrl(row)"
+                :src="sashDrawingUrl(row)"
+                alt=""
+                loading="lazy"
+                @error="handleSashImageError(row)"
+              />
+              <div v-else class="sash-thumb-fallback">
+                <span>{{ row.wintydiNm || row.wintydiCd || '샤시' }}</span>
+              </div>
             </div>
           </div>
 
@@ -110,7 +136,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { selectEstiHeader, searchSashList, issueEstiNo } from '../api/estimate'
+import { selectEstiHeader, searchCodeList, searchModelList, searchSashList, issueEstiNo } from '../api/estimate'
+import {
+  buildSashDrawingUrl,
+  buildSashMeta,
+  buildSashScreenText,
+  mergeSashDrawingFiles,
+  normalizeSashRows,
+  resolveWindEstiNo,
+} from '../utils/estimateDetail'
 
 const route = useRoute()
 const router = useRouter()
@@ -119,8 +153,10 @@ const itgEstiNo = route.params.itgEstiNo
 const header = ref(null)
 const wEstiNo = ref('')
 const sashRows = ref([])
+const screenList = ref([])
 const loading = ref(false)
 const issuing = ref(false)
+const openingSash = ref(false)
 const issueError = ref('')
 
 // 견적(10) 상태일 때만 추가/편집 가능
@@ -184,23 +220,58 @@ function buildHandle(row) {
   return `${inner}/${outer}`
 }
 
+function sashDrawingUrl(row) {
+  if (row._imgError) return ''
+  return buildSashDrawingUrl(row)
+}
+
+function handleSashImageError(row) {
+  row._imgError = true
+}
+
+function normalizeCodeList(rows = []) {
+  return rows.map((row) => ({ ...row, commCdId: row.commCdId || row.commCdVal }))
+}
+
+async function hydrateSashDrawingFiles(rows) {
+  const mdlCds = [...new Set(rows
+    .filter((row) => row.mdlCd && !buildSashDrawingUrl(row))
+    .map((row) => row.mdlCd))]
+
+  if (!mdlCds.length) return rows
+
+  const entries = await Promise.all(mdlCds.map(async (mdlCd) => {
+    try {
+      const { data } = await searchModelList({
+        searchMdlCd: mdlCd,
+        searchUseYn: 'Y',
+        startRowNum: 0,
+        endRowNum: 99,
+      })
+      return [mdlCd, data?.resultList || []]
+    } catch (_) {
+      return [mdlCd, []]
+    }
+  }))
+
+  return mergeSashDrawingFiles(rows, Object.fromEntries(entries))
+}
+
 onMounted(async () => {
   loading.value = true
   try {
     const { data } = await selectEstiHeader(itgEstiNo)
     header.value = data?.resultData || null
-    wEstiNo.value = data?.wEstiNo || ''
+    wEstiNo.value = resolveWindEstiNo(data)
 
     if (header.value) {
       try {
-        const { data: sashData } = await searchSashList(itgEstiNo)
-        const raw = sashData?.resultList || []
-        const seen = new Map()
-        for (const row of raw) {
-          const key = `${row.estiNo || row.windEstiNo || ''}_${row.estiNos || '1'}_${row.estiSeq || '0'}`
-          if (!seen.has(key)) seen.set(key, row)
-        }
-        sashRows.value = Array.from(seen.values())
+        const [{ data: sashData }, { data: screenData }] = await Promise.all([
+          searchSashList({ itgEstiNo, estiNo: wEstiNo.value }),
+          searchCodeList('379'),
+        ])
+        screenList.value = normalizeCodeList(screenData?.resultList || [])
+        sashRows.value = await hydrateSashDrawingFiles(normalizeSashRows(sashData))
       } catch (e) {
         sashRows.value = []
       }
@@ -210,22 +281,27 @@ onMounted(async () => {
   }
 })
 
-function openSash(row) {
+async function openSash(row) {
+  openingSash.value = true
   const cd = row.stCd || row.igStCd || '10'
   const editable = cd === '10'
   try {
     sessionStorage.setItem('mobile_sash_edit_row', JSON.stringify(row))
   } catch (_) {}
-  router.push({
-    path: '/estimates/sash/new',
-    query: {
-      itgEstiNo,
-      wEstiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
-      estiNos: row.estiNos || '1',
-      estiSeq: row.estiSeq,
-      readonly: editable ? '' : 'Y',
-    },
-  })
+  try {
+    await router.push({
+      path: '/estimates/sash/new',
+      query: {
+        itgEstiNo,
+        wEstiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+        estiNos: row.estiNos || '1',
+        estiSeq: row.estiSeq,
+        readonly: editable ? '' : 'Y',
+      },
+    })
+  } catch (_) {
+    openingSash.value = false
+  }
 }
 
 async function addSash() {
