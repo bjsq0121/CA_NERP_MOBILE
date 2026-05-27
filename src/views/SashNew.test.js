@@ -366,3 +366,12 @@ test('EstimateDetail resolves screen type names and shows loading while opening 
   assert.match(detailSource, /openingSash/)
   assert.match(detailSource, /샤시 상세 불러오는 중/)
 })
+
+test('SashNew captures and restores saved edit values around model master reload', () => {
+  assert.match(source, /import \{ captureSashEditValues, restoreSashEditValues \} from '\.\.\/utils\/sashEditPreserve'/)
+  assert.match(source, /const savedEditValues = captureSashEditValues\(form\.value\)/)
+  assert.match(source, /await onModelPick\(\{ \.\.\.r \}, \{ preserveProductionOptions: true \}\)/)
+  assert.match(source, /restoreSashEditValues\(form\.value, savedEditValues\)/)
+  assert.ok(source.indexOf('const savedEditValues = captureSashEditValues(form.value)') < source.indexOf('await onModelPick({ ...r }, { preserveProductionOptions: true })'))
+  assert.ok(source.indexOf('await onModelPick({ ...r }, { preserveProductionOptions: true })') < source.indexOf('restoreSashEditValues(form.value, savedEditValues)'))
+})

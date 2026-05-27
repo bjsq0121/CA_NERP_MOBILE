@@ -137,6 +137,7 @@ import SashOptionFactory from '../components/SashOptionFactory.vue'
 import { saveSashEsti, searchColorList, searchModelList, searchModelSf, searchGlasList, searchCodeList, searchCodeDetail, searchModelWintydi, searchSashOrdTypCd, searchWindEstiAmt, selectSashDetail } from '../api/estimate'
 import { buildSashSavePayload } from '../utils/sashPayload'
 import { resolveBsmfOrdUtmCd } from '../utils/sashOptions'
+import { captureSashEditValues, restoreSashEditValues } from '../utils/sashEditPreserve'
 import { buildSashDrawingUrl, findMatchingDrawing } from '../utils/estimateDetail'
 
 const route = useRoute()
@@ -538,7 +539,13 @@ async function loadEditData() {
     totSum: r.totSum || '',
     remSrc: r.remSrc || '',
   })
-  if (r.mdlCd) await onModelPick({ ...r }, { preserveProductionOptions: true })
+  if (r.mdlCd) {
+    const savedEditValues = captureSashEditValues(form.value)
+    await onModelPick({ ...r }, { preserveProductionOptions: true })
+    restoreSashEditValues(form.value, savedEditValues)
+    applyProductionOptionRules()
+    refreshDrawingFromCurrentSelection()
+  }
   await loadWindEstimateAmount()
 }
 
