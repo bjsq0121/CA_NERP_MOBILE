@@ -25,6 +25,8 @@ const AMOUNT_FIELDS = [
   'estiTotSaleVatUnp',
 ]
 
+const USAGE = 'Usage: node scripts/compare-sash-save-parity.mjs web.json mobile.json\n'
+
 function normalize(value) {
   if (value == null) return ''
   return String(value)
@@ -53,23 +55,35 @@ function loadJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
 
-if (process.argv[1] && process.argv[1].endsWith('compare-sash-save-parity.mjs') && process.argv.length > 2) {
-  const [, , webPath, mobilePath] = process.argv
+export function runSashParityCli(
+  argv = process.argv,
+  {
+    stderr = process.stderr,
+    log = (message) => console.log(message),
+    table = (rows) => console.table(rows),
+    load = loadJson,
+  } = {},
+) {
+  const [, , webPath, mobilePath] = argv
   if (!webPath || !mobilePath) {
-    console.error('Usage: node scripts/compare-sash-save-parity.mjs web.json mobile.json')
-    process.exit(2)
+    stderr.write(USAGE)
+    return 2
   }
 
   const result = compareSashParity({
-    web: loadJson(webPath),
-    mobile: loadJson(mobilePath),
+    web: load(webPath),
+    mobile: load(mobilePath),
   })
 
   if (result.ok) {
-    console.log('Sash parity OK')
-    process.exit(0)
+    log('Sash parity OK')
+    return 0
   }
 
-  console.table(result.mismatches)
-  process.exit(1)
+  table(result.mismatches)
+  return 1
+}
+
+if (process.argv[1] && process.argv[1].endsWith('compare-sash-save-parity.mjs')) {
+  process.exit(runSashParityCli())
 }

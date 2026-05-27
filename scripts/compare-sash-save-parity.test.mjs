@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compareSashParity } from './compare-sash-save-parity.mjs'
+import { compareSashParity, runSashParityCli } from './compare-sash-save-parity.mjs'
+
+const usage = 'Usage: node scripts/compare-sash-save-parity.mjs web.json mobile.json\n'
 
 test('compareSashParity reports matching detail and amount as clean', () => {
   const result = compareSashParity({
@@ -35,4 +37,24 @@ test('compareSashParity groups detail and amount mismatches', () => {
     { group: 'detail', field: 'wSize', web: '2000', mobile: '2100' },
     { group: 'amount', field: 'estiTotSaleUnp', web: '1000', mobile: '900' },
   ])
+})
+
+test('runSashParityCli exits 2 with usage when invoked without JSON paths', () => {
+  let stderr = ''
+  const exitCode = runSashParityCli(['node', 'scripts/compare-sash-save-parity.mjs'], {
+    stderr: { write: (text) => { stderr += text } },
+  })
+
+  assert.equal(exitCode, 2)
+  assert.equal(stderr, usage)
+})
+
+test('runSashParityCli exits 2 with usage when invoked with one JSON path', () => {
+  let stderr = ''
+  const exitCode = runSashParityCli(['node', 'scripts/compare-sash-save-parity.mjs', 'web.json'], {
+    stderr: { write: (text) => { stderr += text } },
+  })
+
+  assert.equal(exitCode, 2)
+  assert.equal(stderr, usage)
 })
