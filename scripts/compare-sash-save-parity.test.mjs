@@ -58,3 +58,24 @@ test('runSashParityCli exits 2 with usage when invoked with one JSON path', () =
   assert.equal(exitCode, 2)
   assert.equal(stderr, usage)
 })
+
+test('import does not run CLI when argv entrypoint only shares the script basename', async () => {
+  const originalArgv = process.argv
+  const originalExit = process.exit
+  let exitCode
+
+  process.argv = ['node', '/tmp/compare-sash-save-parity.mjs']
+  process.exit = (code) => {
+    exitCode = code
+    throw new Error(`unexpected process.exit(${code})`)
+  }
+
+  try {
+    await import(`./compare-sash-save-parity.mjs?import-guard=${Date.now()}`)
+  } finally {
+    process.argv = originalArgv
+    process.exit = originalExit
+  }
+
+  assert.equal(exitCode, undefined)
+})

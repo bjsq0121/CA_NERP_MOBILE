@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const DETAIL_FIELDS = [
   'mdlCd', 'wintydiCd', 'bsmfOrdUtmCd',
@@ -55,6 +57,10 @@ function loadJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
 
+function isDirectRun() {
+  return process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])
+}
+
 export function runSashParityCli(
   argv = process.argv,
   {
@@ -84,6 +90,6 @@ export function runSashParityCli(
   return 1
 }
 
-if (process.argv[1] && process.argv[1].endsWith('compare-sash-save-parity.mjs')) {
+if (isDirectRun()) {
   process.exit(runSashParityCli())
 }
