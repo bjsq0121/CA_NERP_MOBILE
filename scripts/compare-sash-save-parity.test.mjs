@@ -58,6 +58,15 @@ test('compareSashParity compares known raw API size aliases', () => {
   ])
 })
 
+test('compareSashParity treats matching known aliases as equal when canonical and raw keys coexist', () => {
+  const result = compareSashParity({
+    web: { detail: { wSize: 'old', WSize: '2000' }, amount: {} },
+    mobile: { detail: { WSize: '2000' }, amount: {} },
+  })
+
+  assert.deepEqual(result.mismatches, [])
+})
+
 test('runSashParityCli exits 2 with usage when invoked without JSON paths', () => {
   let stderr = ''
   const exitCode = runSashParityCli(['node', 'scripts/compare-sash-save-parity.mjs'], {

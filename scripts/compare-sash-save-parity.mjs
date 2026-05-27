@@ -46,21 +46,37 @@ function normalize(value) {
   return String(value)
 }
 
-function valueForField(row = {}, field) {
+function valuesForField(row = {}, field) {
   const aliases = FIELD_ALIASES[field] ?? [field]
-  const alias = aliases.find((candidate) => Object.prototype.hasOwnProperty.call(row, candidate))
-  return alias ? row[alias] : undefined
+  return aliases
+    .filter((alias) => Object.prototype.hasOwnProperty.call(row, alias))
+    .map((alias) => normalize(row[alias]))
+}
+
+function fieldValuesMatch(webValues, mobileValues) {
+  if (webValues.length === 0 && mobileValues.length === 0) return true
+  if (webValues.length === 0 || mobileValues.length === 0) return false
+  return webValues.some((value) => mobileValues.includes(value))
 }
 
 function compareGroup(group, fields, web = {}, mobile = {}) {
-  return fields
-    .filter((field) => normalize(valueForField(web, field)) !== normalize(valueForField(mobile, field)))
-    .map((field) => ({
-      group,
-      field,
-      web: normalize(valueForField(web, field)),
-      mobile: normalize(valueForField(mobile, field)),
-    }))
+  const mismatches = []
+
+  for (const field of fields) {
+    const webValues = valuesForField(web, field)
+    const mobileValues = valuesForField(mobile, field)
+
+    if (!fieldValuesMatch(webValues, mobileValues)) {
+      mismatches.push({
+        group,
+        field,
+        web: webValues[0] ?? '',
+        mobile: mobileValues[0] ?? '',
+      })
+    }
+  }
+
+  return mismatches
 }
 
 export function compareSashParity({ web, mobile }) {
