@@ -39,6 +39,25 @@ test('compareSashParity groups detail and amount mismatches', () => {
   ])
 })
 
+test('compareSashParity compares known raw API size aliases', () => {
+  const result = compareSashParity({
+    web: {
+      detail: { WSize: '2000', HSize: '1000', W1Size: '800', CS1Size: '50' },
+      amount: {},
+    },
+    mobile: {
+      detail: { WSize: '2100', HSize: '1000', W1Size: '900', CS1Size: '55' },
+      amount: {},
+    },
+  })
+
+  assert.deepEqual(result.mismatches, [
+    { group: 'detail', field: 'wSize', web: '2000', mobile: '2100' },
+    { group: 'detail', field: 'w1Size', web: '800', mobile: '900' },
+    { group: 'detail', field: 'cs1Size', web: '50', mobile: '55' },
+  ])
+})
+
 test('runSashParityCli exits 2 with usage when invoked without JSON paths', () => {
   let stderr = ''
   const exitCode = runSashParityCli(['node', 'scripts/compare-sash-save-parity.mjs'], {

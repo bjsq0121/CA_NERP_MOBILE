@@ -27,6 +27,18 @@ const AMOUNT_FIELDS = [
   'estiTotSaleVatUnp',
 ]
 
+const FIELD_ALIASES = {
+  wSize: ['wSize', 'WSize', 'w0Size', 'W0Size'],
+  hSize: ['hSize', 'HSize', 'h0Size', 'H0Size'],
+  csSize: ['csSize', 'CSSize'],
+}
+
+for (let index = 1; index <= 5; index += 1) {
+  FIELD_ALIASES[`w${index}Size`] = [`w${index}Size`, `W${index}Size`]
+  FIELD_ALIASES[`h${index}Size`] = [`h${index}Size`, `H${index}Size`]
+  FIELD_ALIASES[`cs${index}Size`] = [`cs${index}Size`, `CS${index}Size`]
+}
+
 const USAGE = 'Usage: node scripts/compare-sash-save-parity.mjs web.json mobile.json\n'
 
 function normalize(value) {
@@ -34,14 +46,20 @@ function normalize(value) {
   return String(value)
 }
 
+function valueForField(row = {}, field) {
+  const aliases = FIELD_ALIASES[field] ?? [field]
+  const alias = aliases.find((candidate) => Object.prototype.hasOwnProperty.call(row, candidate))
+  return alias ? row[alias] : undefined
+}
+
 function compareGroup(group, fields, web = {}, mobile = {}) {
   return fields
-    .filter((field) => normalize(web[field]) !== normalize(mobile[field]))
+    .filter((field) => normalize(valueForField(web, field)) !== normalize(valueForField(mobile, field)))
     .map((field) => ({
       group,
       field,
-      web: normalize(web[field]),
-      mobile: normalize(mobile[field]),
+      web: normalize(valueForField(web, field)),
+      mobile: normalize(valueForField(mobile, field)),
     }))
 }
 
