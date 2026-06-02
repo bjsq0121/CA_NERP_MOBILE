@@ -359,6 +359,59 @@ test('EstimateDetail sash list shows drawing, separated quantity bsmf, and statu
   assert.match(detailSource, /statusBadgeClass\(row\)/)
 })
 
+test('EstimateDetail separates al-glass rows from editable sash rows', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /알유리 견적/)
+  assert.match(detailSource, /const glassRows = ref\(\[\]\)/)
+  assert.match(detailSource, /function isGlassEstimateRow\(row = \{\}\)/)
+  assert.match(detailSource, /row\.ctgr2Cd === 'P8'/)
+  assert.match(detailSource, /glassRows\.value = rows\.filter\(isGlassEstimateRow\)/)
+  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(rows\.filter\(\(row\) => !isGlassEstimateRow\(row\)\)\)/)
+})
+
+test('EstimateDetail shows total summary and category amount summary before item sections', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /class="card estimate-total-card"/)
+  assert.match(detailSource, /총 합계/)
+  assert.match(detailSource, /estimateTotals\.total/)
+  assert.match(detailSource, /categoryTotals\.sash/)
+  assert.match(detailSource, /categoryTotals\.glass/)
+  assert.match(detailSource, /const estimateTotals = computed\(\(\) => sumRows\(\[\.\.\.sashRows\.value, \.\.\.glassRows\.value\]\)\)/)
+  assert.match(detailSource, /function rowSupply\(row\)/)
+  assert.match(detailSource, /function rowTotal\(row\)/)
+})
+
+test('EstimateDetail uses a single add-item action sheet instead of exposing every category button', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /\+ 품목 추가/)
+  assert.match(detailSource, /const showItemSheet = ref\(false\)/)
+  assert.match(detailSource, /function openItemSheet\(\)/)
+  assert.match(detailSource, /function closeItemSheet\(\)/)
+  assert.match(detailSource, /v-if="showItemSheet" class="modal-mask"/)
+  assert.match(detailSource, /품목 추가[\s\S]*샤시[\s\S]*알유리 직접입력[\s\S]*몰딩[\s\S]*도어[\s\S]*유통자재[\s\S]*패키지/)
+  assert.doesNotMatch(detailSource, /\+ 도어 \(준비중\)/)
+  assert.doesNotMatch(detailSource, /\+ 유리 \(준비중\)/)
+  assert.doesNotMatch(detailSource, /\+ 몰딩 \(준비중\)/)
+})
+
+test('EstimateDetail keeps sash card primary fields compact and moves options into details', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /<summary>옵션 상세<\/summary>/)
+  assert.match(detailSource, /buildGlassSummary\(row\)/)
+  assert.match(detailSource, /buildProductionSummary\(row\)/)
+  assert.match(detailSource, /@click\.stop/)
+  assert.match(detailSource, /사이즈[\s\S]*수량[\s\S]*틀짝망[\s\S]*색상/)
+})
+
+test('EstimateDetail marks generated al-glass cards as readonly automatic rows', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /자동생성/)
+  assert.match(detailSource, /읽기전용/)
+  assert.match(detailSource, /class="sash-card sash-card-readonly"/)
+  assert.match(detailSource, /샤시 저장 시 생성된 알유리 견적입니다/)
+  assert.match(detailSource, /샤시 수정 화면으로 이동하지 않습니다/)
+})
+
 test('EstimateDetail resolves screen type names and shows loading while opening sash detail', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
   assert.match(detailSource, /searchCodeList\('379'\)/)

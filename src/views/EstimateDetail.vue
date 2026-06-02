@@ -32,17 +32,36 @@
         <div v-if="header.dplcReqRemSrc" class="text-xs mt-sm" style="white-space:pre-wrap">{{ header.dplcReqRemSrc }}</div>
       </div>
 
+      <!-- 총액 요약 -->
+      <div class="card estimate-total-card">
+        <div class="summary-head">
+          <div>
+            <div class="detail-label">총 합계</div>
+            <div class="summary-total">{{ fmtPrice(estimateTotals.total) }}원</div>
+          </div>
+          <span class="badge">{{ sashRows.length + glassRows.length }}개 품목</span>
+        </div>
+        <div class="summary-amounts">
+          <div>
+            <span>공급가</span>
+            <strong>{{ fmtPrice(estimateTotals.supply) }}원</strong>
+          </div>
+          <div>
+            <span>VAT</span>
+            <strong>{{ fmtPrice(estimateTotals.vat) }}원</strong>
+          </div>
+        </div>
+        <div class="category-summary">
+          <span>샤시 {{ fmtPrice(categoryTotals.sash) }}원</span>
+          <span>알유리 {{ fmtPrice(categoryTotals.glass) }}원</span>
+        </div>
+      </div>
+
       <!-- 견적 추가 버튼: 견적(10) 상태일 때만 -->
       <div v-if="canEdit" class="card">
-        <div class="section-title">견적 추가</div>
-        <div class="btn-grid">
-          <button class="btn accent" :disabled="issuing" @click="addSash">
-            {{ issuing ? '준비 중...' : '+ 샤시' }}
-          </button>
-          <button class="btn secondary" disabled>+ 도어 (준비중)</button>
-          <button class="btn secondary" disabled>+ 유리 (준비중)</button>
-          <button class="btn secondary" disabled>+ 몰딩 (준비중)</button>
-        </div>
+        <button class="btn accent" :disabled="issuing" @click="openItemSheet">
+          {{ issuing ? '준비 중...' : '+ 품목 추가' }}
+        </button>
         <div v-if="issueError" class="error">{{ issueError }}</div>
       </div>
 
@@ -83,18 +102,6 @@
                   <span class="sash-spec-label">색상</span>
                   <span class="sash-spec-value">{{ row.color || row.colrNm || buildColor(row) || '-' }}</span>
                 </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">VENT</span>
-                  <span class="sash-spec-value">{{ row.ventLocNm || '-' }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">스크린</span>
-                  <span class="sash-spec-value">{{ buildSashScreenText(row, screenList) }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">핸들</span>
-                  <span class="sash-spec-value">{{ buildHandle(row) }}</span>
-                </div>
               </div>
             </div>
 
@@ -127,6 +134,126 @@
               <span class="sash-price-value">{{ fmtPrice(row.vatTotCstAmt || row.totAmt) }}</span>
             </div>
           </div>
+          <details class="sash-option-details" @click.stop>
+            <summary>옵션 상세</summary>
+            <div class="sash-option-grid">
+              <div>
+                <span>VENT</span>
+                <strong>{{ row.ventLocNm || '-' }}</strong>
+              </div>
+              <div>
+                <span>스크린</span>
+                <strong>{{ buildSashScreenText(row, screenList) }}</strong>
+              </div>
+              <div>
+                <span>핸들</span>
+                <strong>{{ buildHandle(row) }}</strong>
+              </div>
+              <div>
+                <span>유리</span>
+                <strong>{{ buildGlassSummary(row) }}</strong>
+              </div>
+              <div>
+                <span>생산옵션</span>
+                <strong>{{ buildProductionSummary(row) }}</strong>
+              </div>
+              <div>
+                <span>비고</span>
+                <strong>{{ row.remSrc || '-' }}</strong>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- 샤시 저장 시 생성된 알유리 견적 목록 -->
+      <div class="card">
+        <div class="section-title">
+          알유리 견적 {{ glassRows.length ? `(${glassRows.length})` : '' }}
+        </div>
+        <div v-if="!glassRows.length" class="empty" style="padding:20px 0">등록된 알유리 견적이 없습니다.</div>
+        <div
+          v-for="row in glassRows"
+          :key="`${row.estiNo || 'glass'}_${row.estiSeq}`"
+          class="sash-card sash-card-readonly"
+        >
+          <div class="sash-card-header">
+            <span class="sash-model">{{ row.mdlNm || row.mtrlNm || row.mtrlCd || '알유리' }}</span>
+            <span class="sash-seq">#{{ row.estiSeq }}</span>
+            <span class="badge badge-soft">자동생성</span>
+            <span class="badge badge-dark">읽기전용</span>
+            <span :class="statusBadgeClass(row)">{{ statusLabel(row) }}</span>
+          </div>
+          <div class="readonly-note">샤시 저장 시 생성된 알유리 견적입니다. 샤시 수정 화면으로 이동하지 않습니다.</div>
+          <div class="sash-specs">
+            <div class="sash-spec">
+              <span class="sash-spec-label">사이즈</span>
+              <span class="sash-spec-value">{{ buildSize(row) }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">수량</span>
+              <span class="sash-spec-value">{{ row.qty || '-' }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">구분</span>
+              <span class="sash-spec-value">{{ row.ctgr2Nm || '알유리' }}</span>
+            </div>
+            <div class="sash-spec">
+              <span class="sash-spec-label">색상</span>
+              <span class="sash-spec-value">{{ row.color || row.colrNm || '-' }}</span>
+            </div>
+          </div>
+          <div class="sash-price-row">
+            <div class="sash-price">
+              <span class="sash-price-label">공급가</span>
+              <span class="sash-price-value">{{ fmtPrice(row.totCstAmtAddGlas || row.totSaleAmt || row.sumSaleCst) }}</span>
+            </div>
+            <div class="sash-price">
+              <span class="sash-price-label">VAT</span>
+              <span class="sash-price-value">{{ fmtPrice(row.vatAmt || row.totVatAmt) }}</span>
+            </div>
+            <div class="sash-price sash-price-total">
+              <span class="sash-price-label">합계</span>
+              <span class="sash-price-value">{{ fmtPrice(row.vatTotCstAmt || row.totAmt || row.chrgAmt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showItemSheet" class="modal-mask" @click.self="closeItemSheet">
+        <div class="modal-sheet">
+          <h3>품목 추가</h3>
+          <button class="sheet-row" :disabled="issuing" @click="addSash">
+            <span>
+              <strong>샤시</strong>
+              <small>샤시 견적 작성</small>
+            </span>
+            <em>사용 가능</em>
+          </button>
+          <button class="sheet-row" disabled>
+            <span>
+              <strong>알유리 직접입력</strong>
+              <small>자동생성 알유리와 별도 화면으로 확장 예정</small>
+            </span>
+            <em>준비중</em>
+          </button>
+          <button class="sheet-row" disabled>
+            <span><strong>몰딩</strong><small>추후 추가</small></span>
+            <em>준비중</em>
+          </button>
+          <button class="sheet-row" disabled>
+            <span><strong>도어</strong><small>추후 추가</small></span>
+            <em>준비중</em>
+          </button>
+          <button class="sheet-row" disabled>
+            <span><strong>유통자재</strong><small>추후 추가</small></span>
+            <em>준비중</em>
+          </button>
+          <button class="sheet-row" disabled>
+            <span><strong>패키지</strong><small>추후 추가</small></span>
+            <em>준비중</em>
+          </button>
+          <button class="btn secondary modal-footer" @click="closeItemSheet">닫기</button>
         </div>
       </div>
     </template>
@@ -153,10 +280,12 @@ const itgEstiNo = route.params.itgEstiNo
 const header = ref(null)
 const wEstiNo = ref('')
 const sashRows = ref([])
+const glassRows = ref([])
 const screenList = ref([])
 const loading = ref(false)
 const issuing = ref(false)
 const openingSash = ref(false)
+const showItemSheet = ref(false)
 const issueError = ref('')
 
 // 견적(10) 상태일 때만 추가/편집 가능
@@ -165,6 +294,12 @@ const canEdit = computed(() => {
   // 모든 항목이 견적(10) 상태인지 확인
   return sashRows.value.every(r => !r.stCd || r.stCd === '10')
 })
+
+const estimateTotals = computed(() => sumRows([...sashRows.value, ...glassRows.value]))
+const categoryTotals = computed(() => ({
+  sash: sumRows(sashRows.value).total,
+  glass: sumRows(glassRows.value).total,
+}))
 
 // 상태 코드 → 표시 이름
 function statusLabel(row) {
@@ -193,6 +328,35 @@ function formatDate(s) {
 function formatDt(s) { return s ? String(s).slice(0, 10) : '' }
 function fmtPrice(v) { return Number(v || 0).toLocaleString() }
 
+function amountNumber(...values) {
+  for (const value of values) {
+    if (value !== '' && value != null) return Number(String(value).replace(/,/g, '')) || 0
+  }
+  return 0
+}
+
+function rowSupply(row) {
+  return amountNumber(row.totCstAmtAddGlas, row.totSaleAmt, row.sumSaleCst)
+}
+
+function rowVat(row) {
+  return amountNumber(row.vatAmt, row.totVatAmt)
+}
+
+function rowTotal(row) {
+  const explicit = amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt)
+  return explicit || rowSupply(row) + rowVat(row)
+}
+
+function sumRows(rows) {
+  return rows.reduce((acc, row) => {
+    acc.supply += rowSupply(row)
+    acc.vat += rowVat(row)
+    acc.total += rowTotal(row)
+    return acc
+  }, { supply: 0, vat: 0, total: 0 })
+}
+
 function buildSize(row) {
   if (row.wh) return row.wh
   const w = row.wSize || row.WSize || row.w0Size || ''
@@ -218,6 +382,30 @@ function buildHandle(row) {
   if (inner === outer || !outer) return inner
   if (!inner) return outer
   return `${inner}/${outer}`
+}
+
+function buildGlassSummary(row) {
+  const parts = [
+    row.insdSfGlasMtrlNm || row.mtrlCds1Nm,
+    row.ousdSfGlasMtrlNm || row.mtrlCds2Nm,
+    row.insdBfGlasMtrlNm || row.mtrlCds3Nm,
+    row.ousdBfGlasMtrlNm || row.mtrlCds4Nm,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' / ') : '-'
+}
+
+function buildProductionSummary(row) {
+  const parts = []
+  if (row.bfArmatureType || row.sfArmatureType || row.mfArmatureType) parts.push('보강재')
+  if (row.bfMillingType && row.bfMillingType !== '0') parts.push('밀링')
+  if (row.ventHoleYn === 'Y') parts.push('통기홀')
+  if (row.drnHoleYn === 'Y') parts.push('배수홀')
+  if (row.aluMfYn === 'Y') parts.push('안전망')
+  return parts.length ? parts.join(', ') : '-'
+}
+
+function isGlassEstimateRow(row = {}) {
+  return row.ctgr2Cd === 'P8' || row.ctgrCd === 'P8' || row.ctgr2Nm === '알유리'
 }
 
 function sashDrawingUrl(row) {
@@ -271,9 +459,12 @@ onMounted(async () => {
           searchCodeList('379'),
         ])
         screenList.value = normalizeCodeList(screenData?.resultList || [])
-        sashRows.value = await hydrateSashDrawingFiles(normalizeSashRows(sashData))
+        const rows = normalizeSashRows(sashData)
+        glassRows.value = rows.filter(isGlassEstimateRow)
+        sashRows.value = await hydrateSashDrawingFiles(rows.filter((row) => !isGlassEstimateRow(row)))
       } catch (e) {
         sashRows.value = []
+        glassRows.value = []
       }
     }
   } finally {
@@ -306,6 +497,7 @@ async function openSash(row) {
 
 async function addSash() {
   issueError.value = ''
+  closeItemSheet()
   if (wEstiNo.value) {
     router.push({ path: '/estimates/sash/new', query: { itgEstiNo, wEstiNo: wEstiNo.value } })
     return
@@ -324,5 +516,14 @@ async function addSash() {
   } finally {
     issuing.value = false
   }
+}
+
+function openItemSheet() {
+  issueError.value = ''
+  showItemSheet.value = true
+}
+
+function closeItemSheet() {
+  showItemSheet.value = false
 }
 </script>
