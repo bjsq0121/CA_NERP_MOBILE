@@ -151,6 +151,7 @@ import { useRouter } from 'vue-router'
 import BzpcSelector from '../components/BzpcSelector.vue'
 import DplcSearchModal from '../components/DplcSearchModal.vue'
 import { saveEstiHeader } from '../api/estimate'
+import { loadSelectedBzpc } from '../utils/selectedBzpcStorage'
 
 const router = useRouter()
 
@@ -166,16 +167,11 @@ const bzpcLocked = ref(false)
 
 // 견적 목록에서 선택한 영업소가 있으면 고정
 onMounted(() => {
-  try {
-    const saved = sessionStorage.getItem('mobile_selected_bzpc')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (parsed?.bzpc) {
-        selectedBzpc.value = parsed
-        bzpcLocked.value = true
-      }
-    }
-  } catch (_) {}
+  const saved = loadSelectedBzpc()
+  if (saved?.bzpc) {
+    selectedBzpc.value = saved
+    bzpcLocked.value = true
+  }
 })
 const dplcModal = ref(null)
 const loading = ref(false)

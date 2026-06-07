@@ -4,7 +4,7 @@
     <div class="details-body">
       <div class="field">
         <label>VENT 위치</label>
-        <select v-model="form.ventLoc">
+        <select v-model="form.ventLoc" @change="$emit('ventChange', form.ventLoc)">
           <option value="">없음</option>
           <option v-for="v in ventOptions" :key="v.commCdId" :value="v.commCdId">
             {{ v.commCdNm }}
@@ -42,7 +42,7 @@
             <label>안전망 핸들</label>
             <select v-model="form.aluMfHandleType" @change="onAluMfHandleChange">
               <option value="">선택</option>
-              <option v-for="h in aluMfHandleOptions" :key="h.commCdId" :value="h.commCdId">
+              <option v-for="h in aluMfHandleOptions" :key="safetyNetHandleValue(h)" :value="safetyNetHandleValue(h)">
                 {{ h.commCdNm }}
               </option>
             </select>
@@ -63,7 +63,7 @@
               type="number"
               inputmode="numeric"
               placeholder="mm"
-              :disabled="form.aluMfMdlYn === 'Y'"
+              :disabled="!form.aluMfHandleType || form.aluMfHandleType === '4' || form.aluMfMdlYn === 'Y'"
             />
           </div>
         </div>
@@ -96,15 +96,23 @@ const props = defineProps({
 })
 const { form, ventOptions, screenOptions, aluMfHandleOptions, siliconeFinishEnabled } = toRefs(props)
 
-defineEmits(['toggleAluMf'])
+defineEmits(['toggleAluMf', 'ventChange'])
 
 function toggleAluMfHeight() {
   form.value.aluMfMdlYn = form.value.aluMfMdlYn === 'Y' ? 'N' : 'Y'
   if (form.value.aluMfMdlYn === 'Y') form.value.aluMfHndlH = null
 }
 
+function safetyNetHandleValue(option) {
+  return option?.commCdVal || option?.commCdId || ''
+}
+
 function onAluMfHandleChange() {
   if (!form.value.aluMfHandleType) form.value.aluMfHndlH = null
+  if (form.value.aluMfHandleType === '4') {
+    form.value.aluMfHndlH = null
+    form.value.aluMfMdlYn = 'Y'
+  }
 }
 
 function toggleSiliconeFinish() {

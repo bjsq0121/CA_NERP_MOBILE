@@ -15,6 +15,7 @@
           <OptionToggle v-model="form.bfWeldNoneYn" label="절단바로" />
           <OptionToggle v-model="form.bfWeld" label="ㄱㄴ용접" />
           <OptionToggle v-model="form.fillingPiecesYn" label="상하휠링피스" />
+          <OptionToggle v-model="form.basedfillingPiecesYn" label="기존 휠링피스" />
           <OptionToggle v-model="form.bfRackShip" label="렉별도출고" />
           <OptionToggle v-model="form.bfStopper" label="스토퍼부착" />
           <OptionToggle v-model="form.bfDirectShip" label="직송" />
@@ -171,6 +172,10 @@
                 <option value="2">밀때우경</option>
               </select>
             </div>
+            <div class="field">
+              <label>경첩타공위치</label>
+              <input v-model.trim="form.bfVentHoleLctn" type="number" inputmode="numeric" placeholder="mm" />
+            </div>
           </div>
           <div class="option-chip-grid compact">
             <OptionToggle v-model="form.bfTurnDoorOnlyMakeYn" label="문짝만 제작" />
@@ -187,6 +192,14 @@
             <OptionToggle v-model="form.bfWinSpDdlnShpmYn" label="SP마감출고" />
             <OptionToggle v-model="form.bfIhyFixHghtDirYn" label="이형픽스 방향설정" />
           </div>
+          <div class="field mt-sm">
+            <label>통바밀링</label>
+            <select v-model="form.bfWinCbMilingType">
+              <option value="">선택</option>
+              <option value="1">상부만밀링(FM,GB없음)</option>
+              <option value="2">FM바없이 통바밀링</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -195,6 +208,10 @@
         <div class="option-chip-grid">
           <OptionToggle v-model="form.sfLandscape" label="SP 가로작업" />
           <OptionToggle v-model="form.sfOppositeTypeYn" label="반대타입" />
+          <OptionToggle v-model="form.sfInsideRightBrdYn" label="내부우측매립" />
+          <OptionToggle v-model="form.sfMcOneReqYn" label="MC1개요청" />
+          <OptionToggle v-model="form.sfBrdProcYn" label="매립가공" />
+          <OptionToggle v-model="form.sfHandleProcYn" label="핸들가공" />
           <OptionToggle v-model="form.sfRackShip" label="렉별도출고" />
           <OptionToggle v-model="form.sfDirectShip" label="직송" />
           <OptionToggle v-model="form.sfOutGlasYn" label="외주유리" />
@@ -209,10 +226,27 @@
         </div>
         <div class="option-select-grid">
           <div class="field">
+            <label>SF 보강재</label>
+            <select v-model="form.sfArmatureType">
+              <option value="">선택</option>
+              <option value="B">기본</option>
+              <option value="F">4면</option>
+            </select>
+          </div>
+          <div class="field">
             <label>윈드클로저</label>
             <div class="option-chip-grid compact">
               <OptionToggle :model-value="hasOption(form.winCloser, 1)" label="내창" @update:modelValue="toggleOption(form.winCloser, 1)" />
               <OptionToggle :model-value="hasOption(form.winCloser, 2)" label="외창" @update:modelValue="toggleOption(form.winCloser, 2)" />
+              <OptionToggle :model-value="hasOption(form.winCloser, 3)" label="2층내창" @update:modelValue="toggleOption(form.winCloser, 3)" />
+              <OptionToggle :model-value="hasOption(form.winCloser, 4)" label="2층외창" @update:modelValue="toggleOption(form.winCloser, 4)" />
+            </div>
+          </div>
+          <div class="field">
+            <label>SF 통기홀</label>
+            <div class="option-chip-grid compact">
+              <OptionToggle v-model="form.sfInsdVentHoleYn" label="내측 통기홀" />
+              <OptionToggle v-model="form.sfOusdVentHoleYn" label="외측 통기홀" />
             </div>
           </div>
           <div class="field">
@@ -243,6 +277,25 @@
               <option value="6">우측양면</option>
               <option value="7">좌측</option>
               <option value="8">우측</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>SF 아파트 보강재</label>
+            <select v-model="form.sfAptArmatureType">
+              <option value="">선택</option>
+              <option value="F">4면보강</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>SF 아파트 핸들</label>
+            <select v-model="form.sfAptHandleType">
+              <option value="">선택</option>
+              <option value="1">고정핸들</option>
+              <option value="2">그립핸들</option>
+              <option value="3">반자동핸들</option>
+              <option value="4">크리센트+고정</option>
+              <option value="5">커플핸들(주벤트)</option>
+              <option value="6">양방향핸들</option>
             </select>
           </div>
         </div>
@@ -319,6 +372,14 @@
           <input v-model.trim="form.mfShipAddr" placeholder="주소" />
         </div>
         <div class="option-select-grid">
+          <div class="field">
+            <label>MF 보강재</label>
+            <select v-model="form.mfArmatureType">
+              <option value="">선택</option>
+              <option value="B">기본</option>
+              <option value="F">4면</option>
+            </select>
+          </div>
           <div class="field">
             <label>망핸들</label>
             <select v-model="form.mfHandle" @change="onMfHandleChange">
@@ -442,5 +503,21 @@ function onSfOutTypeChange() {
   border: 1px solid var(--c-border-light);
   border-radius: 8px;
   background: #f8fafc;
+}
+
+@media (min-width: 768px) {
+  .option-chip-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .option-select-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .option-chip-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 </style>

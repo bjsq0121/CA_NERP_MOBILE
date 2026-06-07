@@ -62,14 +62,14 @@
             <option v-for="h in handleOptions" :key="'o'+h.commCdId" :value="h.commCdId">{{ h.commCdNm }}</option>
           </select>
         </div>
-        <div class="field" :class="{ 'is-disabled': !secondFloorEnabled }">
+        <div class="field" :class="{ 'is-disabled': form.dblWindYn !== 'Y' }">
           <label>
             외부 핸들 높이
             <button
               type="button"
               class="toggle-mini"
               :class="form.ousdHndlHEnabled ? 'toggle-on' : 'toggle-off'"
-              :disabled="!secondFloorEnabled"
+              :disabled="form.dblWindYn !== 'Y'"
               @click="toggleHndlH('ousd')"
             >{{ form.ousdHndlHEnabled ? 'ON' : 'OFF' }}</button>
           </label>
@@ -77,8 +77,26 @@
             v-model.number="form.ousdHndlH"
             type="number"
             placeholder="mm"
-            :disabled="!secondFloorEnabled || !form.ousdHndlHEnabled"
+            :disabled="form.dblWindYn !== 'Y' || !form.ousdHndlHEnabled"
           />
+        </div>
+      </div>
+      <div class="row-flex">
+        <div class="field" :class="{ 'is-disabled': !secondFloorEnabled }">
+          <label>
+            핸들높이2
+            <button
+              type="button"
+              class="toggle-mini"
+              :class="form.secondHndlHEnabled ? 'toggle-on' : 'toggle-off'"
+              :disabled="!secondFloorEnabled"
+              @click="toggleHndlH('second')"
+            >{{ form.secondHndlHEnabled ? 'ON' : 'OFF' }}</button>
+          </label>
+          <div class="row-flex row-compact">
+            <input v-model.number="form.insd2FHndlH" type="number" placeholder="내2 mm" :disabled="!secondFloorEnabled || !form.secondHndlHEnabled" />
+            <input v-model.number="form.ousd2FHndlH" type="number" placeholder="외2 mm" :disabled="!secondFloorEnabled || !form.secondHndlHEnabled" />
+          </div>
         </div>
       </div>
       <div class="row-flex">
@@ -138,11 +156,22 @@ function toggleAlGlass() {
 function toggleHndlH(side) {
   if (side === 'insd') {
     props.form.insdHndlHEnabled = !props.form.insdHndlHEnabled
-    if (!props.form.insdHndlHEnabled) props.form.insdHndlH = null
-  } else {
-    if (!props.secondFloorEnabled) return
+    props.form.ousdHndlHEnabled = props.form.insdHndlHEnabled
+    if (!props.form.insdHndlHEnabled) {
+      props.form.insdHndlH = null
+      props.form.ousdHndlH = null
+    }
+  } else if (side === 'ousd') {
+    if (props.form.dblWindYn !== 'Y') return
     props.form.ousdHndlHEnabled = !props.form.ousdHndlHEnabled
     if (!props.form.ousdHndlHEnabled) props.form.ousdHndlH = null
+  } else {
+    if (!props.secondFloorEnabled) return
+    props.form.secondHndlHEnabled = !props.form.secondHndlHEnabled
+    if (!props.form.secondHndlHEnabled) {
+      props.form.insd2FHndlH = null
+      props.form.ousd2FHndlH = null
+    }
   }
 }
 

@@ -79,11 +79,29 @@
     <div class="row-flex">
       <div class="field">
         <label>W (폭) *</label>
-        <input v-model.number="form.w" type="number" inputmode="numeric" />
+        <input
+          :value="form.w ?? ''"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="4"
+          autocomplete="off"
+          enterkeyhint="next"
+          @input="setFourDigitNumber('w', $event)"
+        />
       </div>
       <div class="field">
         <label>H (높이) *</label>
-        <input v-model.number="form.h" type="number" inputmode="numeric" />
+        <input
+          :value="form.h ?? ''"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="4"
+          autocomplete="off"
+          enterkeyhint="next"
+          @input="setFourDigitNumber('h', $event)"
+        />
       </div>
       <div class="field field-qty">
         <label>수량 *</label>
@@ -93,38 +111,86 @@
 
     <!-- 추가 W -->
     <div v-if="cntW > 1" class="row-flex">
-      <div v-if="cntW > 1" class="field"><label>W1</label><input v-model.number="form.w1" type="number" /></div>
-      <div v-if="cntW > 2" class="field"><label>W2</label><input v-model.number="form.w2" type="number" /></div>
-      <div v-if="cntW > 3" class="field"><label>W3</label><input v-model.number="form.w3" type="number" /></div>
+      <div v-if="cntW > 1" class="field">
+        <label>W1</label>
+        <input :value="form.w1 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('w1', $event)" />
+      </div>
+      <div v-if="cntW > 2" class="field">
+        <label>W2</label>
+        <input :value="form.w2 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('w2', $event)" />
+      </div>
+      <div v-if="cntW > 3" class="field">
+        <label>W3</label>
+        <input :value="form.w3 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('w3', $event)" />
+      </div>
     </div>
     <div v-if="cntW > 4" class="row-flex">
-      <div v-if="cntW > 4" class="field"><label>W4</label><input v-model.number="form.w4" type="number" /></div>
-      <div v-if="cntW > 5" class="field"><label>W5</label><input v-model.number="form.w5" type="number" /></div>
+      <div v-if="cntW > 4" class="field">
+        <label>W4</label>
+        <input :value="form.w4 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('w4', $event)" />
+      </div>
+      <div v-if="cntW > 5" class="field">
+        <label>W5</label>
+        <input :value="form.w5 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('w5', $event)" />
+      </div>
     </div>
 
     <!-- 추가 H -->
     <div v-if="cntH > 1" class="row-flex">
-      <div v-if="cntH > 1" class="field"><label>H1</label><input v-model.number="form.h1" type="number" /></div>
-      <div v-if="cntH > 2" class="field"><label>H2</label><input v-model.number="form.h2" type="number" /></div>
-      <div v-if="cntH > 3" class="field"><label>H3</label><input v-model.number="form.h3" type="number" /></div>
+      <div v-if="cntH > 1" class="field">
+        <label>H1</label>
+        <input :value="form.h1 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('h1', $event)" />
+      </div>
+      <div v-if="cntH > 2" class="field">
+        <label>H2</label>
+        <input :value="form.h2 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('h2', $event)" />
+      </div>
+      <div v-if="cntH > 3" class="field">
+        <label>H3</label>
+        <input :value="form.h3 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('h3', $event)" />
+      </div>
     </div>
     <div v-if="cntH > 4" class="row-flex">
-      <div v-if="cntH > 4" class="field"><label>H4</label><input v-model.number="form.h4" type="number" /></div>
-      <div v-if="cntH > 5" class="field"><label>H5</label><input v-model.number="form.h5" type="number" /></div>
+      <div v-if="cntH > 4" class="field">
+        <label>H4</label>
+        <input :value="form.h4 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('h4', $event)" />
+      </div>
+      <div v-if="cntH > 5" class="field">
+        <label>H5</label>
+        <input :value="form.h5 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('h5', $event)" />
+      </div>
     </div>
 
     <!-- 특수조건 CS -->
     <div v-if="cntCS > 0" class="mt-sm">
       <div class="field-cs-label">특수조건 (사이즈 mm)</div>
       <div class="row-flex">
-        <div v-if="cntCS > 0" class="field"><label>CS</label><input v-model.number="form.cs" type="number" /></div>
-        <div v-if="cntCS > 1" class="field"><label>CS1</label><input v-model.number="form.cs1" type="number" /></div>
-        <div v-if="cntCS > 2" class="field"><label>CS2</label><input v-model.number="form.cs2" type="number" /></div>
+        <div v-if="cntCS > 0" class="field">
+          <label>CS</label>
+          <input :value="form.cs ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('cs', $event)" />
+        </div>
+        <div v-if="cntCS > 1" class="field">
+          <label>CS1</label>
+          <input :value="form.cs1 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('cs1', $event)" />
+        </div>
+        <div v-if="cntCS > 2" class="field">
+          <label>CS2</label>
+          <input :value="form.cs2 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('cs2', $event)" />
+        </div>
       </div>
       <div v-if="cntCS > 3" class="row-flex">
-        <div v-if="cntCS > 3" class="field"><label>CS3</label><input v-model.number="form.cs3" type="number" /></div>
-        <div v-if="cntCS > 4" class="field"><label>CS4</label><input v-model.number="form.cs4" type="number" /></div>
-        <div v-if="cntCS > 5" class="field"><label>CS5</label><input v-model.number="form.cs5" type="number" /></div>
+        <div v-if="cntCS > 3" class="field">
+          <label>CS3</label>
+          <input :value="form.cs3 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('cs3', $event)" />
+        </div>
+        <div v-if="cntCS > 4" class="field">
+          <label>CS4</label>
+          <input :value="form.cs4 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('cs4', $event)" />
+        </div>
+        <div v-if="cntCS > 5" class="field">
+          <label>CS5</label>
+          <input :value="form.cs5 ?? ''" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" enterkeyhint="next" @input="setFourDigitNumber('cs5', $event)" />
+        </div>
       </div>
     </div>
 
@@ -177,6 +243,12 @@ const props = defineProps({
 defineEmits(['openModel', 'wintydiChange', 'insdColorChange', 'ousdColorChange', 'drawingError'])
 
 const modelDisplay = computed(() => (props.form.mdlCd ? `${props.form.mdlNm} (${props.form.mdlCd})` : ''))
+
+function setFourDigitNumber(field, event) {
+  const digits = String(event.target.value || '').replace(/\D/g, '').slice(0, 4)
+  event.target.value = digits
+  props.form[field] = digits ? Number(digits) : null
+}
 
 const cntInfo = computed(() => props.wintydiMap[props.form.wintydiCd] || {})
 const cntW = computed(() => Number(cntInfo.value.cntW) || 0)

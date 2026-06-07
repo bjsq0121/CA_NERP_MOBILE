@@ -51,6 +51,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import BzpcSelector from '../components/BzpcSelector.vue'
 import { searchEstiHeaderList } from '../api/estimate'
+import { loadSelectedBzpc, saveSelectedBzpc } from '../utils/selectedBzpcStorage'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -84,13 +85,20 @@ onMounted(() => {
   if (!auth.isAdmin && auth.bzpc) {
     selectedBzpc.value = { bzpc: auth.bzpc, bzpcNm: auth.bzpcNm }
     search()
+    return
+  }
+
+  const saved = loadSelectedBzpc()
+  if (saved?.bzpc) {
+    selectedBzpc.value = saved
+    search()
   }
 })
 
 watch(selectedBzpc, (v) => {
   if (v?.bzpc) {
     // 신규 견적에서 영업소 고정용
-    sessionStorage.setItem('mobile_selected_bzpc', JSON.stringify(v))
+    saveSelectedBzpc(v)
     search()
   }
 })

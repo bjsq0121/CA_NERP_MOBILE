@@ -2,6 +2,9 @@
   <details v-if="hasAnyGlas" class="card" open>
     <summary>유리 자재 (SF / BF)</summary>
     <div class="details-body">
+      <div class="option-chip-grid compact">
+        <OptionToggle v-model="form.glasAttachYn" label="실리콘 마감여부" />
+      </div>
       <div v-if="glas.sfIn.length || glas.sfOut.length" class="row-flex">
         <div v-if="glas.sfIn.length" class="field">
           <label>SF 유리 (내)</label>
@@ -36,6 +39,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import OptionToggle from './common/OptionToggle.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -47,3 +51,15 @@ const hasAnyGlas = computed(() =>
   props.glas.bfIn.length || props.glas.bfOut.length
 )
 </script>
+
+<style scoped>
+.option-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.option-chip-grid.compact {
+  margin-bottom: 10px;
+}
+</style>

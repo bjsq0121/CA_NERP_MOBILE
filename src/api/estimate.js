@@ -61,6 +61,13 @@ export function searchSashList(payload) {
 export function selectSashDetail(payload) {
   return http.post('/mobile/esti/sash/detail', payload)
 }
+export function searchSashQuickConfigList(payload = {}) {
+  return http.post('/mobile/esti/sash/quick-config/list', payload)
+}
 export function searchWindEstiAmt(payload) {
   return http.post('/ItgEstiOne/searchWindEstiAmt', payload)
+}
+
+export function searchDrwgFileAjax(payload) {
+  return http.post('/ItgEstiOne/searchDrwgFileAjax', payload)
 }

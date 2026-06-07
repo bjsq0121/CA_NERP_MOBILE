@@ -7,6 +7,15 @@ const PRESERVED_FIELDS = [
   'insdSf', 'ousdSf',
   'insdColrCd', 'ousdColrCd',
   'bsmfOrdUtmCd', 'sashOrdTypCd',
+  'drwgCd',
+  'glasAttachYn',
+  'basedfillingPiecesYn',
+  'sfArmatureType', 'mfArmatureType',
+  'bfVentHoleLctn', 'bfWinCbMilingType',
+  'sfInsideRightBrdYn', 'sfMcOneReqYn', 'sfBrdProcYn', 'sfHandleProcYn',
+  'sfAptArmatureType', 'sfAptHandleType',
+  'pdBfRemSrc', 'pdSfRemSrc', 'pdMfRemSrc',
+  'insd2FHndlH', 'ousd2FHndlH',
 ]
 
 export function captureSashEditValues(form = {}) {

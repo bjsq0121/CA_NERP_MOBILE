@@ -4,124 +4,144 @@
       <div class="loading-text">견적 데이터 불러오는 중...</div>
       <div class="loading-spinner"></div>
     </div>
-    <div v-else class="page-title-row">
-      <div>
-        <h2 class="page-title">견적상세</h2>
-        <div class="page-subtitle">견적순번: {{ editEstiSeq || '(신규)' }}</div>
-      </div>
-      <button class="btn-back" @click="router.push(`/estimates/${itgEstiNo}`)">뒤로</button>
-    </div>
-
-    <!-- 필수 필드 -->
-    <SashFormMain
-      v-if="!pageLoading"
-      :form="form"
-      :wintydi-list="wintydiList"
-      :wintydi-map="wintydiMap"
-      :bsmf-list="bsmfList"
-      :insd-sf-list="insdSfList"
-      :ousd-sf-list="ousdSfList"
-      :color-list="colorList"
-      :sync-ousd="syncOusd"
-      :drawing-url="sashDrawingUrl"
-      :drawing-fallback="currentWintydiName"
-      @open-model="modelModal?.open()"
-      @wintydi-change="onWintydiChange"
-      @insd-color-change="onInsdColorChange"
-      @ousd-color-change="onOusdColorChange"
-      @drawing-error="drawingImageError = true"
-    />
-
-    <!-- 옵션: VENT / 스크린 / 안전망 -->
-    <SashOptionVent
-      :form="form"
-      :vent-options="ventOptions"
-      :screen-options="screenOptions"
-      :alu-mf-handle-options="aluMfHandleList"
-      :silicone-finish-enabled="siliconeFinishEnabled"
-      @toggle-alu-mf="toggleAluMf"
-    />
-
-    <!-- 옵션: 핸들 -->
-    <SashOptionHandle
-      :form="form"
-      :handle-options="handleOptions"
-      :ord-typ-list="ordTypList"
-      :al-glass-enabled="alGlassEnabled"
-      :second-floor-enabled="isSecondFloorEnabled"
-    />
-
-    <!-- 옵션: 유리 -->
-    <SashOptionGlass :form="form" :glas="glas" />
-
-    <!-- 옵션: BF / SF / MF -->
-    <SashOptionFactory :form="form" />
-
-    <!-- 비고 -->
-    <div class="card">
-      <div class="field">
-        <label>견적비고</label>
-        <textarea v-model="form.remSrc" rows="2" />
-      </div>
-    </div>
-
-    <!-- readonly: 조회 모드 -->
-    <div v-if="isReadonly" class="card card-info">
-      <div class="text-xs">이 견적은 현재 수정할 수 없는 상태입니다.</div>
-    </div>
-
-    <!-- 저장/추가 버튼 (편집 가능할 때만) -->
     <template v-else>
-      <div class="row-flex">
-        <button class="btn accent" :disabled="loading || !canSubmit" @click="saveAndAdd">
-          견적추가
-        </button>
-        <button class="btn" :disabled="loading || !canSubmit" @click="saveAndClose">
-          저장
-        </button>
+      <div class="page-title-row sash-header">
+        <div class="sash-header-title">
+          <h2 class="page-title">견적상세</h2>
+          <div class="page-subtitle">견적순번: {{ editEstiSeq || '(신규)' }}</div>
+        </div>
+        <div class="sash-header-actions title-actions">
+          <button class="btn secondary btn-quick-config" :disabled="isReadonly" @click="openQuickSashSheet">간편견적</button>
+          <button class="sash-header-back btn-back" @click="goBack">뒤로</button>
+        </div>
       </div>
+
+      <!-- 필수 필드 -->
+      <SashFormMain
+        :form="form"
+        :wintydi-list="wintydiList"
+        :wintydi-map="wintydiMap"
+        :bsmf-list="bsmfList"
+        :insd-sf-list="insdSfList"
+        :ousd-sf-list="ousdSfList"
+        :color-list="colorList"
+        :sync-ousd="syncOusd"
+        :drawing-url="sashDrawingUrl"
+        :drawing-fallback="currentWintydiName"
+        @open-model="modelModal?.open()"
+        @wintydi-change="onWintydiChange"
+        @insd-color-change="onInsdColorChange"
+        @ousd-color-change="onOusdColorChange"
+        @drawing-error="drawingImageError = true"
+      />
+
+      <!-- 옵션: VENT / 스크린 / 안전망 -->
+      <SashOptionVent
+        :form="form"
+        :vent-options="ventOptions"
+        :screen-options="screenOptions"
+        :alu-mf-handle-options="aluMfHandleList"
+        :silicone-finish-enabled="siliconeFinishEnabled"
+        @toggle-alu-mf="toggleAluMf"
+        @vent-change="onVentChange"
+      />
+
+      <!-- 옵션: 핸들 -->
+      <SashOptionHandle
+        :form="form"
+        :handle-options="handleOptions"
+        :ord-typ-list="ordTypList"
+        :al-glass-enabled="alGlassEnabled"
+        :second-floor-enabled="isSecondFloorEnabled"
+      />
+
+      <!-- 옵션: 유리 -->
+      <SashOptionGlass :form="form" :glas="glas" />
+
+      <!-- 옵션: BF / SF / MF -->
+      <SashOptionFactory :form="form" />
+
+      <!-- 비고 -->
+      <div class="card">
+        <div class="field">
+          <label>견적비고</label>
+          <textarea v-model="form.remSrc" rows="2" />
+        </div>
+      </div>
+
+      <!-- readonly: 조회 모드 -->
+      <div v-if="isReadonly" class="card card-info">
+        <div class="text-xs">이 견적은 현재 수정할 수 없는 상태입니다.</div>
+      </div>
+
+      <!-- 저장/추가 버튼 (편집 가능할 때만) -->
+      <template v-else>
+        <div class="row-flex">
+          <button class="btn accent" :disabled="loading || !canSubmit" @click="saveAndAdd">
+            견적추가
+          </button>
+          <button class="btn" :disabled="loading || !canSubmit" @click="saveAndClose">
+            저장
+          </button>
+        </div>
+      </template>
+
+      <div v-if="error" class="card card-error">{{ error }}</div>
+
+      <div v-if="alertMessage" class="modal-mask" @click.self="closeAlert">
+        <div class="modal-sheet alert-sheet">
+          <h3>안내</h3>
+          <p class="alert-message">{{ alertMessage }}</p>
+          <button type="button" class="btn accent" @click="closeAlert">확인</button>
+        </div>
+      </div>
+
+      <SashQuickConfigSheet
+        v-if="showQuickConfigSheet"
+        :visible="showQuickConfigSheet"
+        @close="closeQuickSashSheet"
+        @select="handleQuickSashSelect"
+      />
+
+      <div v-if="hasAmountSummary" class="sash-amount-summary">
+        <div class="amount-summary-title">금액</div>
+        <div class="amount-grid">
+          <div>
+            <span>요율</span>
+            <strong>{{ amountText(form.estiSalesUnpRt) }}</strong>
+          </div>
+          <div>
+            <span>원가</span>
+            <strong>{{ amountText(form.estiSaleCst) }}</strong>
+          </div>
+          <div>
+            <span>단가</span>
+            <strong>{{ amountText(form.estiSaleUnp) }}</strong>
+          </div>
+          <div>
+            <span>공급가액</span>
+            <strong>{{ amountText(form.estiTotSaleUnp) }}</strong>
+          </div>
+          <div>
+            <span>부가세</span>
+            <strong>{{ amountText(form.estiTotSaleVat) }}</strong>
+          </div>
+          <div>
+            <span>총금액</span>
+            <strong>{{ amountText(form.estiTotSaleVatUnp) }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="sash-bottom-meta">
+        <span>통합견적번호: {{ itgEstiNo || '(없음)' }}</span>
+        <span>견적번호: {{ wEstiNo || '(없음)' }}</span>
+        <span>견적차수: {{ estiNos || '1' }}</span>
+        <span>견적순번: {{ editEstiSeq || '(신규)' }}</span>
+      </div>
+
+      <ModelSearchModal ref="modelModal" @select="onModelPick" />
     </template>
-
-    <div v-if="error" class="card card-error">{{ error }}</div>
-
-    <div v-if="hasAmountSummary" class="sash-amount-summary">
-      <div class="amount-summary-title">금액</div>
-      <div class="amount-grid">
-        <div>
-          <span>요율</span>
-          <strong>{{ amountText(form.estiSalesUnpRt) }}</strong>
-        </div>
-        <div>
-          <span>원가</span>
-          <strong>{{ amountText(form.estiSaleCst) }}</strong>
-        </div>
-        <div>
-          <span>단가</span>
-          <strong>{{ amountText(form.estiSaleUnp) }}</strong>
-        </div>
-        <div>
-          <span>공급가액</span>
-          <strong>{{ amountText(form.estiTotSaleUnp) }}</strong>
-        </div>
-        <div>
-          <span>부가세</span>
-          <strong>{{ amountText(form.estiTotSaleVat) }}</strong>
-        </div>
-        <div>
-          <span>총금액</span>
-          <strong>{{ amountText(form.estiTotSaleVatUnp) }}</strong>
-        </div>
-      </div>
-    </div>
-
-    <div class="sash-bottom-meta">
-      <span>통합견적번호: {{ itgEstiNo || '(없음)' }}</span>
-      <span>견적번호: {{ wEstiNo || '(없음)' }}</span>
-      <span>견적차수: {{ estiNos || '1' }}</span>
-      <span>견적순번: {{ editEstiSeq || '(신규)' }}</span>
-    </div>
-
-    <ModelSearchModal ref="modelModal" @select="onModelPick" />
   </div>
 </template>
 
@@ -134,11 +154,15 @@ import SashOptionVent from '../components/SashOptionVent.vue'
 import SashOptionHandle from '../components/SashOptionHandle.vue'
 import SashOptionGlass from '../components/SashOptionGlass.vue'
 import SashOptionFactory from '../components/SashOptionFactory.vue'
-import { saveSashEsti, searchColorList, searchModelList, searchModelSf, searchGlasList, searchCodeList, searchCodeDetail, searchModelWintydi, searchSashOrdTypCd, searchWindEstiAmt, selectSashDetail } from '../api/estimate'
+import SashQuickConfigSheet from '../components/SashQuickConfigSheet.vue'
+import { saveSashEsti, searchColorList, searchModelList, searchModelSf, searchGlasList, searchCodeList, searchCodeDetail, searchModelWintydi, searchSashOrdTypCd, searchWindEstiAmt, selectSashDetail, selectEstiHeader, searchDrwgFileAjax } from '../api/estimate'
 import { buildSashSavePayload } from '../utils/sashPayload'
 import { resolveBsmfOrdUtmCd } from '../utils/sashOptions'
 import { captureSashEditValues, restoreSashEditValues } from '../utils/sashEditPreserve'
 import { buildSashDrawingUrl, findMatchingDrawing } from '../utils/estimateDetail'
+import { UNKNOWN_STATUS, isEditableHeaderStatus, isEditableStatus, resolveEffectiveStatus } from '../utils/estimateStatus'
+import { resolveVentDrawingState } from '../utils/sashDrawingState'
+import { applyQuickConfigOptionsToForm } from '../utils/sashQuickConfig'
 
 const route = useRoute()
 const router = useRouter()
@@ -149,7 +173,14 @@ const wEstiNo = ref(route.query.wEstiNo || '')
 const estiNos = ref(route.query.estiNos || '1')
 const editEstiSeq = ref(route.query.estiSeq || '')
 const isEditMode = computed(() => !!editEstiSeq.value)
-const isReadonly = computed(() => route.query.readonly === 'Y')
+const headerStatus = ref(UNKNOWN_STATUS)
+const estimateStatus = ref(UNKNOWN_STATUS)
+const isReadonly = computed(
+  () =>
+    route.query.readonly === 'Y' ||
+    !(isEditMode.value ? isEditableStatus(headerStatus.value) : isEditableHeaderStatus(headerStatus.value)) ||
+    (isEditMode.value && !isEditableStatus(estimateStatus.value))
+)
 
 const wintydiList = ref([])
 const wintydiMap = ref({})
@@ -165,6 +196,7 @@ const pickedMdlMtrlCo = ref('')
 const form = ref({
   mdlCd: '', mdlNm: '', wintydiCd: '', mtrlCoNm: '',
   bftydiCd: '', sizCd: '', ctgr2Cd: '', bsmfOrdUtmCd: '',
+  dblWindYn: '',
   w: null, h: null, qty: 1,
   w1: null, w2: null, w3: null, w4: null, w5: null,
   h1: null, h2: null, h3: null, h4: null, h5: null,
@@ -174,9 +206,11 @@ const form = ref({
   insdSf: '', ousdSf: '',
   sashOrdTypCd: '',
   ventLoc: '', screenType: '',
+  drwgCd: '',
   isAluMf: false,
   aluMdlYn: '',
   aluMfHandleType: '',
+  aluMfHandleTypeNm: '',
   aluMfMdlYn: 'Y',
   aluMfHndlH: null,
   slcnFnshYn: false,
@@ -198,6 +232,7 @@ const form = ref({
   bfWeldNoneYn: false,
   bfWeld: false,
   fillingPiecesYn: false,
+  basedfillingPiecesYn: false,
   bfRackShip: false,
   bfStopper: false,
   bfDirectShip: false,
@@ -221,6 +256,8 @@ const form = ref({
   bfApt1pjMethod: '',
   bfApt2pjLoc: '',
   bfApt2pjMethod: '',
+  bfVentHoleLctn: '',
+  bfWinCbMilingType: '',
   bfTurnDoorOnlyMakeYn: false,
   bfVentPiecesIncludeYn: false,
   bfWinOnefixUpHoleYn: false,
@@ -229,7 +266,12 @@ const form = ref({
   bfWinSpDdlnShpmYn: false,
   bfIhyFixHghtDirYn: false,
   sfLandscape: false,
+  sfArmatureType: '',
   sfOppositeTypeYn: false,
+  sfInsideRightBrdYn: false,
+  sfMcOneReqYn: false,
+  sfBrdProcYn: false,
+  sfHandleProcYn: false,
   sfRackShip: false,
   sfDirectShip: false,
   sfShipAddr: '',
@@ -244,6 +286,10 @@ const form = ref({
   sfOutType2: '',
   sfOutType3: '',
   sfSontaLoca: '',
+  sfInsdVentHoleYn: false,
+  sfOusdVentHoleYn: false,
+  sfAptArmatureType: '',
+  sfAptHandleType: '',
   deco1: [],
   winCloser: [],
   mfRackShip: false,
@@ -252,17 +298,28 @@ const form = ref({
   mfShipAddr: '',
   mfHandle: '',
   mfHandleHsize: '',
+  mfArmatureType: '',
   mfAptArmatureType: '',
   alGlass: false,
+  glasAttachYn: false,
   glasAdmsYn: 'Y',
+  issueType: '',
+  appdocId: '',
+  unqColrPolSaveYn: false,
   sashStandardYn: '',
   standardSpec: {},
+  uplmNrmW: '', uplmNrmH: '', llmtNrmW: '', llmtNrmH: '',
+  uplmNrmW1: '', uplmNrmW2: '', uplmNrmW3: '', uplmNrmW4: '', uplmNrmW5: '',
+  uplmNrmH1: '', uplmNrmH2: '', uplmNrmH3: '', uplmNrmH4: '', uplmNrmH5: '',
+  llmtNrmW1: '', llmtNrmW2: '', llmtNrmW3: '', llmtNrmW4: '', llmtNrmW5: '',
+  llmtNrmH1: '', llmtNrmH2: '', llmtNrmH3: '', llmtNrmH4: '', llmtNrmH5: '',
   insdHandleType: '', ousdHandleType: '',
-  insdHndlHEnabled: false, ousdHndlHEnabled: false,
+  insdHndlHEnabled: false, ousdHndlHEnabled: false, secondHndlHEnabled: false,
   insdHndlH: null, ousdHndlH: null,
   insdBrcktHEnabled: false, ousdBrcktHEnabled: false,
   secondFloorEnabled: false,
   insdBrcktH: null, ousdBrcktH: null,
+  insd2FHndlH: null, ousd2FHndlH: null,
   insd2FBrcktH: null, ousd2FBrcktH: null,
   mtrlCds1: '', mtrlCds2: '', mtrlCds3: '', mtrlCds4: '',
   estiSalesUnpRt: '', estiSaleCst: '', estiSaleUnp: '',
@@ -270,6 +327,7 @@ const form = ref({
   bfSaleUnp: '', sfSaleUnp: '', mfSaleUnp: '',
   saleCstSum: '', sumConvCost: '', sumMtrlCost: '',
   rawAmt: '', convAmt: '', totSaleCst: '', totSum: '',
+  pdBfRemSrc: '', pdSfRemSrc: '', pdMfRemSrc: '',
   remSrc: '',
 })
 
@@ -281,6 +339,8 @@ const loading = ref(false)
 const pageLoading = ref(false)
 const error = ref('')
 const savedSeq = ref('')
+const alertMessage = ref('')
+const showQuickConfigSheet = ref(false)
 const syncOusd = ref(true)
 const modelDrawings = ref([])
 const selectedDrawing = ref(null)
@@ -294,7 +354,9 @@ const ventOptions = computed(() =>
 
 const screenOptions = computed(() => {
   const target = form.value.isAluMf ? 'ALU' : 'PVC'
-  return screenAllList.value.filter((s) => s.addInfo4 === target)
+  const exact = screenAllList.value.filter((s) => String(s.addInfo4 || '').toUpperCase() === target)
+  if (exact.length) return exact
+  return screenAllList.value
 })
 
 const handleOptions = computed(() => {
@@ -323,7 +385,9 @@ const canSubmit = computed(
     !!itgEstiNo.value && !!form.value.mdlCd && !!form.value.wintydiCd &&
     !!form.value.bsmfOrdUtmCd && !!form.value.sashOrdTypCd &&
     !!form.value.w && !!form.value.h && !!form.value.qty &&
+    !!form.value.screenType && !!form.value.ventLoc &&
     !!form.value.insdColrCd && !!form.value.insdSf &&
+    !!form.value.insdHandleType && !!form.value.ousdHandleType &&
     (!ousdSfList.value.length || !!form.value.ousdSf)
 )
 
@@ -336,6 +400,7 @@ const normCd = (arr) => (arr || []).map((x) => ({ ...x, commCdId: x.commCdId || 
 onMounted(async () => {
   pageLoading.value = true
   try {
+    await loadEstimateStatus()
     await loadMasters()
     if (isEditMode.value) {
       await loadEditData()
@@ -346,6 +411,21 @@ onMounted(async () => {
     pageLoading.value = false
   }
 })
+
+async function loadEstimateStatus() {
+  headerStatus.value = UNKNOWN_STATUS
+  estimateStatus.value = UNKNOWN_STATUS
+  if (!itgEstiNo.value) return
+  try {
+    const { data } = await selectEstiHeader(itgEstiNo.value)
+    const header = data?.resultData || {}
+    headerStatus.value = resolveEffectiveStatus(header.stCd, header.igStCd)
+    estimateStatus.value = headerStatus.value
+  } catch (_) {
+    headerStatus.value = UNKNOWN_STATUS
+    estimateStatus.value = UNKNOWN_STATUS
+  }
+}
 
 async function loadEditData() {
   sessionStorage.removeItem('mobile_sash_edit_row')
@@ -358,6 +438,9 @@ async function loadEditData() {
   const { data } = await selectSashDetail(payload)
   let r = data?.resultData
   if (!r) return
+
+  const rowStatus = resolveEffectiveStatus(r.stCd, r.igStCd)
+  estimateStatus.value = rowStatus === UNKNOWN_STATUS ? headerStatus.value : rowStatus
 
   const pick = (...keys) => {
     for (const k of keys) {
@@ -389,6 +472,7 @@ async function loadEditData() {
     bftydiCd: r.bftydiCd || '',
     sizCd: r.sizCd || '',
     ctgr2Cd: r.ctgr2Cd || '',
+    dblWindYn: r.dblWindYn || '',
     bsmfOrdUtmCd: r.bsmfOrdUtmCd || '',
     sashOrdTypCd: r.sashOrdTypCd || '',
     w: r.wSize ? Number(r.wSize) : null,
@@ -416,16 +500,18 @@ async function loadEditData() {
     ousdSf: r.ousdSf || '',
     ventLoc: r.ventLoc || '',
     screenType: r.screenType || '',
-    isAluMf: r.aluMfYn === 'Y',
-    aluMdlYn: r.aluMdlYn || '',
+    drwgCd: r.drwgCd || '',
+    isAluMf: isYnValue(r.aluMfYn),
+    aluMdlYn: normalizeYn(r.aluMdlYn),
     aluMfHandleType: r.aluMfHandleType || '',
+    aluMfHandleTypeNm: r.aluMfHandleTypeNm || '',
     aluMfMdlYn: r.aluMfMdlYn || 'Y',
     aluMfHndlH: r.aluMfHndlH ? Number(r.aluMfHndlH) : null,
     sashGlasXMtrlYn: r.sashGlasXMtrlYn || '',
     sashOrdTypCds: r.sashOrdTypCds || r.glasXMtrlExceptionCds || '',
-    drnHoleYn: r.drnHoleYn !== 'N',
-    ventHoleYn: r.ventHoleYn === 'Y',
-    ventHoleEnabled: r.ventHoleYn === 'Y' || isVentHoleAllowed(),
+    drnHoleYn: !isExplicitNo(r.drnHoleYn),
+    ventHoleYn: isYnValue(r.ventHoleYn),
+    ventHoleEnabled: isYnValue(r.ventHoleYn) || isVentHoleAllowed(),
     bfMillingType: stringifyOptionValue(r.bfMillingType || r.bfmillingWing || '0'),
     bfArmatureType: r.bfArmatureType || '',
     bfLockCnt: r.bfLockCnt || '',
@@ -439,6 +525,7 @@ async function loadEditData() {
     bfWeldNoneYn: r.bfWeldNoneYn === 'Y',
     bfWeld: r.bfWeld === 'Y',
     fillingPiecesYn: r.fillingPiecesYn === 'Y',
+    basedfillingPiecesYn: r.basedfillingPiecesYn === 'Y',
     bfRackShip: r.bfRackShip === 'Y',
     bfStopper: r.bfStopper === 'Y',
     bfDirectShip: r.bfDirectShip === 'Y',
@@ -462,6 +549,8 @@ async function loadEditData() {
     bfApt1pjMethod: r.bfApt1pjMethod || '',
     bfApt2pjLoc: r.bfApt2pjLoc || '',
     bfApt2pjMethod: r.bfApt2pjMethod || '',
+    bfVentHoleLctn: r.bfVentHoleLctn || '',
+    bfWinCbMilingType: r.bfWinCbMilingType || '',
     bfTurnDoorOnlyMakeYn: r.bfTurnDoorOnlyMakeYn === 'Y',
     bfVentPiecesIncludeYn: r.bfVentPiecesIncludeYn === 'Y',
     bfWinOnefixUpHoleYn: r.bfWinOnefixUpHoleYn === 'Y',
@@ -470,7 +559,12 @@ async function loadEditData() {
     bfWinSpDdlnShpmYn: r.bfWinSpDdlnShpmYn === 'Y',
     bfIhyFixHghtDirYn: r.bfIhyFixHghtDirYn === 'Y',
     sfLandscape: r.sfLandscape === 'Y',
+    sfArmatureType: r.sfArmatureType || '',
     sfOppositeTypeYn: r.sfOppositeTypeYn === 'Y',
+    sfInsideRightBrdYn: r.sfInsideRightBrdYn === 'Y',
+    sfMcOneReqYn: r.sfMcOneReqYn === 'Y',
+    sfBrdProcYn: r.sfBrdProcYn === 'Y',
+    sfHandleProcYn: r.sfHandleProcYn === 'Y',
     sfRackShip: r.sfRackShip === 'Y',
     sfDirectShip: r.sfDirectShip === 'Y',
     sfShipAddr: r.sfShipAddr || '',
@@ -485,6 +579,8 @@ async function loadEditData() {
     sfOutType2: r.sfOutType2 || '',
     sfOutType3: r.sfOutType3 || '',
     sfSontaLoca: r.sfSontaLoca || '',
+    sfAptArmatureType: r.sfAptArmatureType || '',
+    sfAptHandleType: r.sfAptHandleType || '',
     deco1: [
       r.insdDeckNoneYn === 'Y' ? 1 : '',
       r.ousdDeckNoneYn === 'Y' ? 2 : '',
@@ -494,6 +590,8 @@ async function loadEditData() {
     winCloser: [
       r.insdWindClsYn === 'Y' ? 1 : '',
       r.ousdWindClsYn === 'Y' ? 2 : '',
+      r.insd2FWindClsYn === 'Y' ? 3 : '',
+      r.ousd2FWindClsYn === 'Y' ? 4 : '',
     ].filter(Boolean),
     mfRackShip: r.mfRackShip === 'Y',
     mfCi4wStickYn: r.mfCi4wStickYn === 'Y',
@@ -501,22 +599,32 @@ async function loadEditData() {
     mfShipAddr: r.mfShipAddr || '',
     mfHandle: r.mfHandle || '',
     mfHandleHsize: r.mfHandleHsize || '',
+    mfArmatureType: r.mfArmatureType || '',
     mfAptArmatureType: r.mfAptArmatureType || r.mfAptAmatureType || '',
-    alGlass: r.glasStdalYn === 'Y',
+    alGlass: isYnValue(r.glasStdalYn),
+    glasAttachYn: isYnValue(r.glasAttachYn),
     glasAdmsYn: r.glasAdmsYn || 'Y',
+    issueType: r.issueType || '',
+    appdocId: r.appdocId || '',
+    unqColrPolSaveYn: isYnValue(r.unqColrPolSaveYn),
     insdHandleType: r.insdHandleType || '',
     ousdHandleType: r.ousdHandleType || '',
-    insdHndlHEnabled: r.insdHndlHMiddle === 'Y',
-    ousdHndlHEnabled: r.insd2FHndlHMiddle === 'Y',
-    insdHndlH: r.insdHndlHMiddle === 'Y' ? (r.insdHndlH ? Number(r.insdHndlH) : null) : null,
-    ousdHndlH: r.insd2FHndlHMiddle === 'Y' ? (r.ousdHndlH ? Number(r.ousdHndlH) : null) : null,
-    insdBrcktHEnabled: r.insdBrcktHMiddle === 'Y',
-    ousdBrcktHEnabled: r.insd2FBrcktHMiddle === 'Y',
+    insdHndlHEnabled: r.insdHndlHMiddle === 'N',
+    ousdHndlHEnabled: r.insdHndlHMiddle === 'N',
+    secondHndlHEnabled: r.insd2FHndlHMiddle === 'N',
+    insdHndlH: r.insdHndlHMiddle === 'N' ? (r.insdHndlH ? Number(r.insdHndlH) : null) : null,
+    ousdHndlH: r.insdHndlHMiddle === 'N' ? (r.ousdHndlH ? Number(r.ousdHndlH) : null) : null,
+    insd2FHndlH: r.insd2FHndlH ? Number(r.insd2FHndlH) : null,
+    ousd2FHndlH: r.ousd2FHndlH ? Number(r.ousd2FHndlH) : null,
+    insdBrcktHEnabled: r.insdBrcktHMiddle === 'N',
+    ousdBrcktHEnabled: r.insd2FBrcktHMiddle === 'N',
     secondFloorEnabled: isSecondFloorEnabled.value,
     insdBrcktH: r.insdBrcktH ? Number(r.insdBrcktH) : null,
     ousdBrcktH: r.ousdBrcktH ? Number(r.ousdBrcktH) : null,
     insd2FBrcktH: r.insd2FBrcktH ? Number(r.insd2FBrcktH) : null,
     ousd2FBrcktH: r.ousd2FBrcktH ? Number(r.ousd2FBrcktH) : null,
+    sfInsdVentHoleYn: r.sfInsdVentHoleYn === 'Y',
+    sfOusdVentHoleYn: r.sfOusdVentHoleYn === 'Y',
     mtrlCds1: r.mtrlCds1 || r.insdSfGlasMtrlCd || '',
     mtrlCds2: r.mtrlCds2 || r.ousdSfGlasMtrlCd || '',
     mtrlCds3: r.mtrlCds3 || r.insdBfGlasMtrlCd || '',
@@ -537,6 +645,9 @@ async function loadEditData() {
     convAmt: r.convAmt || '',
     totSaleCst: r.totSaleCst || '',
     totSum: r.totSum || '',
+    pdBfRemSrc: r.pdBfRemSrc || '',
+    pdSfRemSrc: r.pdSfRemSrc || '',
+    pdMfRemSrc: r.pdMfRemSrc || '',
     remSrc: r.remSrc || '',
   })
   if (r.mdlCd) {
@@ -610,10 +721,21 @@ async function onModelPick(row, { preserveProductionOptions = false } = {}) {
   form.value.bftydiCd = row.bftydiCd || ''
   form.value.sizCd = row.sizCd || ''
   form.value.ctgr2Cd = row.ctgr2Cd || ''
+  form.value.dblWindYn = row.dblWindYn || ''
   form.value.sashStandardYn = row.standardYn || row.sashStandardYn || ''
   form.value.aluMdlYn = normalizeYn(row.aluMdlYn)
   form.value.sashGlasXMtrlYn = row.sashGlasXMtrlYn || ''
   form.value.sashOrdTypCds = row.sashOrdTypCds || row.glasXMtrlExceptionCds || ''
+  form.value.uplmNrmW = row.uplmNrmW || ''
+  form.value.uplmNrmH = row.uplmNrmH || ''
+  form.value.llmtNrmW = row.llmtNrmW || ''
+  form.value.llmtNrmH = row.llmtNrmH || ''
+  for (let index = 1; index <= 5; index += 1) {
+    form.value[`uplmNrmW${index}`] = row[`uplmNrmW${index}`] || ''
+    form.value[`uplmNrmH${index}`] = row[`uplmNrmH${index}`] || ''
+    form.value[`llmtNrmW${index}`] = row[`llmtNrmW${index}`] || ''
+    form.value[`llmtNrmH${index}`] = row[`llmtNrmH${index}`] || ''
+  }
   const resolvedBsmf = resolveBsmfOrdUtmCd(row, bsmfList.value)
   if (resolvedBsmf || !form.value.bsmfOrdUtmCd) form.value.bsmfOrdUtmCd = resolvedBsmf
   pickedMdlMtrlCo.value = row.mtrlCo || ''
@@ -637,17 +759,119 @@ async function onModelPick(row, { preserveProductionOptions = false } = {}) {
   await hydrateModelDrawing(row)
 }
 
+function openQuickSashSheet() {
+  if (isReadonly.value) return
+  error.value = ''
+  showQuickConfigSheet.value = true
+}
+
+function closeQuickSashSheet() {
+  showQuickConfigSheet.value = false
+}
+
+async function handleQuickSashSelect(card) {
+  showQuickConfigSheet.value = false
+  await applyQuickSashConfig(card)
+}
+
+function firstValue(row = {}, ...keys) {
+  for (const key of keys) {
+    const value = row[key]
+    if (value !== '' && value != null) return value
+  }
+  return ''
+}
+
+function numberValue(row = {}, ...keys) {
+  const value = firstValue(row, ...keys)
+  if (value === '') return null
+  const numeric = Number(String(value).replace(/,/g, ''))
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function setIfPresent(row, field, ...keys) {
+  const value = firstValue(row, ...keys)
+  if (value !== '') form.value[field] = value
+}
+
+function quickConfigOptionMap(card = {}) {
+  return card.optionMap || card.raw?.optionMap || {}
+}
+
+function applyQuickConfigSafetyOptions(detail = {}, card = {}) {
+  const optionMap = quickConfigOptionMap(card)
+  const aluMfYn = firstValue(detail, 'aluMfYn') || firstValue(optionMap, 'aluMfYn')
+  if (aluMfYn !== '') form.value.isAluMf = isYnValue(aluMfYn)
+
+  const handleType = firstValue(detail, 'aluMfHandleType') || firstValue(optionMap, 'aluMfHandleType')
+  if (handleType !== '') form.value.aluMfHandleType = handleType
+
+  const mdlYn = firstValue(detail, 'aluMfMdlYn') || firstValue(optionMap, 'aluMfMdlYn')
+  if (mdlYn !== '') form.value.aluMfMdlYn = mdlYn
+
+  const hndlH = numberValue(detail, 'aluMfHndlH') ?? numberValue(optionMap, 'aluMfHndlH')
+  if (hndlH != null) form.value.aluMfHndlH = hndlH
+}
+
+async function applyQuickSashConfig(card = {}) {
+  const detail = card.detail || card.raw?.detail || card.raw || card
+  const header = card.header || card.raw?.header || {}
+  if (!detail.mdlCd) {
+    showError('간편견적에 모형 정보가 없습니다')
+    return
+  }
+
+  loading.value = true
+  try {
+    resetSafetyNetOptions()
+    await onModelPick(detail)
+    setIfPresent(detail, 'bsmfOrdUtmCd', 'bsmfOrdUtmCd')
+    setIfPresent(detail, 'ventLoc', 'ventLoc')
+    applyQuickConfigSafetyOptions(detail, card)
+    setIfPresent(detail, 'screenType', 'screenType')
+    setIfPresent(detail, 'crtnColrCd', 'crtnColrCd')
+    setIfPresent(detail, 'insdColrCd', 'insdColrCd')
+    setIfPresent(detail, 'ousdColrCd', 'ousdColrCd')
+    setIfPresent(detail, 'insdSf', 'insdSf')
+    setIfPresent(detail, 'ousdSf', 'ousdSf')
+    setIfPresent(detail, 'mtrlCds1', 'insdSfGlasMtrlCd')
+    setIfPresent(detail, 'mtrlCds2', 'ousdSfGlasMtrlCd')
+    setIfPresent(detail, 'mtrlCds3', 'insdBfGlasMtrlCd')
+    setIfPresent(detail, 'mtrlCds4', 'ousdBfGlasMtrlCd')
+    setIfPresent(detail, 'bfArmatureType', 'bfArmatureType')
+    setIfPresent(detail, 'sfArmatureType', 'sfArmatureType')
+    setIfPresent(detail, 'mfArmatureType', 'mfArmatureType')
+    setIfPresent(detail, 'insdHandleType', 'insdHandleType')
+    setIfPresent(detail, 'ousdHandleType', 'ousdHandleType')
+    form.value.alGlass = isYnValue(detail.glasStdalYn)
+    form.value.glasAttachYn = isYnValue(detail.glasAttachYn)
+    form.value.drnHoleYn = !isExplicitNo(detail.drnHoleYn)
+    form.value.ventHoleYn = isYnValue(detail.ventHoleYn)
+    applyQuickConfigOptionsToForm(form.value, card)
+    syncOusd.value = form.value.insdColrCd === form.value.ousdColrCd
+    form.value.secondFloorEnabled = isSecondFloorEnabled.value
+    await updateDrawingFileByVent({ keepDisplayFallback: true })
+    applyProductionOptionRules()
+    normalizeQuickConfigSelections()
+    showNotice(`간편견적 '${header.cfgNm || card.cfgId || detail.cfgId}'을 불러왔습니다`)
+  } catch (e) {
+    error.value = e?.response?.data?.message || e.message || '간편견적 적용 실패'
+  } finally {
+    loading.value = false
+  }
+}
+
 async function loadWintydiData(row) {
   try {
     const { data } = await searchModelWintydi(row.mdlCd)
     const list = (data?.resultList || []).map((it) => ({
       commCdId: it.commCdVal || it.commCdId,
       commCdNm: it.commCdNm,
-      addInfo1: it.addInfo1, addInfo2: it.addInfo2, addInfo3: it.addInfo3, addInfo5: it.addInfo5,
+      addInfo1: it.addInfo1, addInfo2: it.addInfo2, addInfo3: it.addInfo3, addInfo4: it.addInfo4, addInfo5: it.addInfo5,
     }))
     wintydiList.value = list
     const map = {}
-    for (const it of list) map[it.commCdId] = { cntW: it.addInfo1, cntH: it.addInfo2, cntCS: it.addInfo3, floorInfo: it.addInfo5 }
+    for (const it of list) map[it.commCdId] = { cntW: it.addInfo1, cntH: it.addInfo2, cntCS: it.addInfo3, sfWinCnt: it.addInfo4, floorInfo: it.addInfo5 }
     wintydiMap.value = map
     const rowWin = row.wintydiCd
     form.value.wintydiCd = (rowWin && map[rowWin]) ? rowWin : (list[0]?.commCdId ?? '')
@@ -750,15 +974,20 @@ function onWintydiChange(val) {
   applyProductionOptionRules()
   clearSizeFields()
   applyVentDefault()
-  refreshDrawingFromCurrentSelection()
+}
+
+async function onVentChange(val) {
+  form.value.ventLoc = val
+  await updateDrawingFileByVent({ keepDisplayFallback: true })
 }
 
 function clearSecondFloorOptionFields() {
   form.value.ousdBrcktHEnabled = false
   form.value.insd2FBrcktH = null
   form.value.ousd2FBrcktH = null
-  form.value.ousdHndlHEnabled = false
-  form.value.ousdHndlH = null
+  form.value.secondHndlHEnabled = false
+  form.value.insd2FHndlH = null
+  form.value.ousd2FHndlH = null
 }
 
 function onInsdColorChange() {
@@ -771,14 +1000,18 @@ function onOusdColorChange() {
 
 function toggleAluMf() {
   if (!form.value.isAluMf) {
-    if (!isSafetyNetModel()) {
-      resetSafetyNetOptions()
-      error.value = '안전망 모형이 아닙니다'
+    const safetyNetError = validateSafetyNetSelection()
+    if (safetyNetError) {
+      showError(safetyNetError)
       return
     }
-  }
-  form.value.isAluMf = !form.value.isAluMf
-  if (!form.value.isAluMf) {
+    form.value.isAluMf = true
+    form.value.aluMfMdlYn = 'Y'
+    if (!form.value.aluMfHandleType && aluMfHandleList.value.length) {
+      form.value.aluMfHandleType = safetyNetHandleValue(aluMfHandleList.value[0])
+      syncSafetyNetHandleName()
+    }
+  } else {
     resetSafetyNetOptions()
   }
   applyScreenDefault()
@@ -791,7 +1024,7 @@ function applyVentDefault() {
   if (!form.value.ventLoc || !opts.some(o => o.commCdId === form.value.ventLoc)) {
     form.value.ventLoc = opts.length ? opts[0].commCdId : ''
   }
-  refreshDrawingFromCurrentSelection()
+  updateDrawingFileByVent({ keepDisplayFallback: true })
 }
 
 async function hydrateModelDrawing(row = {}) {
@@ -803,6 +1036,7 @@ async function hydrateModelDrawing(row = {}) {
   if (!row.mdlCd) {
     modelDrawings.value = []
     selectedDrawing.value = null
+    form.value.drwgCd = ''
     return
   }
 
@@ -817,7 +1051,7 @@ async function hydrateModelDrawing(row = {}) {
   } catch (_) {
     modelDrawings.value = []
   }
-  refreshDrawingFromCurrentSelection()
+  await updateDrawingFileByVent({ keepDisplayFallback: true })
 }
 
 function refreshDrawingFromCurrentSelection() {
@@ -827,6 +1061,40 @@ function refreshDrawingFromCurrentSelection() {
     wintydiCd: form.value.wintydiCd,
     ventLoc: form.value.ventLoc,
   }, modelDrawings.value)
+}
+
+async function updateDrawingFileByVent({ keepDisplayFallback = true } = {}) {
+  drawingImageError.value = false
+  const previousDrawing = keepDisplayFallback ? selectedDrawing.value : null
+  form.value.drwgCd = ''
+
+  const currentSelection = {
+    mdlCd: form.value.mdlCd,
+    wintydiCd: form.value.wintydiCd,
+    ventLoc: form.value.ventLoc,
+  }
+
+  let apiRow = {}
+  if (form.value.wintydiCd && form.value.ventLoc) {
+    try {
+      const { data } = await searchDrwgFileAjax({
+        wintydiCd: form.value.wintydiCd,
+        ventLoc: form.value.ventLoc,
+      })
+      apiRow = data?.resultData || data?.resultList?.[0] || {}
+    } catch (_) {
+      apiRow = {}
+    }
+  }
+
+  const nextState = resolveVentDrawingState({
+    apiRow,
+    previousDrawing,
+    fallbackDrawings: modelDrawings.value,
+    currentSelection,
+  })
+  selectedDrawing.value = nextState.selectedDrawing
+  form.value.drwgCd = nextState.drwgCd
 }
 
 function applyScreenDefault() {
@@ -852,23 +1120,115 @@ function applyHandleDefault() {
   }
 }
 
+function normalizeCurrentSelections() {
+  normalizeBsmfSelection()
+  applyVentDefault()
+  applyScreenDefault()
+  applyHandleDefault()
+  if (form.value.isAluMf && form.value.aluMfHandleType) {
+    const exists = aluMfHandleList.value.some((option) => safetyNetHandleValue(option) === form.value.aluMfHandleType)
+    if (!exists) form.value.aluMfHandleType = aluMfHandleList.value.length ? safetyNetHandleValue(aluMfHandleList.value[0]) : ''
+  }
+  syncSafetyNetHandleName()
+}
+
+function normalizeQuickConfigSelections() {
+  normalizeCurrentSelections()
+}
+
+function normalizeBeforeSubmit() {
+  applyProductionOptionRules()
+  normalizeCurrentSelections()
+}
+
 function stringifyOptionValue(value) {
   return value == null || value === '' ? '0' : String(value)
 }
 
 function normalizeYn(value) {
-  return value === 'Y' ? 'Y' : 'N'
+  const normalized = String(value ?? '').trim().toUpperCase()
+  return normalized === 'Y' || normalized === 'TRUE' || normalized === '1' ? 'Y' : 'N'
+}
+
+function isYnValue(value) {
+  return normalizeYn(value) === 'Y'
+}
+
+function isExplicitNo(value) {
+  const normalized = String(value ?? '').trim().toUpperCase()
+  return value === false || normalized === 'N' || normalized === 'FALSE' || normalized === '0'
 }
 
 function isSafetyNetModel() {
   return form.value.aluMdlYn === 'Y'
 }
 
+function isSafetyNetBsmfAllowed() {
+  return ['101', '106', '107', '105'].includes(String(form.value.bsmfOrdUtmCd))
+}
+
+function isFourWWindow() {
+  return String(wintydiMap.value[form.value.wintydiCd]?.sfWinCnt || '') === '4W'
+}
+
+function selectedColorInfo(kind) {
+  const code = kind === 'outer' ? form.value.ousdColrCd : form.value.insdColrCd
+  return colorList.value.find((item) => item.commCdId === code || item.commCdVal === code) || null
+}
+
+function isSafetyNetColorAllowed(kind) {
+  const color = selectedColorInfo(kind)
+  if (!color || color.addInfo39 == null) return true
+  return color.addInfo39 === 'Y'
+}
+
+function isDoubleWindow() {
+  return form.value.dblWindYn === 'Y'
+}
+
+function validateSafetyNetSelection() {
+  if (!isSafetyNetBsmfAllowed()) return '선택하신 틀짝망코드에서는 안전망을 선택할 수 없습니다.'
+  if (!isSafetyNetModel()) return '안전망 모형이 아닙니다'
+  if (isFourWWindow()) return '4W제품은 안전망을 선택할 수 없습니다'
+  if (isDoubleWindow() && !isSafetyNetColorAllowed('outer')) return '안전망은 외부창 색상이 안전망가능색상일때만 선택할 수 있습니다.'
+  if (!isDoubleWindow() && !isSafetyNetColorAllowed('inner')) return '안전망은 내부창 색상이 안전망가능색상일때만 선택할 수 있습니다.'
+  return ''
+}
+
+function showNotice(message) {
+  error.value = ''
+  alertMessage.value = message
+}
+
+function showError(message) {
+  resetSafetyNetOptions()
+  error.value = message
+  alertMessage.value = message
+}
+
+function closeAlert() {
+  alertMessage.value = ''
+}
+
 function resetSafetyNetOptions() {
   form.value.isAluMf = false
   form.value.aluMfHandleType = ''
+  form.value.aluMfHandleTypeNm = ''
   form.value.aluMfMdlYn = 'Y'
   form.value.aluMfHndlH = null
+}
+
+function safetyNetHandleValue(option) {
+  return option?.commCdVal || option?.commCdId || ''
+}
+
+function syncSafetyNetHandleName() {
+  if (!form.value.isAluMf || !form.value.aluMfHandleType) {
+    form.value.aluMfHandleTypeNm = ''
+    return
+  }
+  const selected = aluMfHandleList.value.find((option) => safetyNetHandleValue(option) === form.value.aluMfHandleType)
+  form.value.aluMfHandleTypeNm = selected?.commCdNm || ''
 }
 
 function isVentHoleAllowed() {
@@ -937,6 +1297,13 @@ async function applyStandardSpec() {
       sfOusdGlassMtrlCd: row.addInfo27 || '',
       bfInsdGlassMtrlCd: row.addInfo28 || '',
       bfOusdGlassMtrlCd: row.addInfo29 || '',
+      bfArmatureTypeYn: row.addInfo30 || '',
+      ventHoleYn: row.addInfo31 || '',
+      bfMillingType: row.addInfo32 || '',
+      bfWeldNoneYn: row.addInfo33 || '',
+      sfArmatureTypeYn: row.addInfo34 || '',
+      sfRollerTypeYn: row.addInfo35 || '',
+      mfArmatureTypeYn: row.addInfo36 || '',
     }
   } catch (_) {
     form.value.standardSpec = {}
@@ -956,6 +1323,12 @@ function applyProductionOptionDefaults(row = {}) {
   form.value.bfMillingDown = false
   form.value.bfMillingLeft = false
   form.value.bfMillingRight = false
+  form.value.basedfillingPiecesYn = false
+  form.value.glasAttachYn = false
+  form.value.bfVentHoleLctn = ''
+  form.value.bfWinCbMilingType = ''
+  form.value.sfArmatureType = ''
+  form.value.mfArmatureType = ''
   form.value.sfOppositeTypeYn = row.sfOppositeTypeYn === 'Y'
   form.value.bfDirectShip = false
   form.value.sfDirectShip = false
@@ -990,6 +1363,10 @@ function applyProductionOptionDefaults(row = {}) {
     bfWinTopBottomFmYn: false,
     bfWinSpDdlnShpmYn: false,
     bfIhyFixHghtDirYn: false,
+    sfInsideRightBrdYn: false,
+    sfMcOneReqYn: false,
+    sfBrdProcYn: false,
+    sfHandleProcYn: false,
     sfOutGlasYn: false,
     sfOutGlasInfo: '',
     sfRoller: '',
@@ -1001,12 +1378,16 @@ function applyProductionOptionDefaults(row = {}) {
     sfOutType2: '',
     sfOutType3: '',
     sfSontaLoca: '',
+    sfInsdVentHoleYn: false,
+    sfOusdVentHoleYn: false,
+    sfAptArmatureType: '',
+    sfAptHandleType: '',
     deco1: [],
     winCloser: [],
     mfHandle: '',
     mfHandleHsize: '',
     mfAptArmatureType: '',
-    aluMdlYn: '',
+    isAluMf: false,
     aluMfHandleType: '',
     aluMfMdlYn: 'Y',
     aluMfHndlH: null,
@@ -1056,6 +1437,10 @@ async function submit({ asNewSeq = false } = {}) {
   error.value = ''
   savedSeq.value = ''
 
+  if (isReadonly.value) return failSubmit('현재 수정할 수 없는 상태입니다')
+
+  normalizeBeforeSubmit()
+
   const segmentError = validateSegmentSizes()
   if (segmentError) return failSubmit(segmentError)
   const standardError = validateStandardModelSpec()
@@ -1073,8 +1458,10 @@ async function submit({ asNewSeq = false } = {}) {
   if (form.value.alGlass && !alGlassEnabled.value) return failSubmit('알유리견적을 선택할 수 없는 모형입니다')
   if (!form.value.screenType) return failSubmit('스크린을 선택하세요')
   if (!form.value.ventLoc) return failSubmit('VENT를 선택하세요')
-  if (form.value.isAluMf && !isSafetyNetModel()) return failSubmit('안전망 모형이 아닙니다')
-  if (form.value.isAluMf && form.value.wintydiCd === '4W') return failSubmit('4W제품은 안전망을 선택할 수 없습니다')
+  if (form.value.isAluMf) {
+    const safetyNetError = validateSafetyNetSelection()
+    if (safetyNetError) return failSubmit(safetyNetError)
+  }
   if (form.value.bftydiCd === '113' && (form.value.insdHandleType === '2' || form.value.ousdHandleType === '2')) return failSubmit('발코니창은 매립핸들이 불가능합니다')
   if ((form.value.insdHandleType === '2' || form.value.ousdHandleType === '2') && pickedMdlMtrlCo.value !== 'CA') return failSubmit('자재회사가 청암일 경우에만 매립핸들을 선택할 수 있습니다')
   if (!form.value.insdColrCd) return failSubmit('내부 색상을 선택하세요')
@@ -1099,15 +1486,25 @@ async function submit({ asNewSeq = false } = {}) {
       savedSeq.value = data.estiSeq || '저장됨'
       return { ok: true, estiSeq: savedSeq.value }
     } else {
-      error.value = `저장 실패\nresultCd: ${data.resultCd}\nmessage: ${data.resultMessage || '(없음)'}\nresponse: ${JSON.stringify(data, null, 2)}`
+      error.value = saveErrorMessage(data)
       return { ok: false }
     }
   } catch (e) {
-    error.value = `예외 발생\n${e.message || ''}\n${JSON.stringify(e?.response?.data, null, 2)}`
+    console.error('Sash save failed', e)
+    error.value = exceptionErrorMessage(e)
     return { ok: false }
   } finally {
     loading.value = false
   }
+}
+
+function saveErrorMessage(data = {}) {
+  return `저장 실패\nresultCd: ${data.resultCd || '(없음)'}\nmessage: ${data.resultMessage || data.message || '(없음)'}`
+}
+
+function exceptionErrorMessage(e) {
+  const serverMessage = e?.response?.data?.message || e?.response?.data?.resultMessage
+  return `예외 발생\n${serverMessage || e?.message || '저장 중 오류가 발생했습니다'}`
 }
 
 function failSubmit(message) {
@@ -1128,14 +1525,23 @@ function validateSegmentSizes() {
   const cntH = Number(cntInfo.cntH) || 0
   const cntCS = Number(cntInfo.cntCS) || 0
 
+  const wError = validateSizeRange('W', 'w', 'llmtNrmW', 'uplmNrmW')
+  if (wError) return wError
+  const hError = validateSizeRange('H', 'h', 'llmtNrmH', 'uplmNrmH')
+  if (hError) return hError
+
   for (let index = 1; index < cntW; index += 1) {
     const field = `w${index}`
     if (form.value[field] === '' || form.value[field] == null) return `W${index} 사이즈를 입력하세요`
+    const rangeError = validateSizeRange(`W${index}`, field, `llmtNrmW${index}`, `uplmNrmW${index}`)
+    if (rangeError) return rangeError
   }
 
   for (let index = 1; index < cntH; index += 1) {
     const field = `h${index}`
     if (form.value[field] === '' || form.value[field] == null) return `H${index} 사이즈를 입력하세요`
+    const rangeError = validateSizeRange(`H${index}`, field, `llmtNrmH${index}`, `uplmNrmH${index}`)
+    if (rangeError) return rangeError
   }
 
   for (let index = 0; index < cntCS; index += 1) {
@@ -1144,6 +1550,15 @@ function validateSegmentSizes() {
     if (form.value[field] === '' || form.value[field] == null) return `${label} 사이즈를 입력하세요`
   }
 
+  return ''
+}
+
+function validateSizeRange(label, valueField, lowerField, upperField) {
+  const value = Number(form.value[valueField])
+  const lower = Number(form.value[lowerField])
+  const upper = Number(form.value[upperField])
+  if (form.value[lowerField] !== '' && Number.isFinite(lower) && value < lower) return `${label} 사이즈는 ${form.value[lowerField]} 이상 입력하세요`
+  if (form.value[upperField] !== '' && Number.isFinite(upper) && value > upper) return `${label} 사이즈는 ${form.value[upperField]} 이하 입력하세요`
   return ''
 }
 
@@ -1217,6 +1632,13 @@ function validateStandardModelSpec() {
   if (spec.sfOusdGlassMtrlCd && shouldValidateSfGlass() && !includesSpecValue(spec.sfOusdGlassMtrlCd, form.value.mtrlCds2)) return 'SF외측유리를 규격사양으로 선택하세요'
   if (spec.bfInsdGlassMtrlCd && shouldValidateBfGlass() && !includesSpecValue(spec.bfInsdGlassMtrlCd, form.value.mtrlCds3)) return 'BF내측유리를 규격사양으로 선택하세요'
   if (spec.bfOusdGlassMtrlCd && shouldValidateBfGlass() && !includesSpecValue(spec.bfOusdGlassMtrlCd, form.value.mtrlCds4)) return 'BF외측유리를 규격사양으로 선택하세요'
+  if (spec.bfArmatureTypeYn === 'N' && form.value.bfArmatureType) return 'BF보강재를 규격사양으로 선택하세요'
+  if (spec.ventHoleYn === 'N' && form.value.ventHoleYn) return 'BF통기홀을 규격사양으로 선택하세요'
+  if (spec.bfMillingType && spec.bfMillingType !== 'Y' && spec.bfMillingType !== 'N' && form.value.bfMillingType !== '0' && spec.bfMillingType !== form.value.bfMillingType) return 'BF밀링유형을 규격사양으로 선택하세요'
+  if (spec.bfWeldNoneYn === 'N' && form.value.bfWeldNoneYn) return 'BF절단바로를 규격사양으로 선택하세요'
+  if (spec.sfArmatureTypeYn === 'N' && form.value.sfArmatureType) return 'SF보강재를 규격사양으로 선택하세요'
+  if (spec.sfRollerTypeYn === 'N' && form.value.sfRoller) return 'SF로라를 규격사양으로 선택하세요'
+  if (spec.mfArmatureTypeYn === 'N' && form.value.mfArmatureType) return 'MF보강재를 규격사양으로 선택하세요'
 
   return ''
 }
@@ -1227,13 +1649,13 @@ function validateProductionOptions() {
   if (hasGlassXSelection() && !canUseGlassX()) return '유리X 자재를 선택할 수 없습니다'
   if (form.value.slcnFnshYn && !isSiliconeFinishAllowedByBsmf()) return '선택하신 틀짝망에서는 실리콘마감을 선택할 수 없습니다'
   if (form.value.slcnFnshYn && hasGlassExcludedSelection()) return '실리콘마감은 유리제외 옵션을 선택할 수 없습니다'
-  applyProductionOptionRules()
   if (form.value.bfTurnDoorOneSideWrapType && !form.value.bfOneSideWrapColrNm) return '터닝도어 일면래핑색상을 입력하세요'
   if (form.value.isAluMf && form.value.aluMfMdlYn !== 'Y' && !form.value.aluMfHndlH) return '안전망 높이를 입력하세요'
   return ''
 }
 
 function buildPayload({ asNewSeq = false } = {}) {
+  syncSafetyNetHandleName()
   return buildSashSavePayload({
     form: form.value,
     itgEstiNo: itgEstiNo.value,
@@ -1243,3 +1665,48 @@ function buildPayload({ asNewSeq = false } = {}) {
   })
 }
 </script>
+
+<style scoped>
+.sash-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.sash-header-title {
+  min-width: 0;
+}
+
+.sash-header-title .page-title,
+.sash-header-title .page-subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sash-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.sash-header-back {
+  width: 40px;
+  min-width: 40px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sash-header .btn-quick-config {
+  height: 32px;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+</style>

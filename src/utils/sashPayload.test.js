@@ -2,6 +2,29 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildSashSavePayload } from './sashPayload.js'
 
+function requiredForm(overrides = {}) {
+  return {
+    mdlCd: '0161-01',
+    wintydiCd: '01',
+    bftydiCd: 'BF',
+    sizCd: 'S',
+    bsmfOrdUtmCd: '101',
+    sashOrdTypCd: '10',
+    w: 2000,
+    h: 1000,
+    qty: 1,
+    insdColrCd: 'WH',
+    ousdColrCd: 'WH',
+    insdSf: 'SF-IN',
+    ousdSf: 'SF-OUT',
+    ventLoc: 'L',
+    screenType: 'PVC',
+    deco1: [],
+    winCloser: [],
+    ...overrides,
+  }
+}
+
 test('buildSashSavePayload maps required sash fields for a new estimate', () => {
   const payload = buildSashSavePayload({
     form: {
@@ -242,14 +265,14 @@ test('buildSashSavePayload maps required sash fields for a new estimate', () => 
   assert.equal(payload.mfAptArmatureType, 'F')
   assert.equal(payload.glasStdalYn, 'Y')
   assert.equal(payload.glasAdmsYn, 'Y')
-  assert.equal(payload.insdHndlHMiddle, 'Y')
+  assert.equal(payload.insdHndlHMiddle, 'N')
   assert.equal(payload.insdHndlH, '900')
-  assert.equal(payload.insd2FHndlHMiddle, 'N')
+  assert.equal(payload.insd2FHndlHMiddle, 'Y')
   assert.equal(payload.ousdHndlH, '')
   assert.equal(payload.insdBrcktHMiddle, 'N')
-  assert.equal(payload.insdBrcktH, '')
-  assert.equal(payload.ousdBrcktH, '')
-  assert.equal(payload.insd2FBrcktHMiddle, 'Y')
+  assert.equal(payload.insdBrcktH, '800')
+  assert.equal(payload.ousdBrcktH, '850')
+  assert.equal(payload.insd2FBrcktHMiddle, 'N')
   assert.equal(payload.insd2FBrcktH, '700')
   assert.equal(payload.ousd2FBrcktH, '750')
   assert.equal(payload.mtrlCds4, '')
@@ -262,8 +285,8 @@ test('buildSashSavePayload preserves edit sequence and outside color', () => {
       wintydiCd: '03',
       bftydiCd: '',
       sizCd: '',
-      bsmfOrdUtmCd: '',
-      sashOrdTypCd: '',
+      bsmfOrdUtmCd: '101',
+      sashOrdTypCd: '10',
       w: 1800,
       h: 900,
       qty: 1,
@@ -414,13 +437,525 @@ test('buildSashSavePayload preserves edit sequence and outside color', () => {
   assert.equal(payload.mfHandleHsize, '')
   assert.equal(payload.mfAptArmatureType, '')
   assert.equal(payload.glasStdalYn, 'N')
-  assert.equal(payload.insdHndlHMiddle, 'N')
+  assert.equal(payload.insdHndlHMiddle, 'Y')
   assert.equal(payload.insdHndlH, '')
   assert.equal(payload.insd2FHndlHMiddle, 'N')
   assert.equal(payload.ousdHndlH, '')
   assert.equal(payload.insd2FBrcktHMiddle, 'N')
-  assert.equal(payload.insdBrcktH, '')
-  assert.equal(payload.ousdBrcktH, '')
-  assert.equal(payload.insd2FBrcktH, '')
-  assert.equal(payload.ousd2FBrcktH, '')
+  assert.equal(payload.insdBrcktHMiddle, 'N')
+  assert.equal(payload.insdBrcktH, '800')
+  assert.equal(payload.ousdBrcktH, '850')
+  assert.equal(payload.insd2FBrcktH, '700')
+  assert.equal(payload.ousd2FBrcktH, '750')
+})
+
+test('buildSashSavePayload includes estimate identifiers for a new sash save', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm(),
+    itgEstiNo: 'ITG-NEW',
+    wEstiNo: 'W-NEW',
+  })
+
+  assert.equal(payload.itgEstiNo, 'ITG-NEW')
+  assert.equal(payload.estiNo, 'W-NEW')
+  assert.equal(payload.estiNos, '1')
+  assert.equal(payload.estiSeq, '')
+})
+
+test('buildSashSavePayload automatically saves height middle flags as N when handle or bracket heights exist', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      secondFloorEnabled: true,
+      insdHndlHEnabled: false,
+      ousdHndlHEnabled: false,
+      insdHndlH: 910,
+      ousdHndlH: 920,
+      insd2FHndlH: 930,
+      ousd2FHndlH: 940,
+      insdBrcktHEnabled: false,
+      ousdBrcktHEnabled: false,
+      insdBrcktH: 810,
+      ousdBrcktH: 820,
+      insd2FBrcktH: 830,
+      ousd2FBrcktH: 840,
+    }),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+  })
+
+  assert.equal(payload.insdHndlHMiddle, 'N')
+  assert.equal(payload.insdHndlH, '910')
+  assert.equal(payload.ousdHndlH, '920')
+  assert.equal(payload.insd2FHndlHMiddle, 'N')
+  assert.equal(payload.insd2FHndlH, '930')
+  assert.equal(payload.ousd2FHndlH, '940')
+  assert.equal(payload.insdBrcktHMiddle, 'N')
+  assert.equal(payload.insdBrcktH, '810')
+  assert.equal(payload.ousdBrcktH, '820')
+  assert.equal(payload.insd2FBrcktHMiddle, 'N')
+  assert.equal(payload.insd2FBrcktH, '830')
+  assert.equal(payload.ousd2FBrcktH, '840')
+})
+
+test('buildSashSavePayload saves outside handle and second bracket middle flags as N when their heights exist', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      secondFloorEnabled: false,
+      insdHndlHEnabled: false,
+      ousdHndlHEnabled: false,
+      ousdHndlH: 925,
+      insd2FBrcktH: 835,
+      ousd2FBrcktH: 845,
+    }),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+  })
+
+  assert.equal(payload.insdHndlHMiddle, 'N')
+  assert.equal(payload.ousdHndlH, '925')
+  assert.equal(payload.insd2FBrcktHMiddle, 'N')
+  assert.equal(payload.insd2FBrcktH, '835')
+  assert.equal(payload.ousd2FBrcktH, '845')
+})
+
+test('buildSashSavePayload keeps edit sequence for an existing sash save', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm(),
+    itgEstiNo: 'ITG-EDIT',
+    wEstiNo: 'W-EDIT',
+    estiNos: '2',
+    editEstiSeq: '9',
+  })
+
+  assert.equal(payload.itgEstiNo, 'ITG-EDIT')
+  assert.equal(payload.estiNo, 'W-EDIT')
+  assert.equal(payload.estiNos, '2')
+  assert.equal(payload.estiSeq, '9')
+})
+
+test('buildSashSavePayload rejects missing required save fields before creating payload', () => {
+  assert.throws(
+    () => buildSashSavePayload({
+      form: requiredForm({ mdlCd: '' }),
+      itgEstiNo: 'ITG001',
+      wEstiNo: 'W001',
+    }),
+    /mdlCd/
+  )
+  assert.throws(
+    () => buildSashSavePayload({
+      form: requiredForm({ w: null }),
+      itgEstiNo: 'ITG001',
+      wEstiNo: 'W001',
+    }),
+    /w/
+  )
+  assert.throws(
+    () => buildSashSavePayload({
+      form: requiredForm(),
+      itgEstiNo: '',
+      wEstiNo: 'W001',
+    }),
+    /itgEstiNo/
+  )
+}
+)
+
+test('buildSashSavePayload includes high-risk web parity fields', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      bfMillingType: '2',
+      bfMillingDetail: '4',
+      bfMillingUp: true,
+      winCloser: [1, 3, 4],
+      sfInsdVentHoleYn: true,
+      sfOusdVentHoleYn: true,
+      pdBfRemSrc: 'BF note',
+      pdSfRemSrc: 'SF note',
+      pdMfRemSrc: 'MF note',
+      secondFloorEnabled: true,
+      secondHndlHEnabled: true,
+      insd2FHndlH: 1100,
+      ousd2FHndlH: 1200,
+    }),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+  })
+
+  assert.equal(payload.bfMillingWing, '2')
+  assert.equal(payload.windCloserMatYn, 'Y')
+  assert.equal(payload.insdWindClsYn, 'Y')
+  assert.equal(payload.ousdWindClsYn, 'N')
+  assert.equal(payload.insd2FWindClsYn, 'Y')
+  assert.equal(payload.ousd2FWindClsYn, 'Y')
+  assert.equal(payload.sfInsdVentHoleYn, 'Y')
+  assert.equal(payload.sfOusdVentHoleYn, 'Y')
+  assert.equal(payload.pdBfRemSrc, 'BF note,날개부분 상')
+  assert.equal(payload.pdSfRemSrc, 'SF note,윈드클로저:내창2층내창2층외창')
+  assert.equal(payload.pdMfRemSrc, 'MF note')
+  assert.equal(payload.insd2FHndlH, '1100')
+  assert.equal(payload.ousd2FHndlH, '1200')
+})
+
+test('buildSashSavePayload generates BF production remarks from milling, default, and special options', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      bfMillingType: '2',
+      bfMillingDetail: '4',
+      bfMillingUp: true,
+      bfMillingLeft: true,
+      bfWeldNoneYn: true,
+      fillingPiecesYn: true,
+      basedfillingPiecesYn: true,
+      bfRackShip: true,
+      bfStopper: true,
+      drnHoleYn: false,
+      bfArmatureType: 'F',
+      bfWrapping: '2',
+      bfThrSidePack: '1',
+      bfFmGbYn: true,
+      bfFmGbShipYn: true,
+      bfSsOpt: true,
+      bfSideView: '2',
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.equal(
+    payload.pdBfRemSrc,
+    '날개부분 상좌,렉별도출고,절단바로(용접X),물구멍 X,상하휠링피스,기존 휠링피스,스토퍼부착,FM-X,GB-X,FM/GB 길게 별도 출고,SS일자절단,연결구,보강재:4면,랩핑:ㄷ자,3면포장:백색,40면 보이게'
+  )
+})
+
+test('buildSashSavePayload generates SF production remarks from deco, wind closer, and one-sash options', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      deco1: [1, 3],
+      winCloser: [1, 2, 3, 4],
+      sfOutType: '2',
+      sfOutType2: '3',
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.equal(payload.pdSfRemSrc, '장식X1층내,2층내, 윈드클로저:내창외창2층내창2층외창,외짝3W_3번창')
+})
+
+test('buildSashSavePayload generates MF production remarks from screen handle and safety-net handle options', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      isAluMf: true,
+      aluMfMdlYn: 'N',
+      aluMfHandleType: '2',
+      aluMfHndlH: 900,
+      mfHandle: '2',
+      mfHandleHsize: 1234,
+      mfRackShip: true,
+      mfCi4wStickYn: true,
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.equal(payload.pdMfRemSrc, '렉별도출고,4W용 CI부착,방충망핸들 핸들 하 1234,안전망핸들:일반 핸들 하 900')
+})
+
+test('buildSashSavePayload uses selected safety-net handle master name in MF production remarks', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      isAluMf: true,
+      aluMfMdlYn: 'N',
+      aluMfHandleType: '2',
+      aluMfHandleTypeNm: '고급핸들',
+      aluMfHndlH: 900,
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.equal(payload.pdMfRemSrc, '안전망핸들:고급핸들 핸들 하 900')
+})
+
+test('buildSashSavePayload preserves existing production remarks when no auto remark option is selected', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      pdBfRemSrc: '기존 BF 비고',
+      pdSfRemSrc: '기존 SF 비고',
+      pdMfRemSrc: '기존 MF 비고',
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.equal(payload.pdBfRemSrc, '기존 BF 비고')
+  assert.equal(payload.pdSfRemSrc, '기존 SF 비고')
+  assert.equal(payload.pdMfRemSrc, '기존 MF 비고')
+})
+
+test('buildSashSavePayload merges existing production remarks with generated web parity remarks', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      pdBfRemSrc: '기존 BF 비고',
+      pdSfRemSrc: '기존 SF 비고',
+      pdMfRemSrc: '기존 MF 비고',
+      bfRackShip: true,
+      sfRackShip: true,
+      mfRackShip: true,
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.equal(payload.pdBfRemSrc, '기존 BF 비고,렉별도출고')
+  assert.equal(payload.pdSfRemSrc, '기존 SF 비고,렉별도출고')
+  assert.equal(payload.pdMfRemSrc, '기존 MF 비고,렉별도출고')
+})
+
+test('buildSashSavePayload generates additional web optionWrite production remarks', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      bfTurnDoorPullType: '1',
+      bfTurnDoorOneSideWrapType: '2',
+      bfOneSideWrapColrNm: '블랙',
+      bfAptCmType: '2',
+      bfApt2pjLoc: '3',
+      bfApt2pjMethod: '1',
+      bfTurnDoorOnlyMakeYn: true,
+      bfVentPiecesIncludeYn: true,
+      bfVentHoleLctn: '120',
+      bfWinCbMilingType: '1',
+      bfWinOnefixUpHoleYn: true,
+      bfWinFmThreeSideYn: true,
+      bfWinTopBottomFmYn: true,
+      bfWinSpDdlnShpmYn: true,
+      bfIhyFixHghtDirYn: true,
+      bfLxHiddenOptYn: true,
+      sfLandscape: true,
+      sfRackShip: true,
+      sfDirectShip: true,
+      sfOutGlasYn: true,
+      sfOutGlasInfo: '24T 로이',
+      sfInsideRightBrdYn: true,
+      sfMcOneReqYn: true,
+      sfOppositeTypeYn: true,
+      sfBrdProcYn: true,
+      sfHandleProcYn: true,
+      sfRoller: '2',
+      sfCreSize: '3',
+      sfCreHook: true,
+      sfSontaLoca: '8',
+      sfAptArmatureType: 'F',
+      mtrlCoNm: 'LX',
+      dblWindYn: 'Y',
+      insdHandleType: '4',
+      ousdHandleType: '6',
+      isAluMf: true,
+      aluMfMdlYn: 'N',
+      aluMfHandleType: '2',
+      aluMfHndlH: 900,
+    }),
+    itgEstiNo: 'ITG-REM',
+    wEstiNo: 'W-REM',
+  })
+
+  assert.match(payload.pdBfRemSrc, /좌경첩\(내부-미는문\)/)
+  assert.match(payload.pdBfRemSrc, /미는문/)
+  assert.match(payload.pdBfRemSrc, /일면래핑색상:블랙/)
+  assert.match(payload.pdBfRemSrc, /케이스먼트:2짝/)
+  assert.match(payload.pdBfRemSrc, /우측/)
+  assert.match(payload.pdBfRemSrc, /밀때좌경/)
+  assert.match(payload.pdBfRemSrc, /문짝만 제작/)
+  assert.match(payload.pdBfRemSrc, /경첩\+피스포함/)
+  assert.match(payload.pdBfRemSrc, /경첩타공위치:120/)
+  assert.match(payload.pdBfRemSrc, /상부만밀링\(FM,GB없음\)/)
+  assert.match(payload.pdBfRemSrc, /1FIX 상부유리타공/)
+  assert.match(payload.pdBfRemSrc, /FM,GB-X 3면/)
+  assert.match(payload.pdBfRemSrc, /상하부만 FM작업/)
+  assert.match(payload.pdBfRemSrc, /SP마감출고/)
+  assert.match(payload.pdBfRemSrc, /이형픽스 방향설정/)
+  assert.match(payload.pdSfRemSrc, /SP 가로작업/)
+  assert.match(payload.pdSfRemSrc, /렉별도출고/)
+  assert.match(payload.pdSfRemSrc, /직송/)
+  assert.match(payload.pdSfRemSrc, /유리사양:24T 로이/)
+  assert.match(payload.pdSfRemSrc, /내부우측매립/)
+  assert.match(payload.pdSfRemSrc, /MC1개요청/)
+  assert.match(payload.pdSfRemSrc, /반대타입/)
+  assert.match(payload.pdSfRemSrc, /매립가공/)
+  assert.match(payload.pdSfRemSrc, /핸들가공/)
+  assert.match(payload.pdSfRemSrc, /조절로라/)
+  assert.match(payload.pdSfRemSrc, /크리센트:대/)
+  assert.match(payload.pdSfRemSrc, /크리고리/)
+  assert.match(payload.pdSfRemSrc, /손타위치:우측/)
+  assert.match(payload.pdSfRemSrc, /보강재:4면보강/)
+  assert.match(payload.pdSfRemSrc, /내부: 반자동핸들/)
+  assert.match(payload.pdSfRemSrc, /외부: 그립핸들/)
+  assert.match(payload.pdSfRemSrc, /\(윈드클로저,안전스토퍼,기밀캡\)|\(안전스토퍼,기밀캡\)/)
+  assert.match(payload.pdMfRemSrc, /안전망핸들:일반 핸들 하 900/)
+})
+
+test('buildSashSavePayload defaults SF vent hole and second-floor wind closer fields to N', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm(),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+  })
+
+  assert.equal(payload.sfInsdVentHoleYn, 'N')
+  assert.equal(payload.sfOusdVentHoleYn, 'N')
+  assert.equal(payload.insd2FWindClsYn, 'N')
+  assert.equal(payload.ousd2FWindClsYn, 'N')
+})
+
+test('buildSashSavePayload uses web SashForm save field names for shared fields', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      alGlass: true,
+      glasAttachYn: true,
+      bfArmatureType: 'F',
+      bfMillingType: '1',
+      bfMillingDetail: '2',
+      bfTurnDoorPullType: '1',
+      sfOppositeTypeYn: true,
+      mfHandle: '2',
+      mfHandleHsize: 950,
+    }),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+  })
+
+  const webFieldNames = [
+    'sashOrdTypCd',
+    'bsmfOrdUtmCd',
+    'wintydiCd',
+    'ventLoc',
+    'screenType',
+    'glasStdalYn',
+    'glasAttachYn',
+    'bfArmatureType',
+    'bfMillingType',
+    'bfMillingWing',
+    'bfMillingDetail',
+    'bfTurnDoorPullType',
+    'sfOppositeTypeYn',
+    'mfHandle',
+    'mfHandleHsize',
+  ]
+
+  for (const fieldName of webFieldNames) {
+    assert.ok(Object.prototype.hasOwnProperty.call(payload, fieldName), `${fieldName} missing from payload`)
+  }
+  assert.ok(!Object.prototype.hasOwnProperty.call(payload, 'sashOrdTyp'))
+  assert.ok(!Object.prototype.hasOwnProperty.call(payload, 'bfTurnDoorPull'))
+})
+
+test('buildSashSavePayload preserves hidden web sash save fields while editing', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      issueType: 'TAX',
+      appdocId: 'APP-20260605',
+      unqColrPolSaveYn: true,
+    }),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+    editEstiSeq: '7',
+  })
+
+  assert.equal(payload.issueType, 'TAX')
+  assert.equal(payload.appdocId, 'APP-20260605')
+  assert.equal(payload.unqColrPolSaveYn, 'Y')
+})
+
+test('buildSashSavePayload includes medium-priority web parity fields with explicit values', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm({
+      glasAttachYn: true,
+      basedfillingPiecesYn: true,
+      sfArmatureType: 'F',
+      mfArmatureType: 'F',
+      bfVentHoleLctn: '820',
+      bfWinCbMilingType: '2',
+      sfInsideRightBrdYn: true,
+      sfMcOneReqYn: true,
+      sfBrdProcYn: true,
+      sfHandleProcYn: true,
+      sfAptArmatureType: 'F',
+      sfAptHandleType: '3',
+    }),
+    itgEstiNo: 'ITG-MED',
+    wEstiNo: 'W-MED',
+  })
+
+  assert.equal(payload.glasAttachYn, 'Y')
+  assert.equal(payload.basedfillingPiecesYn, 'Y')
+  assert.equal(payload.sfArmatureType, 'F')
+  assert.equal(payload.mfArmatureType, 'F')
+  assert.equal(payload.bfVentHoleLctn, '820')
+  assert.equal(payload.bfWinCbMilingType, '2')
+  assert.equal(payload.sfInsideRightBrdYn, 'Y')
+  assert.equal(payload.sfMcOneReqYn, 'Y')
+  assert.equal(payload.sfBrdProcYn, 'Y')
+  assert.equal(payload.sfHandleProcYn, 'Y')
+  assert.equal(payload.sfAptArmatureType, 'F')
+  assert.equal(payload.sfAptHandleType, '3')
+})
+
+test('buildSashSavePayload defaults medium-priority fields explicitly when not selected', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm(),
+    itgEstiNo: 'ITG-MED-DEFAULT',
+    wEstiNo: 'W-MED-DEFAULT',
+  })
+
+  assert.equal(payload.glasAttachYn, 'N')
+  assert.equal(payload.basedfillingPiecesYn, 'N')
+  assert.equal(payload.sfArmatureType, '')
+  assert.equal(payload.mfArmatureType, '')
+  assert.equal(payload.bfVentHoleLctn, '')
+  assert.equal(payload.bfWinCbMilingType, '')
+  assert.equal(payload.sfInsideRightBrdYn, 'N')
+  assert.equal(payload.sfMcOneReqYn, 'N')
+  assert.equal(payload.sfBrdProcYn, 'N')
+  assert.equal(payload.sfHandleProcYn, 'N')
+  assert.equal(payload.sfAptArmatureType, '')
+  assert.equal(payload.sfAptHandleType, '')
+})
+
+test('buildSashSavePayload normalizes Y/N-like form values before serializing', () => {
+  const truthyPayload = buildSashSavePayload({
+    form: requiredForm({
+      drnHoleYn: 'y',
+      ventHoleYn: '1',
+      glasAttachYn: 'TRUE',
+      bfDirectShip: true,
+      bfShipAddr: 'BF address',
+    }),
+    itgEstiNo: 'ITG-YN',
+    wEstiNo: 'W-YN',
+  })
+
+  assert.equal(truthyPayload.drnHoleYn, 'Y')
+  assert.equal(truthyPayload.ventHoleYn, 'Y')
+  assert.equal(truthyPayload.glasAttachYn, 'Y')
+  assert.equal(truthyPayload.bfDirectShip, 'Y')
+  assert.equal(truthyPayload.bfShipAddr, 'BF address')
+
+  const falseyPayload = buildSashSavePayload({
+    form: requiredForm({
+      drnHoleYn: 'N',
+      ventHoleYn: '0',
+      glasAttachYn: 'FALSE',
+      bfDirectShip: 'N',
+      bfShipAddr: 'SHOULD_HIDE',
+    }),
+    itgEstiNo: 'ITG-YN-FALSE',
+    wEstiNo: 'W-YN-FALSE',
+  })
+
+  assert.equal(falseyPayload.drnHoleYn, 'N')
+  assert.equal(falseyPayload.ventHoleYn, 'N')
+  assert.equal(falseyPayload.glasAttachYn, 'N')
+  assert.equal(falseyPayload.bfDirectShip, 'N')
+  assert.equal(falseyPayload.bfShipAddr, '')
 })

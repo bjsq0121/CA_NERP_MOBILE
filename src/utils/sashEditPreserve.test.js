@@ -95,3 +95,105 @@ test('restoreSashEditValues keeps intentionally empty saved values empty', () =>
   assert.equal(form.ventLoc, '')
   assert.equal(form.screenType, '')
 })
+
+test('restoreSashEditValues keeps existing edit selections from being replaced by model defaults', () => {
+  const form = {
+    ventLoc: 'SAVED-VENT',
+    screenType: 'SAVED-SCREEN',
+    insdSf: 'SAVED-SF-IN',
+    ousdSf: 'SAVED-SF-OUT',
+    insdColrCd: 'SAVED-IN-COLOR',
+    ousdColrCd: 'SAVED-OUT-COLOR',
+    bsmfOrdUtmCd: '107',
+    sashOrdTypCd: '8',
+  }
+  const snapshot = captureSashEditValues(form)
+
+  Object.assign(form, {
+    ventLoc: 'DEFAULT-VENT',
+    screenType: 'DEFAULT-SCREEN',
+    insdSf: 'DEFAULT-SF-IN',
+    ousdSf: 'DEFAULT-SF-OUT',
+    insdColrCd: 'DEFAULT-IN-COLOR',
+    ousdColrCd: 'DEFAULT-OUT-COLOR',
+    bsmfOrdUtmCd: '101',
+    sashOrdTypCd: '1',
+  })
+
+  restoreSashEditValues(form, snapshot)
+
+  assert.equal(form.ventLoc, 'SAVED-VENT')
+  assert.equal(form.screenType, 'SAVED-SCREEN')
+  assert.equal(form.insdSf, 'SAVED-SF-IN')
+  assert.equal(form.ousdSf, 'SAVED-SF-OUT')
+  assert.equal(form.insdColrCd, 'SAVED-IN-COLOR')
+  assert.equal(form.ousdColrCd, 'SAVED-OUT-COLOR')
+  assert.equal(form.bsmfOrdUtmCd, '107')
+  assert.equal(form.sashOrdTypCd, '8')
+})
+
+test('restoreSashEditValues preserves parity fields that may not have dedicated model defaults', () => {
+  const form = {
+    drwgCd: 'DRWG-SAVED',
+    glasAttachYn: true,
+    basedfillingPiecesYn: true,
+    sfArmatureType: 'F',
+    mfArmatureType: 'B',
+    bfVentHoleLctn: '820',
+    bfWinCbMilingType: '2',
+    sfInsideRightBrdYn: true,
+    sfMcOneReqYn: true,
+    sfBrdProcYn: true,
+    sfHandleProcYn: true,
+    sfAptArmatureType: 'F',
+    sfAptHandleType: '3',
+    pdBfRemSrc: 'BF saved',
+    pdSfRemSrc: 'SF saved',
+    pdMfRemSrc: 'MF saved',
+    insd2FHndlH: 1100,
+    ousd2FHndlH: 1200,
+  }
+  const snapshot = captureSashEditValues(form)
+
+  Object.assign(form, {
+    drwgCd: '',
+    glasAttachYn: false,
+    basedfillingPiecesYn: false,
+    sfArmatureType: '',
+    mfArmatureType: '',
+    bfVentHoleLctn: '',
+    bfWinCbMilingType: '',
+    sfInsideRightBrdYn: false,
+    sfMcOneReqYn: false,
+    sfBrdProcYn: false,
+    sfHandleProcYn: false,
+    sfAptArmatureType: '',
+    sfAptHandleType: '',
+    pdBfRemSrc: '',
+    pdSfRemSrc: '',
+    pdMfRemSrc: '',
+    insd2FHndlH: null,
+    ousd2FHndlH: null,
+  })
+
+  restoreSashEditValues(form, snapshot)
+
+  assert.equal(form.drwgCd, 'DRWG-SAVED')
+  assert.equal(form.glasAttachYn, true)
+  assert.equal(form.basedfillingPiecesYn, true)
+  assert.equal(form.sfArmatureType, 'F')
+  assert.equal(form.mfArmatureType, 'B')
+  assert.equal(form.bfVentHoleLctn, '820')
+  assert.equal(form.bfWinCbMilingType, '2')
+  assert.equal(form.sfInsideRightBrdYn, true)
+  assert.equal(form.sfMcOneReqYn, true)
+  assert.equal(form.sfBrdProcYn, true)
+  assert.equal(form.sfHandleProcYn, true)
+  assert.equal(form.sfAptArmatureType, 'F')
+  assert.equal(form.sfAptHandleType, '3')
+  assert.equal(form.pdBfRemSrc, 'BF saved')
+  assert.equal(form.pdSfRemSrc, 'SF saved')
+  assert.equal(form.pdMfRemSrc, 'MF saved')
+  assert.equal(form.insd2FHndlH, 1100)
+  assert.equal(form.ousd2FHndlH, 1200)
+})
