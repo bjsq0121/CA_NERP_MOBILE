@@ -50,6 +50,10 @@ export function findMatchingDrawing(row, drawings = []) {
   return usable[0]
 }
 
+function isExactVentDrawingMatch(row = {}, drawing = {}) {
+  return drawing.wintydiCd === row.wintydiCd && drawing.ventLoc === row.ventLoc
+}
+
 export function mergeSashDrawingFiles(rows = [], drawingsByMdlCd = {}) {
   return rows.map((row) => {
     if (hasDrawingFile(row)) return row
@@ -57,13 +61,22 @@ export function mergeSashDrawingFiles(rows = [], drawingsByMdlCd = {}) {
     const match = findMatchingDrawing(row, drawingsByMdlCd[row.mdlCd] || [])
     if (!match) return row
 
+    const displayMdlNm = isExactVentDrawingMatch(row, match)
+      ? firstValue(match.mdlNm, match.MDL_NM, match.modelNm)
+      : ''
+
     return {
       ...row,
       srvFileNm: match.srvFileNm || row.srvFileNm,
       fileExtNm: match.fileExtNm || row.fileExtNm,
       drwgFilePath: match.drwgFilePath || row.drwgFilePath,
+      ...(displayMdlNm ? { _displayMdlNm: displayMdlNm } : {}),
     }
   })
+}
+
+export function buildSashModelText(row = {}) {
+  return firstValue(row._displayMdlNm, row.mdlNm, row.MDL_NM, row.modelNm, row.mdlCd) || '-'
 }
 
 export function buildSashMeta(row = {}) {

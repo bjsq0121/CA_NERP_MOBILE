@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   buildSashDrawingUrl,
   buildSashMeta,
+  buildSashModelText,
   buildSashScreenText,
   mergeSashDrawingFiles,
   normalizeSashRows,
@@ -75,4 +76,35 @@ test('mergeSashDrawingFiles fills missing image fields from model drawings', () 
   assert.equal(buildSashDrawingUrl(merged[0]), '/data/drwg/sash/MATCH.png')
   assert.equal(buildSashDrawingUrl(merged[1]), '/data/drwg/sash/SAME_WINTYDI.png')
   assert.equal(buildSashDrawingUrl(merged[2]), '/data/drwg/sash/KEEP.jpg')
+})
+
+test('mergeSashDrawingFiles exposes matched model name only for exact vent drawing match', () => {
+  const [merged] = mergeSashDrawingFiles(
+    [{ mdlCd: 'M1', mdlNm: '저장모형', wintydiCd: 'W1', ventLoc: 'L', estiSeq: '1' }],
+    {
+      M1: [
+        { mdlCd: 'M1', mdlNm: '우측 VENT 모형', wintydiCd: 'W1', ventLoc: 'R', srvFileNm: 'RIGHT', fileExtNm: 'png' },
+        { mdlCd: 'M1', mdlNm: '좌측 VENT 모형', wintydiCd: 'W1', ventLoc: 'L', srvFileNm: 'LEFT', fileExtNm: 'png' },
+      ],
+    }
+  )
+
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/LEFT.png')
+  assert.equal(merged._displayMdlNm, '좌측 VENT 모형')
+  assert.equal(buildSashModelText(merged), '좌측 VENT 모형')
+})
+
+test('mergeSashDrawingFiles keeps saved model name when drawing match falls back by window type', () => {
+  const [merged] = mergeSashDrawingFiles(
+    [{ mdlCd: 'M1', mdlNm: '저장모형', wintydiCd: 'W1', ventLoc: 'L', estiSeq: '1' }],
+    {
+      M1: [
+        { mdlCd: 'M1', mdlNm: '우측 VENT 모형', wintydiCd: 'W1', ventLoc: 'R', srvFileNm: 'RIGHT', fileExtNm: 'png' },
+      ],
+    }
+  )
+
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/RIGHT.png')
+  assert.equal(merged._displayMdlNm, undefined)
+  assert.equal(buildSashModelText(merged), '저장모형')
 })

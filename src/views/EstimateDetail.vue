@@ -75,7 +75,7 @@
             v-for="row in sashRows"
             :key="sashRowKey(row)"
             :selected="sashRowKey(row) === sashRowKey(selectedSashRow)"
-            :model-text="row.mdlNm || row.mdlCd || '-'"
+            :model-text="buildSashModelText(row)"
             :window-type-text="buildWindowTypeText(row)"
             :sequence-text="row.estiSeq"
             :status-text="statusLabel(row)"
@@ -92,7 +92,7 @@
         <div class="sash-detail-pane">
           <SashDetailPanel
             v-if="selectedSashRow"
-            :model-text="selectedSashRow.mdlNm || selectedSashRow.mdlCd || '-'"
+            :model-text="buildSashModelText(selectedSashRow)"
             :window-type-text="buildWindowTypeText(selectedSashRow)"
             :sequence-text="selectedSashRow.estiSeq"
             :status-text="statusLabel(selectedSashRow)"
@@ -221,6 +221,7 @@ import SashListCard from '../components/SashListCard.vue'
 import {
   buildSashDrawingUrl,
   buildSashMeta,
+  buildSashModelText,
   buildSashScreenText,
   mergeSashDrawingFiles,
   normalizeSashRows,

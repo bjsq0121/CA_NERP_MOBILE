@@ -48,7 +48,7 @@
             </select>
           </div>
           <div class="field option-toggle-field">
-            <label>안전망 높이</label>
+            <label>중간고정</label>
             <button
               type="button"
               class="toggle-btn"

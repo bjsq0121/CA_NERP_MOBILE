@@ -431,6 +431,8 @@ test('SashNew validates additional production option requirements from web sash 
   assert.match(ventSource, /aluMfHandleOptions/)
   assert.match(ventSource, /v-model="form\.aluMfHandleType"/)
   assert.match(ventSource, /v-model\.number="form\.aluMfHndlH"/)
+  assert.match(ventSource, /<label>중간고정<\/label>/)
+  assert.match(ventSource, /<label>높이<\/label>/)
   assert.match(ventSource, /form\.aluMfMdlYn === 'Y' \? 'ON' : 'OFF'/)
 })
 
