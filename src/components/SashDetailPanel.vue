@@ -17,6 +17,7 @@
       <div class="sash-panel-drawing-box">
         <img
           v-if="drawingUrl"
+          :key="drawingUrl"
           :src="drawingUrl"
           alt=""
           loading="lazy"

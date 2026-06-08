@@ -25,6 +25,10 @@ export function normalizeSashRows(response) {
 }
 
 export function buildSashDrawingUrl(row = {}) {
+  if (row._displayDrwgFilePath) return row._displayDrwgFilePath
+  if (row._displaySrvFileNm && row._displayFileExtNm) {
+    return `/data/drwg/sash/${row._displaySrvFileNm}.${row._displayFileExtNm}`
+  }
   if (row.drwgFilePath) return row.drwgFilePath
   if (row.srvFileNm && row.fileExtNm) return `/data/drwg/sash/${row.srvFileNm}.${row.fileExtNm}`
   if (row.fileNm && row.fileExtNm) return `/data/drwg/sash/${row.fileNm}.${row.fileExtNm}`
@@ -56,14 +60,24 @@ function isExactVentDrawingMatch(row = {}, drawing = {}) {
 
 export function mergeSashDrawingFiles(rows = [], drawingsByMdlCd = {}) {
   return rows.map((row) => {
-    if (hasDrawingFile(row)) return row
-
     const match = findMatchingDrawing(row, drawingsByMdlCd[row.mdlCd] || [])
     if (!match) return row
 
-    const displayMdlNm = isExactVentDrawingMatch(row, match)
-      ? firstValue(match.mdlNm, match.MDL_NM, match.modelNm)
-      : ''
+    const isExact = isExactVentDrawingMatch(row, match)
+    const displayMdlNm = isExact ? firstValue(match.mdlNm, match.MDL_NM, match.modelNm) : ''
+
+    if (isExact) {
+      return {
+        ...row,
+        _displaySrvFileNm: match.srvFileNm || match.fileNm || row._displaySrvFileNm,
+        _displayFileExtNm: match.fileExtNm || row._displayFileExtNm,
+        _displayDrwgFilePath: match.drwgFilePath || row._displayDrwgFilePath,
+        _displayDrwgCd: match.drwgCd || row._displayDrwgCd,
+        ...(displayMdlNm ? { _displayMdlNm: displayMdlNm } : {}),
+      }
+    }
+
+    if (hasDrawingFile(row)) return row
 
     return {
       ...row,

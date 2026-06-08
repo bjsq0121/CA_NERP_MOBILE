@@ -757,6 +757,36 @@ test('EstimateDetail selects sash cards instead of opening edit route directly',
   assert.doesNotMatch(detailSource, /@click="openSash\(row\)"/)
 })
 
+test('EstimateDetail remounts selected sash detail panel and image by selected row drawing URL', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
+  assert.match(detailSource, /<SashDetailPanel[\s\S]*:key="sashRowKey\(selectedSashRow\)"/)
+  assert.match(panelSource, /<img[\s\S]*:key="drawingUrl"/)
+})
+
+test('EstimateDetail sends every right-panel section from selectedSashRow', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const expectedBindings = [
+    /:drawing-url="sashDrawingUrl\(selectedSashRow\)"/,
+    /:supply-text="fmtPrice\(rowSupply\(selectedSashRow\)\)"/,
+    /:vat-text="fmtPrice\(rowVat\(selectedSashRow\)\)"/,
+    /:total-text="fmtPrice\(rowTotal\(selectedSashRow\)\)"/,
+    /:option-chips="buildCustomerOptionChips\(selectedSashRow\)"/,
+    /:customer-items="buildCustomerConfirmItems\(selectedSashRow\)"/,
+    /:size-items="buildSizeDetailItems\(selectedSashRow\)"/,
+    /:material-items="buildMaterialHardwareItems\(selectedSashRow\)"/,
+    /:internal-items="buildInternalProductionItems\(selectedSashRow\)"/,
+    /@edit="editSash\(selectedSashRow\)"/,
+  ]
+  for (const binding of expectedBindings) assert.match(detailSource, binding)
+})
+
+test('EstimateDetail hydrates model drawings even when saved row already has an image', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /filter\(\(row\) => row\.mdlCd\)/)
+  assert.doesNotMatch(detailSource, /row\.mdlCd && !buildSashDrawingUrl\(row\)/)
+})
+
 test('EstimateDetail uses mobile detail panel and tablet split view classes', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
   const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')

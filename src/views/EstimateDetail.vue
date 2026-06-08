@@ -92,6 +92,7 @@
         <div class="sash-detail-pane">
           <SashDetailPanel
             v-if="selectedSashRow"
+            :key="sashRowKey(selectedSashRow)"
             :model-text="buildSashModelText(selectedSashRow)"
             :window-type-text="buildWindowTypeText(selectedSashRow)"
             :sequence-text="selectedSashRow.estiSeq"
@@ -309,7 +310,15 @@ function rowTotal(row) {
 
 function sashRowKey(row = {}) {
   if (!row) return ''
-  return `${row.estiNo || row.windEstiNo || wEstiNo.value || 'sash'}_${row.estiNos || '1'}_${row.estiSeq || ''}`
+  const sequence = row.estiSeq || [
+    row.mdlCd,
+    row.wintydiCd,
+    row.ventLoc,
+    row.wSize || row.WSize || row.w0Size,
+    row.hSize || row.HSize || row.h0Size,
+    row.qty,
+  ].filter((value) => value != null && value !== '').join('_')
+  return `${row.estiNo || row.windEstiNo || wEstiNo.value || 'sash'}_${row.estiNos || '1'}_${sequence || 'row'}`
 }
 
 function selectSash(row) {
@@ -560,7 +569,7 @@ function normalizeCodeList(rows = []) {
 
 async function hydrateSashDrawingFiles(rows) {
   const mdlCds = [...new Set(rows
-    .filter((row) => row.mdlCd && !buildSashDrawingUrl(row))
+    .filter((row) => row.mdlCd)
     .map((row) => row.mdlCd))]
 
   if (!mdlCds.length) return rows

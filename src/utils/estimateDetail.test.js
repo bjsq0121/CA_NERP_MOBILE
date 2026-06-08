@@ -39,6 +39,25 @@ test('buildSashDrawingUrl uses drawing file fields when available', () => {
   assert.equal(buildSashDrawingUrl({ drwgCd: 'DW-01' }), '')
 })
 
+test('buildSashDrawingUrl prefers display-only drawing fields over saved row image fields', () => {
+  assert.equal(
+    buildSashDrawingUrl({
+      srvFileNm: 'SAVED',
+      fileExtNm: 'jpg',
+      _displaySrvFileNm: 'DISPLAY',
+      _displayFileExtNm: 'png',
+    }),
+    '/data/drwg/sash/DISPLAY.png'
+  )
+  assert.equal(
+    buildSashDrawingUrl({
+      drwgFilePath: '/data/drwg/sash/SAVED.png',
+      _displayDrwgFilePath: '/data/drwg/sash/DISPLAY.svg',
+    }),
+    '/data/drwg/sash/DISPLAY.svg'
+  )
+})
+
 test('buildSashMeta separates quantity and bsmf display values', () => {
   const meta = buildSashMeta({ qty: 3, bsmfOrdUtmNm: '틀짝망', bsmfOrdUtmCd: '104' })
   assert.equal(meta.qtyText, '3')
@@ -94,6 +113,32 @@ test('mergeSashDrawingFiles exposes matched model name only for exact vent drawi
   assert.equal(buildSashModelText(merged), '좌측 VENT 모형')
 })
 
+test('mergeSashDrawingFiles uses exact vent match as display-only drawing even when saved image exists', () => {
+  const [merged] = mergeSashDrawingFiles(
+    [{
+      mdlCd: 'M1',
+      mdlNm: '저장모형',
+      wintydiCd: 'W1',
+      ventLoc: 'L',
+      estiSeq: '1',
+      srvFileNm: 'SAVED',
+      fileExtNm: 'jpg',
+      drwgCd: 'SAVED_CD',
+    }],
+    {
+      M1: [
+        { mdlCd: 'M1', mdlNm: '좌측 VENT 모형', wintydiCd: 'W1', ventLoc: 'L', srvFileNm: 'LEFT', fileExtNm: 'png', drwgCd: 'LEFT_CD' },
+      ],
+    }
+  )
+
+  assert.equal(merged.srvFileNm, 'SAVED')
+  assert.equal(merged.drwgCd, 'SAVED_CD')
+  assert.equal(merged._displaySrvFileNm, 'LEFT')
+  assert.equal(merged._displayDrwgCd, 'LEFT_CD')
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/LEFT.png')
+})
+
 test('mergeSashDrawingFiles keeps saved model name when drawing match falls back by window type', () => {
   const [merged] = mergeSashDrawingFiles(
     [{ mdlCd: 'M1', mdlNm: '저장모형', wintydiCd: 'W1', ventLoc: 'L', estiSeq: '1' }],
@@ -107,4 +152,32 @@ test('mergeSashDrawingFiles keeps saved model name when drawing match falls back
   assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/RIGHT.png')
   assert.equal(merged._displayMdlNm, undefined)
   assert.equal(buildSashModelText(merged), '저장모형')
+})
+
+test('mergeSashDrawingFiles keeps saved drawing when only fallback match exists', () => {
+  const [merged] = mergeSashDrawingFiles(
+    [{ mdlCd: 'M1', mdlNm: '저장모형', wintydiCd: 'W1', ventLoc: 'L', srvFileNm: 'SAVED', fileExtNm: 'jpg' }],
+    {
+      M1: [
+        { mdlCd: 'M1', mdlNm: '우측 VENT 모형', wintydiCd: 'W1', ventLoc: 'R', srvFileNm: 'RIGHT', fileExtNm: 'png' },
+      ],
+    }
+  )
+
+  assert.equal(merged._displaySrvFileNm, undefined)
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/SAVED.jpg')
+})
+
+test('mergeSashDrawingFiles uses fallback drawing only when saved row has no image', () => {
+  const [merged] = mergeSashDrawingFiles(
+    [{ mdlCd: 'M1', mdlNm: '저장모형', wintydiCd: 'W1', ventLoc: 'L' }],
+    {
+      M1: [
+        { mdlCd: 'M1', mdlNm: '우측 VENT 모형', wintydiCd: 'W1', ventLoc: 'R', srvFileNm: 'RIGHT', fileExtNm: 'png' },
+      ],
+    }
+  )
+
+  assert.equal(merged._displaySrvFileNm, undefined)
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/RIGHT.png')
 })
