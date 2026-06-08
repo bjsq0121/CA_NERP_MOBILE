@@ -414,7 +414,7 @@ test('SashNew validates additional production option requirements from web sash 
   assert.match(source, /aluMfHandleList/)
   assert.match(source, /:alu-mf-handle-options="aluMfHandleList"/)
   assert.match(source, /bfOneSideWrapColrNm:\s*r\.bfOneSideWrapColrNm \|\| ''/)
-  assert.match(source, /aluMfHandleType:\s*r\.aluMfHandleType \|\| ''/)
+  assert.match(source, /aluMfHandleType:\s*normalizeSafetyNetHandleValue\(r\.aluMfHandleType\) \|\| r\.aluMfHandleType \|\| ''/)
   assert.match(source, /aluMfHandleTypeNm:\s*r\.aluMfHandleTypeNm \|\| ''/)
   assert.match(source, /aluMfMdlYn:\s*r\.aluMfMdlYn \|\| 'Y'/)
   assert.match(source, /aluMfHndlH:\s*r\.aluMfHndlH \? Number\(r\.aluMfHndlH\) : null/)
@@ -431,6 +431,8 @@ test('SashNew validates additional production option requirements from web sash 
   assert.match(ventSource, /aluMfHandleOptions/)
   assert.match(ventSource, /v-model="form\.aluMfHandleType"/)
   assert.match(ventSource, /v-model\.number="form\.aluMfHndlH"/)
+  assert.match(ventSource, /<label>중간고정<\/label>/)
+  assert.match(ventSource, /<label>높이<\/label>/)
   assert.match(ventSource, /form\.aluMfMdlYn === 'Y' \? 'ON' : 'OFF'/)
 })
 
@@ -608,7 +610,7 @@ test('SashNew shows model drawing preview below main form and refreshes it from 
 
 test('EstimateDetail sash list shows drawing, separated quantity bsmf, and status', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
-  assert.match(detailSource, /class="sash-thumb"/)
+  assert.match(detailSource, /SashDetailPanel/)
   assert.match(detailSource, /buildSashDrawingUrl\(row\)/)
   assert.match(detailSource, /buildSashMeta\(row\)\.qtyText/)
   assert.match(detailSource, /buildSashMeta\(row\)\.bsmfText/)
@@ -622,7 +624,9 @@ test('EstimateDetail separates al-glass rows from editable sash rows', () => {
   assert.match(detailSource, /function isGlassEstimateRow\(row = \{\}\)/)
   assert.match(detailSource, /row\.ctgr2Cd === 'P8'/)
   assert.match(detailSource, /glassRows\.value = rows\.filter\(isGlassEstimateRow\)/)
-  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(rows\.filter\(\(row\) => !isGlassEstimateRow\(row\)\)\)/)
+  assert.match(detailSource, /const sashOnlyRows = rows\.filter\(\(row\) => !isGlassEstimateRow\(row\)\)/)
+  assert.match(detailSource, /const detailRows = await hydrateSashDetailRows\(sashOnlyRows\)/)
+  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(detailRows\)/)
 })
 
 test('EstimateDetail fails closed unless header and rows are editable status 10', () => {
@@ -631,7 +635,9 @@ test('EstimateDetail fails closed unless header and rows are editable status 10'
   assert.match(detailSource, /const headerStatus = computed\(\(\) => resolveEffectiveStatus\(header\.value\?\.stCd, header\.value\?\.igStCd\)\)/)
   assert.match(detailSource, /const canAddItem = computed\(\(\) => isEditableHeaderStatus\(headerStatus\.value\)\)/)
   assert.match(detailSource, /v-if="canAddItem"/)
-  assert.match(detailSource, /const editable = isEditableStatus\(headerStatus\.value\) && isEditableStatus\(cd\)/)
+  assert.match(detailSource, /function isSashEditable\(row\)/)
+  assert.match(detailSource, /return isEditableStatus\(headerStatus\.value\) && isEditableStatus\(cd\)/)
+  assert.match(detailSource, /const editable = isSashEditable\(row\)/)
   assert.match(detailSource, /readonly: editable \? '' : 'Y'/)
   assert.match(detailSource, /stCd: cd === UNKNOWN_STATUS \? '' : cd/)
   assert.doesNotMatch(detailSource, /if \(!sashRows\.value\.length\) return true/)
@@ -640,8 +646,8 @@ test('EstimateDetail fails closed unless header and rows are editable status 10'
 
 test('EstimateDetail shows total summary and category amount summary before item sections', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
-  assert.match(detailSource, /class="card estimate-total-card"/)
-  assert.match(detailSource, /총 합계/)
+  assert.match(detailSource, /class="card estimate-detail-hero"/)
+  assert.match(detailSource, /estimate-hero-status/)
   assert.match(detailSource, /estimateTotals\.total/)
   assert.match(detailSource, /categoryTotals\.sash/)
   assert.match(detailSource, /categoryTotals\.glass/)
@@ -667,23 +673,27 @@ test('EstimateDetail uses a single add-item action sheet instead of exposing eve
 
 test('EstimateDetail keeps sash card primary fields compact and moves options into details', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
-  assert.match(detailSource, /<summary>옵션 상세<\/summary>/)
+  const cardSource = readFileSync(resolve(currentDir, '../components/SashListCard.vue'), 'utf8')
+  const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
+  assert.match(panelSource, /<summary>내부 생산정보<\/summary>/)
   assert.match(detailSource, /buildGlassSummary\(row\)/)
   assert.match(detailSource, /buildProductionSummary\(row\)/)
   assert.match(detailSource, /buildProductionRemarkSummary\(row\)/)
   assert.match(detailSource, /row\.pdBfRemSrc \? `BF \$\{row\.pdBfRemSrc\}` : ''/)
   assert.match(detailSource, /row\.pdSfRemSrc \? `SF \$\{row\.pdSfRemSrc\}` : ''/)
   assert.match(detailSource, /row\.pdMfRemSrc \? `MF \$\{row\.pdMfRemSrc\}` : ''/)
-  assert.match(detailSource, /@click\.stop/)
-  assert.match(detailSource, /사이즈[\s\S]*수량[\s\S]*틀짝망[\s\S]*색상/)
+  assert.match(cardSource, /sizeText/)
+  assert.match(cardSource, /qtyText/)
+  assert.match(cardSource, /bsmfText/)
+  assert.match(cardSource, /colorText/)
 })
 
-test('EstimateDetail shows sash window type order type and customer option chips on main card', () => {
+test('EstimateDetail shows sash window type and customer option chips on compact list cards', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
-  assert.match(detailSource, /창형태[\s\S]*buildWindowTypeText\(row\)/)
-  assert.match(detailSource, /발주구분[\s\S]*buildOrderTypeText\(row\)/)
-  assert.match(detailSource, /class="sash-option-chip-row"/)
-  assert.match(detailSource, /v-for="chip in buildCustomerOptionChips\(row\)"/)
+  const cardSource = readFileSync(resolve(currentDir, '../components/SashListCard.vue'), 'utf8')
+  assert.match(detailSource, /:window-type-text="buildWindowTypeText\(row\)"/)
+  assert.match(cardSource, /class="sash-list-chip-row"/)
+  assert.match(cardSource, /v-for="chip in props\.optionChips"/)
   assert.match(detailSource, /buildCustomerOptionChips\(row\)[\s\S]*VENT/)
   assert.match(detailSource, /buildCustomerOptionChips\(row\)[\s\S]*스크린/)
   assert.match(detailSource, /buildCustomerOptionChips\(row\)[\s\S]*알유리/)
@@ -696,10 +706,11 @@ test('EstimateDetail shows sash window type order type and customer option chips
 
 test('EstimateDetail splits option details into customer size material and internal production sections', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
-  assert.match(detailSource, /고객확인/)
-  assert.match(detailSource, /규격상세/)
-  assert.match(detailSource, /자재\/하드웨어/)
-  assert.match(detailSource, /내부 생산정보/)
+  const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
+  assert.match(panelSource, /고객확인/)
+  assert.match(panelSource, /규격 상세/)
+  assert.match(panelSource, /자재\/하드웨어/)
+  assert.match(panelSource, /내부 생산정보/)
   assert.match(detailSource, /buildCustomerConfirmItems\(row\)/)
   assert.match(detailSource, /buildSizeDetailItems\(row\)/)
   assert.match(detailSource, /buildMaterialHardwareItems\(row\)/)
@@ -734,6 +745,100 @@ test('EstimateDetail marks generated al-glass cards as readonly automatic rows',
   assert.match(detailSource, /class="sash-card sash-card-readonly"/)
   assert.match(detailSource, /샤시 저장 시 생성된 알유리 견적입니다/)
   assert.match(detailSource, /샤시 수정 화면으로 이동하지 않습니다/)
+})
+
+test('EstimateDetail selects sash cards instead of opening edit route directly', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /import SashListCard from '\.\.\/components\/SashListCard\.vue'/)
+  assert.match(detailSource, /import SashDetailPanel from '\.\.\/components\/SashDetailPanel\.vue'/)
+  assert.match(detailSource, /const selectedSashKey = ref\(''\)/)
+  assert.match(detailSource, /function selectSash\(row\)/)
+  assert.match(detailSource, /@select="selectSash\(row\)"/)
+  assert.match(detailSource, /@edit="editSash\(selectedSashRow\)"/)
+  assert.match(detailSource, /async function editSash\(row\)/)
+  assert.doesNotMatch(detailSource, /@click="openSash\(row\)"/)
+})
+
+test('EstimateDetail remounts selected sash detail panel and image by selected row drawing URL', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
+  assert.match(detailSource, /<SashDetailPanel[\s\S]*:key="sashRowKey\(selectedSashRow\)"/)
+  assert.match(panelSource, /<img[\s\S]*:key="drawingUrl"/)
+})
+
+test('EstimateDetail sends every right-panel section from selectedSashRow', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const expectedBindings = [
+    /:drawing-url="sashDrawingUrl\(selectedSashRow\)"/,
+    /:supply-text="fmtPrice\(rowSupply\(selectedSashRow\)\)"/,
+    /:vat-text="fmtPrice\(rowVat\(selectedSashRow\)\)"/,
+    /:total-text="fmtPrice\(rowTotal\(selectedSashRow\)\)"/,
+    /:option-chips="buildCustomerOptionChips\(selectedSashRow\)"/,
+    /:customer-items="buildCustomerConfirmItems\(selectedSashRow\)"/,
+    /:size-items="buildSizeDetailItems\(selectedSashRow\)"/,
+    /:material-items="buildMaterialHardwareItems\(selectedSashRow\)"/,
+    /:internal-items="buildInternalProductionItems\(selectedSashRow\)"/,
+    /@edit="editSash\(selectedSashRow\)"/,
+  ]
+  for (const binding of expectedBindings) assert.match(detailSource, binding)
+})
+
+test('EstimateDetail hydrates list rows with sash detail before drawing and panel mapping', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /selectSashDetail/)
+  assert.match(detailSource, /mergeSashDetailRow/)
+  assert.match(detailSource, /async function hydrateSashDetailRows\(rows\)/)
+  assert.match(detailSource, /await selectSashDetail\(\{[\s\S]*itgEstiNo,[\s\S]*estiNo: row\.estiNo \|\| row\.windEstiNo \|\| wEstiNo\.value,[\s\S]*estiNos: row\.estiNos \|\| '1',[\s\S]*estiSeq: row\.estiSeq,[\s\S]*\}\)/)
+  assert.match(detailSource, /return mergeSashDetailRow\(row, detail\)/)
+  assert.match(detailSource, /const detailRows = await hydrateSashDetailRows\(sashOnlyRows\)/)
+  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(detailRows\)/)
+})
+
+test('EstimateDetail hydrates model drawings even when saved row already has an image', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /filter\(\(row\) => row\.mdlCd\)/)
+  assert.doesNotMatch(detailSource, /row\.mdlCd && !buildSashDrawingUrl\(row\)/)
+})
+
+test('EstimateDetail uses mobile detail panel and tablet split view classes', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')
+  assert.match(detailSource, /class="sash-detail-layout"/)
+  assert.match(detailSource, /class="card sash-list-pane"/)
+  assert.match(detailSource, /class="sash-detail-pane"/)
+  assert.match(detailSource, /<SashDetailPanel/)
+  assert.match(stylesSource, /@media \(min-width:\s*900px\)[\s\S]*\.sash-detail-layout/)
+  assert.match(stylesSource, /grid-template-columns:\s*minmax\(320px,\s*420px\)\s*minmax\(0,\s*1fr\)/)
+})
+
+test('SashListCard keeps list rows compact and excludes internal production details', () => {
+  const cardSource = readFileSync(resolve(currentDir, '../components/SashListCard.vue'), 'utf8')
+  assert.match(cardSource, /defineEmits\(\['select'\]\)/)
+  assert.match(cardSource, /@click="\$emit\('select'\)"/)
+  assert.match(cardSource, /props\.optionChips/)
+  assert.match(cardSource, /totalText/)
+  assert.match(cardSource, /모형|modelText/)
+  assert.match(cardSource, /창형태|windowTypeText/)
+  assert.match(cardSource, /W x H|sizeText/)
+  assert.match(cardSource, /수량|qtyText/)
+  assert.match(cardSource, /색상|colorText/)
+  assert.match(cardSource, /틀짝망|bsmfText/)
+  assert.doesNotMatch(cardSource, /pdBfRemSrc|pdSfRemSrc|pdMfRemSrc/)
+  assert.doesNotMatch(cardSource, /직송|생산비고|workDetail|erp2Save|innosysYn/)
+})
+
+test('SashDetailPanel owns edit action and keeps internal production info collapsed', () => {
+  const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
+  assert.match(panelSource, /defineEmits\(\['edit', 'image-error'\]\)/)
+  assert.match(panelSource, /@click="\$emit\('edit'\)"/)
+  assert.match(panelSource, /v-if="editable"/)
+  assert.match(panelSource, /도면/)
+  assert.match(panelSource, /공급가/)
+  assert.match(panelSource, /고객확인/)
+  assert.match(panelSource, /규격 상세/)
+  assert.match(panelSource, /자재\/하드웨어/)
+  assert.match(panelSource, /<details v-if="internalItems\.length" class="sash-panel-section sash-panel-internal"/)
+  assert.match(panelSource, /내부 생산정보/)
 })
 
 test('SashNew declares and restores MEDIUM parity fields instead of relying on dynamic v-model properties', () => {
@@ -771,13 +876,28 @@ test('SashOptionGlass labels glasAttachYn with the web SashForm screen text', ()
 test('SashNew uses drawing API state to prevent stale drwgCd after VENT changes', () => {
   const ventSource = readFileSync(resolve(currentDir, '../components/SashOptionVent.vue'), 'utf8')
   assert.match(source, /searchDrwgFileAjax/)
+  assert.match(source, /normalizeDrwgFileAjaxResult/)
   assert.match(source, /resolveVentDrawingState/)
   assert.match(source, /async function updateDrawingFileByVent/)
   assert.match(source, /form\.value\.drwgCd = ''/)
-  assert.match(source, /apiRow = data\?\.resultData \|\| data\?\.resultList\?\.\[0\] \|\| \{\}/)
+  assert.match(source, /apiRow = normalizeDrwgFileAjaxResult\(data\)/)
   assert.match(source, /form\.value\.drwgCd = nextState\.drwgCd/)
+  assert.match(source, /async function onVentChange\(val\)[\s\S]*await updateDrawingFileByVent\(\{ keepDisplayFallback: true \}\)/)
+  assert.doesNotMatch(source, /function applyVentDefault\(\)[\s\S]*updateDrawingFileByVent\(\{ keepDisplayFallback: true \}\)[\s\S]*function hydrateModelDrawing/)
   assert.match(source, /@vent-change="onVentChange"/)
   assert.match(ventSource, /@change="\$emit\('ventChange', form\.ventLoc\)"/)
+})
+
+test('SashNew filters safety-net handle options to web-visible general and none values', () => {
+  const ventSource = readFileSync(resolve(currentDir, '../components/SashOptionVent.vue'), 'utf8')
+  assert.match(source, /searchCodeList\('387'\)/)
+  assert.match(source, /normalizeSafetyNetHandleOptions\(normCd\(aluMfHandleRes\.data\?\.resultList\)\)/)
+  assert.match(source, /normalizeSafetyNetHandleValue\(r\.aluMfHandleType\)/)
+  assert.match(source, /normalizeSafetyNetHandleValue\(handleType\)/)
+  assert.match(source, /function safetyNetHandleValue\(option\)[\s\S]*normalizeSafetyNetHandleValue/)
+  assert.match(ventSource, /if \(form\.value\.aluMfHandleType === '4'\)/)
+  assert.match(ventSource, /form\.value\.aluMfHndlH = null/)
+  assert.match(ventSource, /form\.value\.aluMfMdlYn = 'Y'/)
 })
 
 test('SashNew fails closed for readonly or unknown estimate status', () => {

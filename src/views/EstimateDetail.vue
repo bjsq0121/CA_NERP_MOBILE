@@ -18,32 +18,27 @@
     <div v-if="loading" class="empty">불러오는 중...</div>
     <div v-else-if="!header" class="empty">견적을 찾을 수 없습니다.</div>
     <template v-else>
-      <!-- 헤더 정보 -->
-      <div class="card">
-        <div class="detail-label">통합견적번호</div>
-        <div class="detail-value">{{ header.itgEstiNo }}</div>
-        <div class="detail-title mb-sm">{{ header.itgEstiNm }}</div>
-        <div class="meta">
-          <span class="badge">{{ header.bzpcNm || header.bzpc }}</span>
-          <span>{{ header.dplcNm }}</span>
-          <span v-if="header.jobsNm">{{ header.jobsNm }}</span>
+      <section class="card estimate-detail-hero">
+        <div class="estimate-hero-main">
+          <div>
+            <div class="detail-label">통합견적번호</div>
+            <div class="detail-value">{{ header.itgEstiNo }}</div>
+            <div class="detail-title">{{ header.itgEstiNm || header.dplcNm || '견적 상세' }}</div>
+          </div>
+          <div class="estimate-hero-status">
+            <span class="badge">{{ statusLabel(header) }}</span>
+            <strong>{{ fmtPrice(estimateTotals.total) }}원</strong>
+          </div>
         </div>
-        <div class="meta mt-xs">
+
+        <div class="estimate-hero-meta">
+          <span>{{ header.dplcNm || '-' }}</span>
+          <span>{{ header.bzpcNm || header.bzpc || '-' }}</span>
+          <span v-if="header.jobsNm">{{ header.jobsNm }}</span>
           <span>등록 {{ formatDt(header.inputDtm) }}</span>
           <span v-if="header.estiVldDt">유효 {{ formatDate(header.estiVldDt) }}</span>
         </div>
-        <div v-if="header.dplcReqRemSrc" class="text-xs mt-sm" style="white-space:pre-wrap">{{ header.dplcReqRemSrc }}</div>
-      </div>
 
-      <!-- 총액 요약 -->
-      <div class="card estimate-total-card">
-        <div class="summary-head">
-          <div>
-            <div class="detail-label">총 합계</div>
-            <div class="summary-total">{{ fmtPrice(estimateTotals.total) }}원</div>
-          </div>
-          <span class="badge">{{ sashRows.length + glassRows.length }}개 품목</span>
-        </div>
         <div class="summary-amounts">
           <div>
             <span>공급가</span>
@@ -57,144 +52,71 @@
         <div class="category-summary">
           <span>샤시 {{ fmtPrice(categoryTotals.sash) }}원</span>
           <span>알유리 {{ fmtPrice(categoryTotals.glass) }}원</span>
+          <span>{{ sashRows.length + glassRows.length }}개 품목</span>
         </div>
-      </div>
-
-      <!-- 견적 추가 버튼: 견적(10) 상태일 때만 -->
-      <div v-if="canAddItem" class="card">
-        <button class="btn accent" :disabled="issuing" @click="openItemSheet">
-          {{ issuing ? '준비 중...' : '+ 품목 추가' }}
-        </button>
+        <div class="estimate-action-row">
+          <button v-if="canAddItem" class="btn accent" :disabled="issuing" @click="openItemSheet">
+            {{ issuing ? '준비 중...' : '+ 품목 추가' }}
+          </button>
+          <button class="btn secondary" @click="router.push(`/estimates/${itgEstiNo}/sash-summary`)">샤시 요약</button>
+        </div>
         <div v-if="issueError" class="error">{{ issueError }}</div>
-      </div>
+        <div v-if="header.dplcReqRemSrc" class="estimate-hero-note">{{ header.dplcReqRemSrc }}</div>
+      </section>
 
       <!-- 샤시 견적 목록 -->
-      <div class="card">
-        <div class="section-title">
-          샤시 견적 {{ sashRows.length ? `(${sashRows.length})` : '' }}
+      <section class="sash-detail-layout">
+        <div class="card sash-list-pane">
+          <div class="section-title">
+            샤시 견적 {{ sashRows.length ? `(${sashRows.length})` : '' }}
+          </div>
+          <div v-if="!sashRows.length" class="empty" style="padding:20px 0">등록된 샤시 견적이 없습니다.</div>
+          <SashListCard
+            v-for="row in sashRows"
+            :key="sashRowKey(row)"
+            :selected="sashRowKey(row) === sashRowKey(selectedSashRow)"
+            :model-text="buildSashModelText(row)"
+            :window-type-text="buildWindowTypeText(row)"
+            :sequence-text="row.estiSeq"
+            :status-text="statusLabel(row)"
+            :status-class="statusBadgeClass(row)"
+            :size-text="buildSize(row)"
+            :qty-text="buildSashMeta(row).qtyText"
+            :color-text="buildColor(row)"
+            :bsmf-text="buildSashMeta(row).bsmfText"
+            :option-chips="buildListOptionChips(row)"
+            :total-text="fmtPrice(rowTotal(row))"
+            @select="selectSash(row)"
+          />
         </div>
-        <div v-if="!sashRows.length" class="empty" style="padding:20px 0">등록된 샤시 견적이 없습니다.</div>
-        <div
-          v-for="row in sashRows"
-          :key="row.estiSeq"
-          class="sash-card"
-          @click="openSash(row)"
-        >
-          <div class="sash-card-header">
-            <span class="sash-model">{{ row.mdlNm || row.mdlCd }}</span>
-            <span class="sash-seq">#{{ row.estiSeq }}</span>
-            <span :class="statusBadgeClass(row)">{{ statusLabel(row) }}</span>
+        <div class="sash-detail-pane">
+          <SashDetailPanel
+            v-if="selectedSashRow"
+            :key="sashRowKey(selectedSashRow)"
+            :model-text="buildSashModelText(selectedSashRow)"
+            :window-type-text="buildWindowTypeText(selectedSashRow)"
+            :sequence-text="selectedSashRow.estiSeq"
+            :status-text="statusLabel(selectedSashRow)"
+            :status-class="statusBadgeClass(selectedSashRow)"
+            :editable="isSashEditable(selectedSashRow)"
+            :drawing-url="sashDrawingUrl(selectedSashRow)"
+            :fallback-text="buildWindowTypeText(selectedSashRow)"
+            :supply-text="fmtPrice(rowSupply(selectedSashRow))"
+            :vat-text="fmtPrice(rowVat(selectedSashRow))"
+            :total-text="fmtPrice(rowTotal(selectedSashRow))"
+            :option-chips="buildCustomerOptionChips(selectedSashRow)"
+            :customer-items="buildCustomerConfirmItems(selectedSashRow)"
+            :size-items="buildSizeDetailItems(selectedSashRow)"
+            :material-items="buildMaterialHardwareItems(selectedSashRow)"
+            :internal-items="buildInternalProductionItems(selectedSashRow)"
+            @edit="editSash(selectedSashRow)"
+            @image-error="handleSashImageError(selectedSashRow)"
+          />
+          <div v-else class="card sash-detail-empty">
+            샤시를 선택하면 상세 정보가 표시됩니다.
           </div>
-
-          <div class="sash-card-main">
-            <div class="sash-card-content">
-              <div class="sash-specs">
-                <div class="sash-spec">
-                  <span class="sash-spec-label">사이즈</span>
-                  <span class="sash-spec-value">{{ buildSize(row) }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">수량</span>
-                  <span class="sash-spec-value">{{ buildSashMeta(row).qtyText }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">틀짝망</span>
-                  <span class="sash-spec-value">{{ buildSashMeta(row).bsmfText }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">색상</span>
-                  <span class="sash-spec-value">{{ buildColor(row) }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">창형태</span>
-                  <span class="sash-spec-value">{{ buildWindowTypeText(row) }}</span>
-                </div>
-                <div class="sash-spec">
-                  <span class="sash-spec-label">발주구분</span>
-                  <span class="sash-spec-value">{{ buildOrderTypeText(row) }}</span>
-                </div>
-              </div>
-              <div class="sash-option-chip-row" v-if="buildCustomerOptionChips(row).length">
-                <span
-                  v-for="chip in buildCustomerOptionChips(row)"
-                  :key="chip"
-                  class="sash-option-chip"
-                >
-                  {{ chip }}
-                </span>
-              </div>
-            </div>
-
-            <div class="sash-thumb">
-              <img
-                v-if="sashDrawingUrl(row)"
-                :src="sashDrawingUrl(row)"
-                alt=""
-                loading="lazy"
-                @error="handleSashImageError(row)"
-              />
-              <div v-else class="sash-thumb-fallback">
-                <span>{{ row.wintydiNm || row.wintydiCd || '샤시' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3행: 가격 -->
-          <div class="sash-price-row">
-            <div class="sash-price">
-              <span class="sash-price-label">공급가</span>
-              <span class="sash-price-value">{{ fmtPrice(row.totCstAmtAddGlas || row.totSaleAmt) }}</span>
-            </div>
-            <div class="sash-price">
-              <span class="sash-price-label">VAT</span>
-              <span class="sash-price-value">{{ fmtPrice(row.vatAmt || row.totVatAmt) }}</span>
-            </div>
-            <div class="sash-price sash-price-total">
-              <span class="sash-price-label">합계</span>
-              <span class="sash-price-value">{{ fmtPrice(row.vatTotCstAmt || row.totAmt) }}</span>
-            </div>
-          </div>
-          <details class="sash-option-details" @click.stop>
-            <summary>옵션 상세</summary>
-            <div class="sash-detail-section">
-              <div class="sash-detail-section-title">고객확인</div>
-              <div class="sash-option-grid">
-                <div v-for="item in buildCustomerConfirmItems(row)" :key="`customer_${item.label}`">
-                  <span>{{ item.label }}</span>
-                  <strong>{{ item.value }}</strong>
-                </div>
-              </div>
-            </div>
-            <div v-if="buildSizeDetailItems(row).length" class="sash-detail-section">
-              <div class="sash-detail-section-title">규격상세</div>
-              <div class="sash-option-grid">
-                <div v-for="item in buildSizeDetailItems(row)" :key="`size_${item.label}`">
-                  <span>{{ item.label }}</span>
-                  <strong>{{ item.value }}</strong>
-                </div>
-              </div>
-            </div>
-            <div v-if="buildMaterialHardwareItems(row).length" class="sash-detail-section">
-              <div class="sash-detail-section-title">자재/하드웨어</div>
-              <div class="sash-option-grid">
-                <div v-for="item in buildMaterialHardwareItems(row)" :key="`material_${item.label}`">
-                  <span>{{ item.label }}</span>
-                  <strong>{{ item.value }}</strong>
-                </div>
-              </div>
-            </div>
-            <div v-if="buildInternalProductionItems(row).length" class="sash-detail-section">
-              <div class="sash-detail-section-title">내부 생산정보</div>
-              <div class="sash-option-grid">
-                <div v-for="item in buildInternalProductionItems(row)" :key="`production_${item.label}`">
-                  <span>{{ item.label }}</span>
-                  <strong>{{ item.value }}</strong>
-                </div>
-              </div>
-            </div>
-          </details>
         </div>
-      </div>
+      </section>
 
       <!-- 샤시 저장 시 생성된 알유리 견적 목록 -->
       <div class="card">
@@ -294,11 +216,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { selectEstiHeader, searchCodeList, searchModelList, searchSashList, issueEstiNo } from '../api/estimate'
+import { selectEstiHeader, searchCodeList, searchModelList, searchSashList, selectSashDetail, issueEstiNo } from '../api/estimate'
+import SashDetailPanel from '../components/SashDetailPanel.vue'
+import SashListCard from '../components/SashListCard.vue'
 import {
   buildSashDrawingUrl,
   buildSashMeta,
+  buildSashModelText,
   buildSashScreenText,
+  mergeSashDetailRow,
   mergeSashDrawingFiles,
   normalizeSashRows,
   resolveWindEstiNo,
@@ -319,6 +245,7 @@ const issuing = ref(false)
 const openingSash = ref(false)
 const showItemSheet = ref(false)
 const issueError = ref('')
+const selectedSashKey = ref('')
 
 const headerStatus = computed(() => resolveEffectiveStatus(header.value?.stCd, header.value?.igStCd))
 
@@ -330,6 +257,9 @@ const categoryTotals = computed(() => ({
   sash: sumRows(sashRows.value).total,
   glass: sumRows(glassRows.value).total,
 }))
+const selectedSashRow = computed(() =>
+  sashRows.value.find((row) => sashRowKey(row) === selectedSashKey.value) || sashRows.value[0] || null
+)
 
 // 상태 코드 → 표시 이름
 function statusLabel(row) {
@@ -377,6 +307,28 @@ function rowVat(row) {
 function rowTotal(row) {
   const explicit = amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt)
   return explicit || rowSupply(row) + rowVat(row)
+}
+
+function sashRowKey(row = {}) {
+  if (!row) return ''
+  const sequence = row.estiSeq || [
+    row.mdlCd,
+    row.wintydiCd,
+    row.ventLoc,
+    row.wSize || row.WSize || row.w0Size,
+    row.hSize || row.HSize || row.h0Size,
+    row.qty,
+  ].filter((value) => value != null && value !== '').join('_')
+  return `${row.estiNo || row.windEstiNo || wEstiNo.value || 'sash'}_${row.estiNos || '1'}_${sequence || 'row'}`
+}
+
+function selectSash(row) {
+  selectedSashKey.value = sashRowKey(row)
+}
+
+function isSashEditable(row) {
+  const cd = resolveEffectiveStatus(row?.stCd, row?.igStCd, headerStatus.value)
+  return isEditableStatus(headerStatus.value) && isEditableStatus(cd)
 }
 
 function sumRows(rows) {
@@ -465,6 +417,17 @@ function buildCustomerOptionChips(row) {
   if (isYnValue(row.windCloserMatYn) || isYnValue(row.insdWindClsYn) || isYnValue(row.ousdWindClsYn)) chips.push('윈드클로저')
   if (isYnValue(row.sfOutGlasYn)) chips.push('외주유리')
   if (isYnValue(row.mfHandleYn) || String(row.mfHandle || '') === '2') chips.push('방충망핸들')
+  return chips
+}
+
+function buildListOptionChips(row) {
+  const chips = []
+  const vent = buildVentText(row)
+  const screen = buildSashScreenText(row, screenList.value)
+  if (vent && vent !== '-') chips.push(`VENT ${vent}`)
+  if (screen && screen !== '-') chips.push(screen)
+  if (isYnValue(row.glasStdalYn)) chips.push('알유리')
+  if (isYnValue(row.aluMfYn)) chips.push('안전망')
   return chips
 }
 
@@ -605,9 +568,26 @@ function normalizeCodeList(rows = []) {
   return rows.map((row) => ({ ...row, commCdId: row.commCdId || row.commCdVal }))
 }
 
+async function hydrateSashDetailRows(rows) {
+  return Promise.all(rows.map(async (row) => {
+    try {
+      const { data } = await selectSashDetail({
+        itgEstiNo,
+        estiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+        estiNos: row.estiNos || '1',
+        estiSeq: row.estiSeq,
+      })
+      const detail = data?.resultData || {}
+      return mergeSashDetailRow(row, detail)
+    } catch (_) {
+      return row
+    }
+  }))
+}
+
 async function hydrateSashDrawingFiles(rows) {
   const mdlCds = [...new Set(rows
-    .filter((row) => row.mdlCd && !buildSashDrawingUrl(row))
+    .filter((row) => row.mdlCd)
     .map((row) => row.mdlCd))]
 
   if (!mdlCds.length) return rows
@@ -645,7 +625,10 @@ onMounted(async () => {
         screenList.value = normalizeCodeList(screenData?.resultList || [])
         const rows = normalizeSashRows(sashData)
         glassRows.value = rows.filter(isGlassEstimateRow)
-        sashRows.value = await hydrateSashDrawingFiles(rows.filter((row) => !isGlassEstimateRow(row)))
+        const sashOnlyRows = rows.filter((row) => !isGlassEstimateRow(row))
+        const detailRows = await hydrateSashDetailRows(sashOnlyRows)
+        sashRows.value = await hydrateSashDrawingFiles(detailRows)
+        if (!selectedSashKey.value && sashRows.value.length) selectedSashKey.value = sashRowKey(sashRows.value[0])
       } catch (e) {
         sashRows.value = []
         glassRows.value = []
@@ -656,10 +639,11 @@ onMounted(async () => {
   }
 })
 
-async function openSash(row) {
+async function editSash(row) {
+  if (!row) return
   openingSash.value = true
   const cd = resolveEffectiveStatus(row.stCd, row.igStCd, headerStatus.value)
-  const editable = isEditableStatus(headerStatus.value) && isEditableStatus(cd)
+  const editable = isSashEditable(row)
   try {
     sessionStorage.setItem('mobile_sash_edit_row', JSON.stringify(row))
   } catch (_) {}

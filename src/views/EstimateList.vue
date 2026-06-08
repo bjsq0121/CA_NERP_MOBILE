@@ -1,7 +1,13 @@
 <template>
-  <div>
-    <h2 class="page-title">견적 목록</h2>
-    <div class="card">
+  <div class="estimate-list-page">
+    <div class="page-title-row estimate-list-title-row">
+      <div>
+        <h2 class="page-title">견적 목록</h2>
+        <p class="page-subtitle">거래처 샤시 공급견적을 확인합니다</p>
+      </div>
+    </div>
+
+    <div class="card estimate-filter-card">
       <BzpcSelector v-model="selectedBzpc" />
       <div class="row-flex">
         <div class="field">
@@ -23,24 +29,45 @@
       <div v-if="error" class="error">{{ error }}</div>
     </div>
 
+    <div class="estimate-list-result-head" v-if="rows.length">
+      <span>조회 결과</span>
+      <strong>{{ rows.length }}건</strong>
+    </div>
+
     <div v-if="!loading && !rows.length" class="empty">조회된 견적이 없습니다.</div>
-    <div
-      v-for="row in rows"
-      :key="row.itgEstiNo"
-      class="list-row"
-      @click="goDetail(row)"
-    >
-      <div class="title">{{ row.itgEstiNm || '(제목없음)' }}</div>
-      <div class="meta">
-        <span class="badge">{{ row.itgEstiNo }}</span>
-        <span>{{ row.dplcNm }}</span>
-        <span v-if="row.jobsNm">{{ row.jobsNm }}</span>
-      </div>
-      <div class="meta">
-        <span>등록 {{ formatDt(row.inputDtm) }}</span>
-        <span v-if="row.estiVldDt">유효 {{ formatDate(row.estiVldDt) }}</span>
-        <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
-      </div>
+    <div class="estimate-card-list">
+      <button
+        v-for="row in rows"
+        :key="row.itgEstiNo"
+        type="button"
+        class="estimate-card"
+        @click="goDetail(row)"
+      >
+        <div class="estimate-card-head">
+          <div class="estimate-card-title">
+            <strong>{{ row.itgEstiNm || '(제목없음)' }}</strong>
+            <span>{{ row.dplcNm || '거래처 미지정' }}</span>
+          </div>
+          <span class="badge">{{ row.stNm || row.igStNm || '상태' }}</span>
+        </div>
+
+        <div class="estimate-card-meta">
+          <span>{{ row.itgEstiNo }}</span>
+          <span v-if="row.jobsNm">{{ row.jobsNm }}</span>
+          <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
+        </div>
+
+        <div class="estimate-card-foot">
+          <div class="estimate-card-dates">
+            <span>등록 {{ formatDt(row.inputDtm) }}</span>
+            <span v-if="row.estiVldDt">유효 {{ formatDate(row.estiVldDt) }}</span>
+          </div>
+          <div class="estimate-card-amount">
+            <span>총액</span>
+            <strong>{{ formatEstimateAmount(row) }}</strong>
+          </div>
+        </div>
+      </button>
     </div>
   </div>
 </template>
@@ -80,6 +107,16 @@ function formatDate(s) {
   return String(s)
 }
 function formatDt(s) { return s ? String(s).slice(0, 10) : '' }
+function amountNumber(...values) {
+  for (const value of values) {
+    if (value !== '' && value != null) return Number(String(value).replace(/,/g, '')) || 0
+  }
+  return 0
+}
+function formatEstimateAmount(row = {}) {
+  const amount = amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt)
+  return amount ? `${amount.toLocaleString()}원` : '-'
+}
 
 onMounted(() => {
   if (!auth.isAdmin && auth.bzpc) {
