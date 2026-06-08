@@ -5,6 +5,7 @@ import {
   buildSashMeta,
   buildSashModelText,
   buildSashScreenText,
+  mergeSashDetailRow,
   mergeSashDrawingFiles,
   normalizeSashRows,
   resolveWindEstiNo,
@@ -95,6 +96,89 @@ test('mergeSashDrawingFiles fills missing image fields from model drawings', () 
   assert.equal(buildSashDrawingUrl(merged[0]), '/data/drwg/sash/MATCH.png')
   assert.equal(buildSashDrawingUrl(merged[1]), '/data/drwg/sash/SAME_WINTYDI.png')
   assert.equal(buildSashDrawingUrl(merged[2]), '/data/drwg/sash/KEEP.jpg')
+})
+
+test('mergeSashDrawingFiles does not exact-match drawing without raw window and vent codes', () => {
+  const [merged] = mergeSashDrawingFiles(
+    [{
+      mdlCd: 'M1',
+      mdlNm: '목록모형',
+      wintydiNm: '단창',
+      ventLocNm: '좌',
+      srvFileNm: 'SAVED',
+      fileExtNm: 'jpg',
+    }],
+    {
+      M1: [
+        { mdlCd: 'M1', wintydiCd: 'W1', ventLoc: 'L', srvFileNm: 'LEFT', fileExtNm: 'png' },
+      ],
+    }
+  )
+
+  assert.equal(merged._displaySrvFileNm, undefined)
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/SAVED.jpg')
+})
+
+test('mergeSashDetailRow preserves list summary values while adding detail raw fields', () => {
+  const merged = mergeSashDetailRow(
+    {
+      mdlNm: '목록모형',
+      wintydiNm: '목록창형태',
+      ventLocNm: '목록VENT',
+      vatTotCstAmt: 1000,
+      screenTypeNm: '목록스크린',
+    },
+    {
+      mdlNm: '상세모형',
+      wintydiNm: '상세창형태',
+      ventLocNm: '상세VENT',
+      vatTotCstAmt: 2000,
+      wintydiCd: 'W1',
+      ventLoc: 'L',
+      screenType: '10',
+      glasStdalYn: 'Y',
+      aluMfYn: '',
+    }
+  )
+
+  assert.equal(merged.mdlNm, '목록모형')
+  assert.equal(merged.wintydiNm, '목록창형태')
+  assert.equal(merged.ventLocNm, '목록VENT')
+  assert.equal(merged.vatTotCstAmt, 1000)
+  assert.equal(merged.screenTypeNm, '목록스크린')
+  assert.equal(merged.wintydiCd, 'W1')
+  assert.equal(merged.ventLoc, 'L')
+  assert.equal(merged.screenType, '10')
+  assert.equal(merged.glasStdalYn, 'Y')
+  assert.equal(merged.aluMfYn, undefined)
+})
+
+test('mergeSashDetailRow does not overwrite list values with blank detail values', () => {
+  const merged = mergeSashDetailRow(
+    { wintydiCd: 'LIST_W', ventLoc: 'LIST_V', screenType: 'LIST_SCREEN' },
+    { wintydiCd: '', ventLoc: null, screenType: undefined }
+  )
+
+  assert.equal(merged.wintydiCd, 'LIST_W')
+  assert.equal(merged.ventLoc, 'LIST_V')
+  assert.equal(merged.screenType, 'LIST_SCREEN')
+})
+
+test('detail raw codes enable exact vent drawing match and normalize string comparison', () => {
+  const detailRow = mergeSashDetailRow(
+    { mdlCd: 'M1', mdlNm: '목록모형', srvFileNm: 'SAVED', fileExtNm: 'jpg' },
+    { wintydiCd: ' W1 ', ventLoc: 2, drwgCd: 'DETAIL_DWG' }
+  )
+
+  const [merged] = mergeSashDrawingFiles([detailRow], {
+    M1: [
+      { mdlCd: 'M1', mdlNm: '2번 VENT 모형', wintydiCd: 'W1', ventLoc: '2', srvFileNm: 'VENT2', fileExtNm: 'png', drwgCd: 'VENT2_DWG' },
+    ],
+  })
+
+  assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/VENT2.png')
+  assert.equal(merged._displayMdlNm, '2번 VENT 모형')
+  assert.equal(merged._displayDrwgCd, 'VENT2_DWG')
 })
 
 test('mergeSashDrawingFiles exposes matched model name only for exact vent drawing match', () => {

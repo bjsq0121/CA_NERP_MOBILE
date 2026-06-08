@@ -1,5 +1,127 @@
 const firstValue = (...values) => values.find((value) => value != null && value !== '') || ''
 
+function codeText(value) {
+  return String(value ?? '').trim()
+}
+
+function sameCode(leftValue, rightValue) {
+  const left = codeText(leftValue)
+  const right = codeText(rightValue)
+  return left !== '' && right !== '' && left === right
+}
+
+const detailRawFieldKeys = [
+  'wintydiCd',
+  'ventLoc',
+  'drwgCd',
+  'bftydiCd',
+  'sizCd',
+  'crtnColrCd',
+  'insdColrCd',
+  'ousdColrCd',
+  'bsmfOrdUtmCd',
+  'sashOrdTypCd',
+  'screenType',
+  'glasStdalYn',
+  'glasAttachYn',
+  'aluMfYn',
+  'aluMdlYn',
+  'aluMfHandleType',
+  'aluMfHandleTypeNm',
+  'aluMfMdlYn',
+  'aluMfHndlH',
+  'slcnFnshYn',
+  'bfSlcnFnshYn',
+  'windCloserMatYn',
+  'insdWindClsYn',
+  'ousdWindClsYn',
+  'sfOutGlasYn',
+  'mfHandleYn',
+  'mfHandle',
+  'insdSf',
+  'ousdSf',
+  'insdBf',
+  'ousdBf',
+  'mtrlCds1',
+  'mtrlCds2',
+  'mtrlCds3',
+  'mtrlCds4',
+  'insdSfNm',
+  'ousdSfNm',
+  'insdBfNm',
+  'ousdBfNm',
+  'insdSfMtrlNm',
+  'ousdSfMtrlNm',
+  'insdBfMtrlNm',
+  'ousdBfMtrlNm',
+  'insdSfGlasMtrlNm',
+  'ousdSfGlasMtrlNm',
+  'insdBfGlasMtrlNm',
+  'ousdBfGlasMtrlNm',
+  'mtrlCds1Nm',
+  'mtrlCds2Nm',
+  'mtrlCds3Nm',
+  'mtrlCds4Nm',
+  'hdlInsd',
+  'hdlOusd',
+  'insdHandleType',
+  'ousdHandleType',
+  'insdHandleTypeNm',
+  'ousdHandleTypeNm',
+  'insdHndlH',
+  'ousdHndlH',
+  'insd2FHndlH',
+  'ousd2FHndlH',
+  'insdBrcktH',
+  'ousdBrcktH',
+  'insd2FBrcktH',
+  'ousd2FBrcktH',
+  'bfArmatureType',
+  'sfArmatureType',
+  'mfArmatureType',
+  'bfMillingType',
+  'drnHoleYn',
+  'ventHoleYn',
+  'sfInsdVentHoleYn',
+  'sfOusdVentHoleYn',
+  'remSrc',
+  'pdBfRemSrc',
+  'pdSfRemSrc',
+  'pdMfRemSrc',
+  'bfDirectShip',
+  'sfDirectShip',
+  'mfDirectShip',
+  'bfRackShip',
+  'sfRackShip',
+  'mfRackShip',
+  'bfShipAddr',
+  'sfShipAddr',
+  'mfShipAddr',
+  'wSize',
+  'hSize',
+  'WSize',
+  'HSize',
+  'w0Size',
+  'h0Size',
+  'csSize',
+  'CSSize',
+  'cs',
+]
+
+for (let index = 1; index <= 5; index += 1) {
+  detailRawFieldKeys.push(
+    `w${index}Size`,
+    `W${index}Size`,
+    `w${index}`,
+    `h${index}Size`,
+    `H${index}Size`,
+    `h${index}`,
+    `cs${index}Size`,
+    `CS${index}Size`,
+    `cs${index}`
+  )
+}
+
 export function resolveWindEstiNo(headerResponse) {
   const header = headerResponse?.resultData || {}
   return firstValue(
@@ -24,6 +146,18 @@ export function normalizeSashRows(response) {
   return Array.from(seen.values())
 }
 
+export function mergeSashDetailRow(listRow = {}, detailRow = {}) {
+  const detail = Object.fromEntries(
+    Object.entries(detailRow || {}).filter(([, value]) => value != null && value !== '')
+  )
+  const merged = { ...detail, ...listRow }
+  for (const key of detailRawFieldKeys) {
+    const value = detailRow?.[key]
+    if (value != null && value !== '') merged[key] = value
+  }
+  return merged
+}
+
 export function buildSashDrawingUrl(row = {}) {
   if (row._displayDrwgFilePath) return row._displayDrwgFilePath
   if (row._displaySrvFileNm && row._displayFileExtNm) {
@@ -44,18 +178,18 @@ export function findMatchingDrawing(row, drawings = []) {
   if (!usable.length) return null
 
   const exact = usable.find((item) =>
-    item.wintydiCd === row.wintydiCd && item.ventLoc === row.ventLoc
+    sameCode(item.wintydiCd, row.wintydiCd) && sameCode(item.ventLoc, row.ventLoc)
   )
   if (exact) return exact
 
-  const sameWindowType = usable.find((item) => item.wintydiCd === row.wintydiCd)
+  const sameWindowType = usable.find((item) => sameCode(item.wintydiCd, row.wintydiCd))
   if (sameWindowType) return sameWindowType
 
   return usable[0]
 }
 
 function isExactVentDrawingMatch(row = {}, drawing = {}) {
-  return drawing.wintydiCd === row.wintydiCd && drawing.ventLoc === row.ventLoc
+  return sameCode(drawing.wintydiCd, row.wintydiCd) && sameCode(drawing.ventLoc, row.ventLoc)
 }
 
 export function mergeSashDrawingFiles(rows = [], drawingsByMdlCd = {}) {

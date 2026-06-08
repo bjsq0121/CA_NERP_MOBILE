@@ -624,7 +624,9 @@ test('EstimateDetail separates al-glass rows from editable sash rows', () => {
   assert.match(detailSource, /function isGlassEstimateRow\(row = \{\}\)/)
   assert.match(detailSource, /row\.ctgr2Cd === 'P8'/)
   assert.match(detailSource, /glassRows\.value = rows\.filter\(isGlassEstimateRow\)/)
-  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(rows\.filter\(\(row\) => !isGlassEstimateRow\(row\)\)\)/)
+  assert.match(detailSource, /const sashOnlyRows = rows\.filter\(\(row\) => !isGlassEstimateRow\(row\)\)/)
+  assert.match(detailSource, /const detailRows = await hydrateSashDetailRows\(sashOnlyRows\)/)
+  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(detailRows\)/)
 })
 
 test('EstimateDetail fails closed unless header and rows are editable status 10', () => {
@@ -779,6 +781,17 @@ test('EstimateDetail sends every right-panel section from selectedSashRow', () =
     /@edit="editSash\(selectedSashRow\)"/,
   ]
   for (const binding of expectedBindings) assert.match(detailSource, binding)
+})
+
+test('EstimateDetail hydrates list rows with sash detail before drawing and panel mapping', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /selectSashDetail/)
+  assert.match(detailSource, /mergeSashDetailRow/)
+  assert.match(detailSource, /async function hydrateSashDetailRows\(rows\)/)
+  assert.match(detailSource, /await selectSashDetail\(\{[\s\S]*itgEstiNo,[\s\S]*estiNo: row\.estiNo \|\| row\.windEstiNo \|\| wEstiNo\.value,[\s\S]*estiNos: row\.estiNos \|\| '1',[\s\S]*estiSeq: row\.estiSeq,[\s\S]*\}\)/)
+  assert.match(detailSource, /return mergeSashDetailRow\(row, detail\)/)
+  assert.match(detailSource, /const detailRows = await hydrateSashDetailRows\(sashOnlyRows\)/)
+  assert.match(detailSource, /sashRows\.value = await hydrateSashDrawingFiles\(detailRows\)/)
 })
 
 test('EstimateDetail hydrates model drawings even when saved row already has an image', () => {

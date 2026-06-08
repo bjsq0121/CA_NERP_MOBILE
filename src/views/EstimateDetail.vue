@@ -216,7 +216,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { selectEstiHeader, searchCodeList, searchModelList, searchSashList, issueEstiNo } from '../api/estimate'
+import { selectEstiHeader, searchCodeList, searchModelList, searchSashList, selectSashDetail, issueEstiNo } from '../api/estimate'
 import SashDetailPanel from '../components/SashDetailPanel.vue'
 import SashListCard from '../components/SashListCard.vue'
 import {
@@ -224,6 +224,7 @@ import {
   buildSashMeta,
   buildSashModelText,
   buildSashScreenText,
+  mergeSashDetailRow,
   mergeSashDrawingFiles,
   normalizeSashRows,
   resolveWindEstiNo,
@@ -567,6 +568,23 @@ function normalizeCodeList(rows = []) {
   return rows.map((row) => ({ ...row, commCdId: row.commCdId || row.commCdVal }))
 }
 
+async function hydrateSashDetailRows(rows) {
+  return Promise.all(rows.map(async (row) => {
+    try {
+      const { data } = await selectSashDetail({
+        itgEstiNo,
+        estiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+        estiNos: row.estiNos || '1',
+        estiSeq: row.estiSeq,
+      })
+      const detail = data?.resultData || {}
+      return mergeSashDetailRow(row, detail)
+    } catch (_) {
+      return row
+    }
+  }))
+}
+
 async function hydrateSashDrawingFiles(rows) {
   const mdlCds = [...new Set(rows
     .filter((row) => row.mdlCd)
@@ -607,7 +625,9 @@ onMounted(async () => {
         screenList.value = normalizeCodeList(screenData?.resultList || [])
         const rows = normalizeSashRows(sashData)
         glassRows.value = rows.filter(isGlassEstimateRow)
-        sashRows.value = await hydrateSashDrawingFiles(rows.filter((row) => !isGlassEstimateRow(row)))
+        const sashOnlyRows = rows.filter((row) => !isGlassEstimateRow(row))
+        const detailRows = await hydrateSashDetailRows(sashOnlyRows)
+        sashRows.value = await hydrateSashDrawingFiles(detailRows)
         if (!selectedSashKey.value && sashRows.value.length) selectedSashKey.value = sashRowKey(sashRows.value[0])
       } catch (e) {
         sashRows.value = []
