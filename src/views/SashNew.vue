@@ -157,11 +157,11 @@ import SashOptionFactory from '../components/SashOptionFactory.vue'
 import SashQuickConfigSheet from '../components/SashQuickConfigSheet.vue'
 import { saveSashEsti, searchColorList, searchModelList, searchModelSf, searchGlasList, searchCodeList, searchCodeDetail, searchModelWintydi, searchSashOrdTypCd, searchWindEstiAmt, selectSashDetail, selectEstiHeader, searchDrwgFileAjax } from '../api/estimate'
 import { buildSashSavePayload } from '../utils/sashPayload'
-import { resolveBsmfOrdUtmCd } from '../utils/sashOptions'
+import { normalizeSafetyNetHandleOptions, normalizeSafetyNetHandleValue, resolveBsmfOrdUtmCd } from '../utils/sashOptions'
 import { captureSashEditValues, restoreSashEditValues } from '../utils/sashEditPreserve'
 import { buildSashDrawingUrl, findMatchingDrawing } from '../utils/estimateDetail'
 import { UNKNOWN_STATUS, isEditableHeaderStatus, isEditableStatus, resolveEffectiveStatus } from '../utils/estimateStatus'
-import { resolveVentDrawingState } from '../utils/sashDrawingState'
+import { normalizeDrwgFileAjaxResult, resolveVentDrawingState } from '../utils/sashDrawingState'
 import { applyQuickConfigOptionsToForm } from '../utils/sashQuickConfig'
 
 const route = useRoute()
@@ -503,7 +503,7 @@ async function loadEditData() {
     drwgCd: r.drwgCd || '',
     isAluMf: isYnValue(r.aluMfYn),
     aluMdlYn: normalizeYn(r.aluMdlYn),
-    aluMfHandleType: r.aluMfHandleType || '',
+    aluMfHandleType: normalizeSafetyNetHandleValue(r.aluMfHandleType) || r.aluMfHandleType || '',
     aluMfHandleTypeNm: r.aluMfHandleTypeNm || '',
     aluMfMdlYn: r.aluMfMdlYn || 'Y',
     aluMfHndlH: r.aluMfHndlH ? Number(r.aluMfHndlH) : null,
@@ -703,7 +703,7 @@ async function loadMasters() {
   ventAllList.value = normCd(ventRes.data?.resultList)
   screenAllList.value = normCd(screenRes.data?.resultList)
   handleAllList.value = normCd(handleRes.data?.resultList)
-  aluMfHandleList.value = normCd(aluMfHandleRes.data?.resultList)
+  aluMfHandleList.value = normalizeSafetyNetHandleOptions(normCd(aluMfHandleRes.data?.resultList))
   ordTypList.value = normCd(ordRes.data?.resultList).filter((c) => c.addInfo2 === 'Y')
   bsmfList.value = normCd(bsmfRes.data?.resultList)
   normalizeBsmfSelection()
@@ -804,7 +804,7 @@ function applyQuickConfigSafetyOptions(detail = {}, card = {}) {
   if (aluMfYn !== '') form.value.isAluMf = isYnValue(aluMfYn)
 
   const handleType = firstValue(detail, 'aluMfHandleType') || firstValue(optionMap, 'aluMfHandleType')
-  if (handleType !== '') form.value.aluMfHandleType = handleType
+  if (handleType !== '') form.value.aluMfHandleType = normalizeSafetyNetHandleValue(handleType) || handleType
 
   const mdlYn = firstValue(detail, 'aluMfMdlYn') || firstValue(optionMap, 'aluMfMdlYn')
   if (mdlYn !== '') form.value.aluMfMdlYn = mdlYn
@@ -853,6 +853,7 @@ async function applyQuickSashConfig(card = {}) {
     await updateDrawingFileByVent({ keepDisplayFallback: true })
     applyProductionOptionRules()
     normalizeQuickConfigSelections()
+    await updateDrawingFileByVent({ keepDisplayFallback: true })
     showNotice(`간편견적 '${header.cfgNm || card.cfgId || detail.cfgId}'을 불러왔습니다`)
   } catch (e) {
     error.value = e?.response?.data?.message || e.message || '간편견적 적용 실패'
@@ -967,13 +968,14 @@ async function ensureCodeMasters() {
 
 // --- 이벤트 핸들러 ---
 
-function onWintydiChange(val) {
+async function onWintydiChange(val) {
   form.value.wintydiCd = val
   form.value.secondFloorEnabled = isSecondFloorEnabled.value
   if (!form.value.secondFloorEnabled) clearSecondFloorOptionFields()
   applyProductionOptionRules()
   clearSizeFields()
   applyVentDefault()
+  await updateDrawingFileByVent({ keepDisplayFallback: true })
 }
 
 async function onVentChange(val) {
@@ -1024,7 +1026,6 @@ function applyVentDefault() {
   if (!form.value.ventLoc || !opts.some(o => o.commCdId === form.value.ventLoc)) {
     form.value.ventLoc = opts.length ? opts[0].commCdId : ''
   }
-  updateDrawingFileByVent({ keepDisplayFallback: true })
 }
 
 async function hydrateModelDrawing(row = {}) {
@@ -1081,7 +1082,7 @@ async function updateDrawingFileByVent({ keepDisplayFallback = true } = {}) {
         wintydiCd: form.value.wintydiCd,
         ventLoc: form.value.ventLoc,
       })
-      apiRow = data?.resultData || data?.resultList?.[0] || {}
+      apiRow = normalizeDrwgFileAjaxResult(data)
     } catch (_) {
       apiRow = {}
     }
@@ -1126,6 +1127,7 @@ function normalizeCurrentSelections() {
   applyScreenDefault()
   applyHandleDefault()
   if (form.value.isAluMf && form.value.aluMfHandleType) {
+    form.value.aluMfHandleType = normalizeSafetyNetHandleValue(form.value.aluMfHandleType) || form.value.aluMfHandleType
     const exists = aluMfHandleList.value.some((option) => safetyNetHandleValue(option) === form.value.aluMfHandleType)
     if (!exists) form.value.aluMfHandleType = aluMfHandleList.value.length ? safetyNetHandleValue(aluMfHandleList.value[0]) : ''
   }
@@ -1219,7 +1221,7 @@ function resetSafetyNetOptions() {
 }
 
 function safetyNetHandleValue(option) {
-  return option?.commCdVal || option?.commCdId || ''
+  return normalizeSafetyNetHandleValue(option?.commCdVal || option?.commCdId) || option?.commCdVal || option?.commCdId || ''
 }
 
 function syncSafetyNetHandleName() {
@@ -1440,6 +1442,7 @@ async function submit({ asNewSeq = false } = {}) {
   if (isReadonly.value) return failSubmit('현재 수정할 수 없는 상태입니다')
 
   normalizeBeforeSubmit()
+  await updateDrawingFileByVent({ keepDisplayFallback: true })
 
   const segmentError = validateSegmentSizes()
   if (segmentError) return failSubmit(segmentError)

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveVentDrawingState } from './sashDrawingState.js'
+import { normalizeDrwgFileAjaxResult, resolveVentDrawingState } from './sashDrawingState.js'
 
 test('resolveVentDrawingState updates drwgCd only when the new API drawing has drwgCd', () => {
   const result = resolveVentDrawingState({
@@ -10,6 +10,29 @@ test('resolveVentDrawingState updates drwgCd only when the new API drawing has d
 
   assert.equal(result.selectedDrawing.srvFileNm, 'VENT_B')
   assert.equal(result.drwgCd, 'DRWG_B')
+})
+
+test('normalizeDrwgFileAjaxResult accepts object-shaped resultList from searchDrwgFileAjax', () => {
+  const result = normalizeDrwgFileAjaxResult({
+    resultList: { srvFileNm: 'VENT_OBJECT', fileExtNm: 'png', drwgCd: 'DRWG_OBJECT' },
+  })
+
+  assert.equal(result.srvFileNm, 'VENT_OBJECT')
+  assert.equal(result.fileExtNm, 'png')
+  assert.equal(result.drwgCd, 'DRWG_OBJECT')
+})
+
+test('resolveVentDrawingState uses object resultList API row over previous drawing when file exists', () => {
+  const apiRow = normalizeDrwgFileAjaxResult({
+    resultList: { srvFileNm: 'VENT_NEW', fileExtNm: 'png', drwgCd: 'DRWG_NEW' },
+  })
+  const result = resolveVentDrawingState({
+    apiRow,
+    previousDrawing: { srvFileNm: 'VENT_OLD', fileExtNm: 'png', drwgCd: 'DRWG_OLD' },
+  })
+
+  assert.equal(result.selectedDrawing.srvFileNm, 'VENT_NEW')
+  assert.equal(result.drwgCd, 'DRWG_NEW')
 })
 
 test('resolveVentDrawingState clears stale drwgCd while keeping previous drawing as display fallback', () => {
