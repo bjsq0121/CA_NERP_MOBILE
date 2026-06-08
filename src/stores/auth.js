@@ -21,7 +21,9 @@ export const useAuthStore = defineStore('auth', {
     bzpc: (s) => s.user?.bzpc || '',
     bzpcNm: (s) => s.user?.bzpcNm || '',
     vkgrp: (s) => s.user?.vkgrp || '',
+    vkgrpNm: (s) => s.user?.vkgrpNm || '',
     vkbur: (s) => s.user?.vkbur || '',
+    vkburNm: (s) => s.user?.vkburNm || '',
   },
   actions: {
     async login(userId, userPswd) {
@@ -37,6 +39,7 @@ export const useAuthStore = defineStore('auth', {
         vkgrpNm: data.vkgrpNm,
         dvpc: data.dvpc,
         vkbur: data.vkbur,
+        vkburNm: data.vkburNm,
         auth_grp: data.auth_grp,
       }
       this.persist()

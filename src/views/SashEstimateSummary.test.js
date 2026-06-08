@@ -3,12 +3,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { buildSashSummaryRow, normalizeSummaryCodeList } from '../utils/sashEstimateSummary.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const source = readFileSync(resolve(currentDir, 'SashEstimateSummary.vue'), 'utf8')
 const routerSource = readFileSync(resolve(currentDir, '../router/index.js'), 'utf8')
 const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
 const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')
+const summaryUtilSource = readFileSync(resolve(currentDir, '../utils/sashEstimateSummary.js'), 'utf8')
 
 test('SashEstimateSummary is routed from estimate detail as an internal B2B summary screen', () => {
   assert.match(routerSource, /\/estimates\/:itgEstiNo\/sash-summary/)
@@ -22,6 +24,14 @@ test('SashEstimateSummary loads header and sash rows from existing mobile APIs',
   assert.match(source, /searchSashList\(\{ itgEstiNo, estiNo: wEstiNo\.value \}\)/)
   assert.match(source, /normalizeSashRows\(sashData\)/)
   assert.match(source, /isGlassEstimateRow/)
+  assert.match(source, /selectSashDetail/)
+  assert.match(source, /hydrateSashSummaryRows/)
+  assert.match(source, /mergeSashDetailRow/)
+  assert.match(source, /searchModelSf/)
+  assert.match(source, /searchGlasList/)
+  assert.match(source, /loadSummarySpecNameLists/)
+  assert.match(source, /buildSashSummaryRows/)
+  assert.match(source, /buildSashSummaryTotals/)
 })
 
 test('SashEstimateSummary exposes B2B row specs and totals without internal fields', () => {
@@ -131,9 +141,78 @@ test('SashEstimateSummary does not expose internal location codes such as R1 in 
 test('SashEstimateSummary normalizes color and window-type master names before rendering', () => {
   assert.match(source, /searchColorList/)
   assert.match(source, /searchModelWintydi/)
-  assert.match(source, /commCdId:\s*row\.commCdId \|\| row\.commCdVal \|\| row\.colrCd \|\| row\.wintydiCd/)
-  assert.match(source, /commCdNm:\s*row\.commCdNm \|\| row\.colrNm \|\| row\.wintydiNm/)
-  assert.match(source, /function buildWindowTypeText/)
-  assert.match(source, /function buildColorText/)
-  assert.match(source, /function buildBsmfText/)
+  assert.match(source, /normalizeSummaryCodeList/)
+  assert.match(summaryUtilSource, /function normalizedCode/)
+  assert.match(summaryUtilSource, /item\.mtrlProdCd/)
+  assert.match(summaryUtilSource, /item\.mtrlCd/)
+  assert.match(summaryUtilSource, /item\.glasCd/)
+  assert.match(summaryUtilSource, /function normalizedName/)
+  assert.match(summaryUtilSource, /item\.mtrlProdCdNm/)
+  assert.match(summaryUtilSource, /item\.mtrlCdNm/)
+  assert.match(summaryUtilSource, /item\.glasNm/)
+  assert.match(summaryUtilSource, /function buildWindowTypeText/)
+  assert.match(summaryUtilSource, /buildSummaryColorText/)
+  assert.match(summaryUtilSource, /buildSummaryBsmfText/)
+})
+
+test('SashEstimateSummary rendered summary row values expose names and hide raw/internal fields', () => {
+  const row = buildSashSummaryRow({
+    mdlCd: 'M1',
+    mdlNm: '모형명',
+    wintydiCd: 'W1',
+    wSize: '1200',
+    hSize: '1400',
+    qty: '1',
+    insdColrCd: 'WH',
+    ousdColrCd: 'BK',
+    screenType: 'S1',
+    ventLoc: 'L',
+    insdSf: 'SF01',
+    ousdSf: 'SF02',
+    mtrlCds1: 'G01',
+    mtrlCds2: 'G02',
+    pdBfRemSrc: 'BF 생산 내부비고',
+    pdSfRemSrc: 'SF 생산 내부비고',
+    pdMfRemSrc: 'MF 생산 내부비고',
+    workDetail: '작업로그',
+    costAmt: '10',
+    marginRate: '20',
+  }, {
+    colorList: normalizeSummaryCodeList([
+      { commCdVal: 'WH', commCdNm: '화이트' },
+      { commCdVal: 'BK', commCdNm: '블랙' },
+    ]),
+    screenList: normalizeSummaryCodeList([{ commCdVal: 'S1', commCdNm: '일반망' }]),
+    ventList: normalizeSummaryCodeList([{ commCdVal: 'L', commCdNm: '좌' }]),
+    materialList: normalizeSummaryCodeList([
+      { commCdVal: 'SF01', commCdNm: 'SF 화이트바' },
+      { commCdVal: 'SF02', commCdNm: 'SF 블랙바' },
+      { commCdVal: 'G01', commCdNm: '투명유리' },
+      { commCdVal: 'G02', commCdNm: '로이유리' },
+    ]),
+    wintydiNameMap: { 'M1::W1': '단창' },
+  }, 0)
+
+  const renderedText = [
+    row.modelText,
+    row.windowTypeText,
+    row.sizeText,
+    row.colorText,
+    row.bsmfText,
+    row.customerOptionText,
+    row.remarkText,
+  ].join(' ')
+
+  assert.match(renderedText, /모형명/)
+  assert.match(renderedText, /단창/)
+  assert.match(renderedText, /화이트/)
+  assert.match(renderedText, /블랙/)
+  assert.match(renderedText, /일반망/)
+  assert.match(renderedText, /VENT 좌/)
+  assert.match(renderedText, /SF 화이트바/)
+  assert.match(renderedText, /SF 블랙바/)
+  assert.match(renderedText, /투명유리/)
+  assert.match(renderedText, /로이유리/)
+  assert.doesNotMatch(renderedText, /SF01|SF02|G01|G02|S1|WH|BK/)
+  assert.doesNotMatch(renderedText, /생산 내부비고|작업로그|costAmt|marginRate|원가|마진/)
 })

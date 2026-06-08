@@ -19,6 +19,7 @@ function requiredForm(overrides = {}) {
     ousdSf: 'SF-OUT',
     ventLoc: 'L',
     screenType: 'PVC',
+    dplcDcGrd: 'A',
     deco1: [],
     winCloser: [],
     ...overrides,
@@ -59,6 +60,7 @@ test('buildSashSavePayload maps required sash fields for a new estimate', () => 
       ousdSf: 'SF-OUT',
       ventLoc: 'L',
       screenType: 'PVC',
+      dplcDcGrd: 'A',
       isAluMf: false,
       aluMfHandleType: '',
       aluMfMdlYn: 'Y',
@@ -186,6 +188,7 @@ test('buildSashSavePayload maps required sash fields for a new estimate', () => 
   assert.equal(payload.cs5Size, '5')
   assert.equal(payload.crtnColrCd, 'WH')
   assert.equal(payload.ousdColrCd, 'WH')
+  assert.equal(payload.dplcDcGrd, 'A')
   assert.equal(payload.aluMfYn, 'N')
   assert.equal(payload.aluMfHandleType, '')
   assert.equal(payload.aluMfMdlYn, 'N')
@@ -287,6 +290,7 @@ test('buildSashSavePayload preserves edit sequence and outside color', () => {
       sizCd: '',
       bsmfOrdUtmCd: '101',
       sashOrdTypCd: '10',
+      dplcDcGrd: 'B',
       w: 1800,
       h: 900,
       qty: 1,
@@ -557,6 +561,14 @@ test('buildSashSavePayload rejects missing required save fields before creating 
       wEstiNo: 'W001',
     }),
     /itgEstiNo/
+  )
+  assert.throws(
+    () => buildSashSavePayload({
+      form: requiredForm({ dplcDcGrd: '' }),
+      itgEstiNo: 'ITG001',
+      wEstiNo: 'W001',
+    }),
+    /dplcDcGrd/
   )
 }
 )

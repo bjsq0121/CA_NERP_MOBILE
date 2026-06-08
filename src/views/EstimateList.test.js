@@ -11,7 +11,7 @@ const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')
 
 test('EstimateList restores the selected branch for admins and keeps non-admin default branch', () => {
   assert.match(source, /import \{ loadSelectedBzpc, saveSelectedBzpc \} from '\.\.\/utils\/selectedBzpcStorage'/)
-  assert.match(source, /if \(!auth\.isAdmin && auth\.bzpc\) \{[\s\S]*selectedBzpc\.value = \{ bzpc: auth\.bzpc, bzpcNm: auth\.bzpcNm \}[\s\S]*search\(\)[\s\S]*return[\s\S]*\}/)
+  assert.match(source, /if \(!auth\.isAdmin && auth\.bzpc\) \{[\s\S]*bzpc: auth\.bzpc[\s\S]*bzpcNm: auth\.bzpcNm[\s\S]*vkbur: auth\.vkbur[\s\S]*vkgrp: auth\.vkgrp[\s\S]*search\(\)[\s\S]*return[\s\S]*\}/)
   assert.match(source, /const saved = loadSelectedBzpc\(\)/)
   assert.match(source, /if \(saved\?\.bzpc\) \{[\s\S]*selectedBzpc\.value = saved[\s\S]*search\(\)[\s\S]*\}/)
   assert.match(source, /saveSelectedBzpc\(v\)/)
@@ -52,8 +52,34 @@ test('EstimateList renders B2B estimate rows as clear touch cards', () => {
   assert.match(source, /class="estimate-card-head"/)
   assert.match(source, /class="estimate-card-title"/)
   assert.match(source, /class="estimate-card-meta"/)
+  assert.match(source, /class="estimate-card-grades"/)
   assert.match(source, /class="estimate-card-amount"/)
   assert.match(source, /formatEstimateAmount\(row\)/)
   assert.match(source, /상태/)
+  assert.doesNotMatch(source, /시공비|철거비|프로모션|소비자/)
+})
+
+test('EstimateList displays customer discount grade chips from header rows', () => {
+  assert.match(source, /buildGradeChips\(row\)/)
+  assert.match(source, /buildCrossGradeChips\(row\)/)
+  assert.match(source, /gradeValue\(row,\s*'dplcDcGrdNm',\s*'dplcDcGrd'\)/)
+  for (const key of [
+    'dplcDcGrdNm',
+    'dplcDcGrdDoorNm',
+    'dplcDcGrdGlasNm',
+    'dplcDcGrdMoldNm',
+    'dplcDcGrdPannelNm',
+    'dplcDcGrdOtherCompNm',
+    'dplcDcGrdDtbtMtrlNm',
+    'dplcDcGrdDtbtGoodsNm',
+    'dplcDcGrdDoorCrNm',
+    'dplcDcGrdMoldCrNm',
+    'dplcDcGrdDtbtMtrlCrNm',
+    'dplcDcGrdDtbtGoodsCrNm',
+  ]) {
+    assert.match(source, new RegExp(key))
+  }
+  assert.match(stylesSource, /\.estimate-card-grades\s*\{[\s\S]*flex-wrap:\s*wrap/)
+  assert.match(stylesSource, /\.estimate-grade-chip/)
   assert.doesNotMatch(source, /시공비|철거비|프로모션|소비자/)
 })

@@ -118,9 +118,25 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { searchCodeList, searchColorList, searchModelWintydi, searchSashList, selectEstiHeader } from '../api/estimate'
-import { buildSashMeta, buildSashScreenText, normalizeSashRows, resolveWindEstiNo } from '../utils/estimateDetail'
+import {
+  searchCodeList,
+  searchColorList,
+  searchGlasList,
+  searchModelSf,
+  searchModelWintydi,
+  searchSashList,
+  selectEstiHeader,
+  selectSashDetail,
+} from '../api/estimate'
+import { mergeSashDetailRow, normalizeSashRows, resolveWindEstiNo } from '../utils/estimateDetail'
 import { UNKNOWN_STATUS, resolveEffectiveStatus } from '../utils/estimateStatus'
+import {
+  buildSashSummaryRows,
+  buildSashSummaryTotals,
+  formatSummaryMoney,
+  isGlassEstimateRow,
+  normalizeSummaryCodeList,
+} from '../utils/sashEstimateSummary'
 
 // TODO: shareToken 기반 거래처 공개 공유 링크.
 // TODO: 엑셀 다운로드.
@@ -138,6 +154,9 @@ const screenList = ref([])
 const colorList = ref([])
 const ventList = ref([])
 const bsmfList = ref([])
+const materialList = ref([])
+const glassList = ref([])
+const specLists = ref({})
 const wintydiNameMap = ref({})
 const loading = ref(false)
 const error = ref('')
@@ -154,16 +173,20 @@ const estimateDate = computed(() =>
   formatDate(header.value?.estiDt || header.value?.inputDtm || header.value?.regDt)
 )
 
-const summaryRows = computed(() => sashRows.value.map((row, index) => buildSummaryRow(row, index)))
+const summaryContext = computed(() => ({
+  screenList: screenList.value,
+  colorList: colorList.value,
+  ventList: ventList.value,
+  bsmfList: bsmfList.value,
+  materialList: materialList.value,
+  glassList: glassList.value,
+  specLists: specLists.value,
+  wintydiNameMap: wintydiNameMap.value,
+}))
 
-const totals = computed(() => summaryRows.value.reduce((acc, row) => {
-  acc.rowCount += 1
-  acc.qty += row.qty
-  acc.supply += row.supply
-  acc.vat += row.vat
-  acc.total += row.total
-  return acc
-}, { rowCount: 0, qty: 0, supply: 0, vat: 0, total: 0 }))
+const summaryRows = computed(() => buildSashSummaryRows(sashRows.value, summaryContext.value))
+
+const totals = computed(() => buildSashSummaryTotals(summaryRows.value))
 
 onMounted(async () => {
   loading.value = true
@@ -191,11 +214,16 @@ onMounted(async () => {
       searchCodeList('48'),
       searchCodeList('405'),
     ])
-    screenList.value = normalizeCodeList(screenData?.resultList || [])
-    colorList.value = normalizeCodeList(colorData?.resultList || [])
-    ventList.value = normalizeCodeList(ventData?.resultList || [])
-    bsmfList.value = normalizeCodeList(bsmfData?.resultList || [])
-    sashRows.value = normalizeSashRows(sashData).filter((row) => !isGlassEstimateRow(row))
+    screenList.value = normalizeSummaryCodeList(screenData?.resultList || [])
+    colorList.value = normalizeSummaryCodeList(colorData?.resultList || [])
+    ventList.value = normalizeSummaryCodeList(ventData?.resultList || [])
+    bsmfList.value = normalizeSummaryCodeList(bsmfData?.resultList || [])
+    const sashOnlyRows = normalizeSashRows(sashData).filter((row) => !isGlassEstimateRow(row))
+    sashRows.value = await hydrateSashSummaryRows(sashOnlyRows)
+    const loadedSpecLists = await loadSummarySpecNameLists(sashRows.value)
+    materialList.value = loadedSpecLists.materialList
+    glassList.value = loadedSpecLists.glassList
+    specLists.value = loadedSpecLists.specLists
     wintydiNameMap.value = await loadWintydiNameMap(sashRows.value)
   } catch (e) {
     error.value = e?.response?.data?.message || e.message || '요약 정보를 불러오지 못했습니다.'
@@ -208,47 +236,25 @@ function printSummary() {
   window.print()
 }
 
-function buildSummaryRow(row, index) {
-  const qty = amountNumber(row.qty, row.Qty, row.QTY)
-  const supply = rowSupply(row)
-  const vat = rowVat(row)
-  const total = rowTotal(row, supply, vat)
-  const modelCode = firstValue(row.mdlCd, row.modelCd)
-  const modelName = firstValue(row.mdlNm, row.modelNm)
-  const screenText = buildSashScreenText(row, screenList.value)
-  const ventText = resolveCodeName(ventList.value, firstValue(row.ventLoc), row.ventLocNm, row.ventLocName)
-  const alGlass = isYn(row.glasStdalYn)
-  const safetyNet = isYn(row.aluMfYn)
-
-  return {
-    key: `${firstValue(row.estiNo, row.windEstiNo, 'sash')}_${firstValue(row.estiNos, '1')}_${firstValue(row.estiSeq, index + 1)}`,
-    no: index + 1,
-    estiSeqText: firstValue(row.estiSeq, index + 1),
-    modelText: [modelCode, modelName].filter(Boolean).join(' / ') || '-',
-    windowTypeText: buildWindowTypeText(row),
-    sizeText: buildSize(row),
-    qty,
-    qtyText: qty ? String(qty) : '-',
-    colorText: buildColorText(row),
-    bsmfText: buildBsmfText(row),
-    customerOptionText: buildCustomerOptions(row, { screenText, ventText, alGlass, safetyNet }),
-    supply,
-    vat,
-    total,
-    remarkText: firstValue(row.remSrc, row.estiRemSrc, '-'),
-  }
-}
-
 function firstValue(...values) {
   const found = values.find((value) => value != null && value !== '')
   return found == null ? '' : String(found)
 }
 
-function normalizeCodeList(rows = []) {
-  return rows.map((row) => ({
-    ...row,
-    commCdId: row.commCdId || row.commCdVal || row.colrCd || row.wintydiCd || row.cd || row.code,
-    commCdNm: row.commCdNm || row.colrNm || row.wintydiNm || row.cdNm || row.codeNm || row.name,
+async function hydrateSashSummaryRows(rows = []) {
+  return Promise.all(rows.map(async (row) => {
+    if (row?.estiSeq == null || row.estiSeq === '') return row
+    try {
+      const { data } = await selectSashDetail({
+        itgEstiNo,
+        estiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+        estiNos: row.estiNos || '1',
+        estiSeq: row.estiSeq,
+      })
+      return mergeSashDetailRow(row, data?.resultData || {})
+    } catch (_) {
+      return row
+    }
   }))
 }
 
@@ -257,7 +263,7 @@ async function loadWintydiNameMap(rows = []) {
   const pairs = await Promise.all(modelCodes.map(async (mdlCd) => {
     try {
       const { data } = await searchModelWintydi(mdlCd)
-      return [mdlCd, normalizeCodeList(data?.resultList || [])]
+      return [mdlCd, normalizeSummaryCodeList(data?.resultList || [])]
     } catch (_) {
       return [mdlCd, []]
     }
@@ -276,38 +282,96 @@ async function loadWintydiNameMap(rows = []) {
   return map
 }
 
-function resolveCodeName(list = [], code, ...savedNames) {
-  const savedName = firstValue(...savedNames)
-  const rawCode = firstValue(code)
-  if (rawCode) {
-    const matched = list.find((item) => String(firstValue(item.commCdId, item.commCdVal)) === String(rawCode))
-    const matchedName = firstValue(matched?.commCdNm, matched?.addInfo1)
-    if (matchedName) return matchedName
+async function loadSummarySpecNameLists(rows = []) {
+  const modelCodes = Array.from(new Set(rows.map((row) => firstValue(row.mdlCd, row.modelCd)).filter(Boolean)))
+  const sfSlots = {
+    sfInMaterialList: [],
+    sfOutMaterialList: [],
+    bfInMaterialList: [],
+    bfOutMaterialList: [],
   }
-  return savedName || rawCode || '-'
-}
+  const sfResults = await Promise.all(modelCodes.map(async (mdlCd) => {
+    try {
+      const { data } = await searchModelSf(mdlCd)
+      const sfIn = data?.insdSf || data?.resultList || []
+      const sfOut = data?.ousdSf || data?.resultList3 || []
+      const bfIn = data?.insdBf || data?.resultList5 || []
+      const bfOut = data?.ousdBf || data?.resultList7 || []
+      sfSlots.sfInMaterialList.push(...sfIn)
+      sfSlots.sfOutMaterialList.push(...sfOut)
+      sfSlots.bfInMaterialList.push(...bfIn)
+      sfSlots.bfOutMaterialList.push(...bfOut)
+      return [...sfIn, ...sfOut, ...bfIn, ...bfOut]
+    } catch (_) {
+      return []
+    }
+  }))
 
-function amountNumber(...values) {
-  for (const value of values) {
-    if (value !== '' && value != null) return Number(String(value).replace(/,/g, '')) || 0
+  const glassSlots = {
+    sfInGlassList: [],
+    sfOutGlassList: [],
+    bfInGlassList: [],
+    bfOutGlassList: [],
   }
-  return 0
+  const glassResults = await Promise.all(rows.map(async (row) => {
+    const mdlCd = firstValue(row.mdlCd, row.modelCd)
+    if (!mdlCd) return []
+    try {
+      const { data } = await searchGlasList({
+        searchMdlCd: mdlCd,
+        searchItgEstiNo: itgEstiNo,
+        searchEstiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+        searchEstiNos: row.estiNos || '1',
+        searchEstiSeq: row.estiSeq,
+      })
+      const sfIn = data?.resultList || []
+      const sfOut = data?.resultList3 || []
+      const bfIn = data?.resultList5 || []
+      const bfOut = data?.resultList7 || []
+      glassSlots.sfInGlassList.push(...sfIn)
+      glassSlots.sfOutGlassList.push(...sfOut)
+      glassSlots.bfInGlassList.push(...bfIn)
+      glassSlots.bfOutGlassList.push(...bfOut)
+      return [
+        ...sfIn,
+        ...sfOut,
+        ...bfIn,
+        ...bfOut,
+      ]
+    } catch (_) {
+      return []
+    }
+  }))
+
+  return {
+    materialList: uniqueCodeList(sfResults.flat()),
+    glassList: uniqueCodeList(glassResults.flat()),
+    specLists: {
+      sfInMaterialList: uniqueCodeList(sfSlots.sfInMaterialList),
+      sfOutMaterialList: uniqueCodeList(sfSlots.sfOutMaterialList),
+      bfInMaterialList: uniqueCodeList(sfSlots.bfInMaterialList),
+      bfOutMaterialList: uniqueCodeList(sfSlots.bfOutMaterialList),
+      sfInGlassList: uniqueCodeList(glassSlots.sfInGlassList),
+      sfOutGlassList: uniqueCodeList(glassSlots.sfOutGlassList),
+      bfInGlassList: uniqueCodeList(glassSlots.bfInGlassList),
+      bfOutGlassList: uniqueCodeList(glassSlots.bfOutGlassList),
+    },
+  }
 }
 
-function rowSupply(row) {
-  return amountNumber(row.totCstAmtAddGlas, row.totSaleAmt, row.sumSaleCst, row.saleCst)
-}
-
-function rowVat(row) {
-  return amountNumber(row.vatAmt, row.totVatAmt)
-}
-
-function rowTotal(row, supply = rowSupply(row), vat = rowVat(row)) {
-  return amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt) || supply + vat
+function uniqueCodeList(rows = []) {
+  const normalized = normalizeSummaryCodeList(rows)
+  const seen = new Map()
+  for (const item of normalized) {
+    const code = firstValue(item.commCdId, item.commCdVal)
+    if (!code || seen.has(code)) continue
+    seen.set(code, item)
+  }
+  return Array.from(seen.values())
 }
 
 function fmtPrice(value) {
-  return Number(value || 0).toLocaleString()
+  return formatSummaryMoney(value)
 }
 
 function formatDate(value) {
@@ -318,62 +382,8 @@ function formatDate(value) {
   return raw.slice(0, 10)
 }
 
-function buildSize(row) {
-  const wh = firstValue(row.wh)
-  if (wh) return wh
-  const w = firstValue(row.wSize, row.WSize, row.w0Size, row.w)
-  const h = firstValue(row.hSize, row.HSize, row.h0Size, row.h)
-  if (!w && !h) return '-'
-  return `${w || '-'} x ${h || '-'}`
-}
-
-function buildWindowTypeText(row) {
-  const code = firstValue(row.wintydiCd)
-  const modelCode = firstValue(row.mdlCd, row.modelCd)
-  const mappedName = firstValue(wintydiNameMap.value[`${modelCode}::${code}`], wintydiNameMap.value[code])
-  return firstValue(row.wintydiNm, row.wintydiName, mappedName, code, '-')
-}
-
-function buildColorText(row) {
-  const inside = resolveCodeName(colorList.value, firstValue(row.insdColrCd), row.insdColrNm)
-  const outside = resolveCodeName(colorList.value, firstValue(row.ousdColrCd), row.ousdColrNm)
-  const fallback = resolveCodeName(colorList.value, firstValue(row.color, row.colrCd, row.colr), row.colrNm)
-  const insideText = inside === '-' ? fallback : inside
-  const outsideText = outside === '-' ? fallback : outside
-  if (!insideText && !outsideText) return '-'
-  if (insideText && outsideText && insideText !== outsideText) return `내부 ${insideText} / 외부 ${outsideText}`
-  return insideText || outsideText || '-'
-}
-
-function buildBsmfText(row) {
-  const metaText = buildSashMeta(row).bsmfText
-  const code = firstValue(row.bsmfOrdUtmCd, row.bsmfCd)
-  return resolveCodeName(bsmfList.value, code, row.bsmfOrdUtmNm, row.bsmfNm, row.bsmfOrdUtmCdNm, metaText === code ? '' : metaText)
-}
-
-function buildCustomerOptions(row, { screenText, ventText, alGlass, safetyNet }) {
-  const parts = []
-  if (screenText && screenText !== '-') parts.push(screenText)
-  if (ventText && ventText !== '-') parts.push(`VENT ${ventText}`)
-  if (alGlass) parts.push('알유리')
-  if (safetyNet) parts.push('안전망')
-  if (isYn(row.slcnFnshYn) || isYn(row.bfSlcnFnshYn)) parts.push('실리콘마감')
-  if (isYn(row.windCloserMatYn) || isYn(row.insdWindClsYn) || isYn(row.ousdWindClsYn)) parts.push('윈드클로저')
-  if (isYn(row.sfOutGlasYn)) parts.push('외주유리')
-  if (isYn(row.mfHandleYn) || String(row.mfHandle || '') === '2') parts.push('방충망핸들')
-  return parts.length ? parts.join(', ') : '기본'
-}
-
-function isYn(value) {
-  return String(value || '').toUpperCase() === 'Y'
-}
-
 function statusName(code) {
   const map = { '0': '작성', '10': '견적', '20': '장바구니', '50': '주문', '51': '수주', '65': '절단', '66': '생산', '80': '출고', '90': '완료' }
   return map[code] || code
-}
-
-function isGlassEstimateRow(row = {}) {
-  return row.ctgr2Cd === 'P8' || row.ctgrCd === 'P8' || row.ctgr2Nm === '알유리'
 }
 </script>

@@ -10,8 +10,16 @@
           <input v-model="form.searchDplcNm" placeholder="거래처명" @keyup.enter="search" />
         </div>
         <div class="field">
+          <label>거래처코드</label>
+          <input v-model="form.searchDplcCd" placeholder="거래처코드" @keyup.enter="search" />
+        </div>
+        <div class="field">
           <label>사업자번호</label>
           <input v-model="form.searchBzno" placeholder="사업자번호 (숫자만)" @keyup.enter="search" />
+        </div>
+        <div class="field">
+          <label>대표자명</label>
+          <input v-model="form.searchDplcRepNm" placeholder="대표자명" @keyup.enter="search" />
         </div>
         <div class="row-flex">
           <button class="btn secondary" @click="reset">초기화</button>
@@ -28,8 +36,13 @@
             <div class="nm">{{ row.dplcNm || row.dplcCdNm }}</div>
             <div class="cd">
               {{ row.dplcCd }}
+              <span v-if="row.bzpcNm"> / {{ row.bzpcNm }}</span>
               <span v-if="row.bzno"> / 사업자 {{ row.bzno }}</span>
               <span v-if="row.repNm"> / 대표 {{ row.repNm }}</span>
+            </div>
+            <div v-if="row.dplcCrgrNm || row.dplcCrgrMobile || row.dplcCrgrCcpc" class="cd">
+              담당 {{ row.dplcCrgrNm || '-' }}
+              <span v-if="row.dplcCrgrMobile || row.dplcCrgrCcpc"> / {{ row.dplcCrgrMobile || row.dplcCrgrCcpc }}</span>
             </div>
             <div v-if="row.monCreditLimit != null" class="cd">
               신용한도: {{ Number(row.monCreditLimit).toLocaleString() }}원
@@ -57,7 +70,7 @@ const visible = ref(false)
 const loading = ref(false)
 const error = ref('')
 const rows = ref([])
-const form = ref({ searchDplcNm: '', searchBzno: '' })
+const form = ref({ searchDplcNm: '', searchDplcCd: '', searchBzno: '', searchDplcRepNm: '' })
 
 function open() {
   visible.value = true
@@ -66,7 +79,7 @@ function open() {
 }
 function close() { visible.value = false }
 function reset() {
-  form.value = { searchDplcNm: '', searchBzno: '' }
+  form.value = { searchDplcNm: '', searchDplcCd: '', searchBzno: '', searchDplcRepNm: '' }
   rows.value = []
 }
 

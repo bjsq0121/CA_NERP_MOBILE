@@ -59,31 +59,10 @@
           </div>
         </div>
 
-        <!-- 할인등급 표시 -->
         <div class="grade-row">
-          <div class="grade-item">
-            <span class="grade-label">샤시</span>
-            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrd || '-' }}</span>
-          </div>
-          <div class="grade-item">
-            <span class="grade-label">도어</span>
-            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdDoor || '-' }}</span>
-          </div>
-          <div class="grade-item">
-            <span class="grade-label">유리</span>
-            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdGlas || '-' }}</span>
-          </div>
-          <div class="grade-item">
-            <span class="grade-label">몰딩</span>
-            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdMlng || '-' }}</span>
-          </div>
-          <div class="grade-item">
-            <span class="grade-label">판넬</span>
-            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdPannel || '-' }}</span>
-          </div>
-          <div class="grade-item">
-            <span class="grade-label">타사</span>
-            <span class="grade-value">{{ form.dplcGrpGrade.dplcDcGrdEtc || '-' }}</span>
+          <div v-for="item in gradeDisplayItems" :key="item.label" class="grade-item">
+            <span class="grade-label">{{ item.label }}</span>
+            <span class="grade-value">{{ item.value || '-' }}</span>
           </div>
         </div>
       </template>
@@ -199,16 +178,36 @@ const form = ref({
   unprInfo: '',
 
   dplcGrpGrade: {
-    dplcDcGrd: '', dplcDcGrdDoor: '', dplcDcGrdPannel: '', dplcDcGrdEtc: '',
-    dplcDcGrdGlas: '', dplcDcGrdMlng: '', dplcDcGrdMtrl: '', dplcDcGrdProd: '',
+    dplcDcGrd: '', dplcDcGrdDoor: '', dplcDcGrdPannel: '', dplcDcGrdOtherComp: '',
+    dplcDcGrdGlas: '', dplcDcGrdMold: '', dplcDcGrdDtbtMtrl: '', dplcDcGrdDtbtGoods: '',
+    dplcDcGrdDoorCr: '', dplcDcGrdMoldCr: '', dplcDcGrdDtbtMtrlCr: '', dplcDcGrdDtbtGoodsCr: '',
   },
   dplcRate: {
-    dplcRt: '', dplcDoorRt: '', dplcPannelRt: '', dplcEtcRt: '',
-    dplcGlasRt: '', dplcMlngRt: '', dplcMtrlRt: '', dplcProdRt: '',
+    dplcRt: '', dplcDoorRt: '', dplcPannelRt: '', dplcOtherCompRt: '',
+    dplcGlasRt: '', dplcMoldRt: '', dplcDtbtMtrlRt: '', dplcDtbtGoodsRt: '',
+    dplcDoorCrRt: '', dplcMoldCrRt: '', dplcDtbtMtrlCrRt: '', dplcDtbtGoodsCrRt: '',
   },
 })
 
 const dplcDisplay = computed(() => (form.value.dplcCd ? `${form.value.dplcNm} (${form.value.dplcCd})` : ''))
+
+const gradeDisplayItems = computed(() => {
+  const grade = form.value.dplcGrpGrade
+  return [
+    { label: '샤시', value: grade.dplcDcGrd },
+    { label: '도어', value: grade.dplcDcGrdDoor },
+    { label: '판넬', value: grade.dplcDcGrdPannel },
+    { label: '타사', value: grade.dplcDcGrdOtherComp },
+    { label: '알유리', value: grade.dplcDcGrdGlas },
+    { label: '몰딩', value: grade.dplcDcGrdMold },
+    { label: '유통자재', value: grade.dplcDcGrdDtbtMtrl },
+    { label: '유통상품', value: grade.dplcDcGrdDtbtGoods },
+    { label: '크로스 도어', value: grade.dplcDcGrdDoorCr },
+    { label: '크로스 몰딩', value: grade.dplcDcGrdMoldCr },
+    { label: '크로스 유통자재', value: grade.dplcDcGrdDtbtMtrlCr },
+    { label: '크로스 유통상품', value: grade.dplcDcGrdDtbtGoodsCr },
+  ]
+})
 
 const canSubmit = computed(
   () =>
@@ -235,8 +234,8 @@ function clearDplc() {
     dplcCd: '', dplcNm: '', dplcCrgrNm: '', dplcCrgrTel: '', dplcCrgrMobile: '',
     monCreditLimit: '', adr1: '', adr2: '', ordrInfo: '',
   })
-  form.value.dplcGrpGrade = { dplcDcGrd: '', dplcDcGrdDoor: '', dplcDcGrdPannel: '', dplcDcGrdEtc: '', dplcDcGrdGlas: '', dplcDcGrdMlng: '', dplcDcGrdMtrl: '', dplcDcGrdProd: '' }
-  form.value.dplcRate = { dplcRt: '', dplcDoorRt: '', dplcPannelRt: '', dplcEtcRt: '', dplcGlasRt: '', dplcMlngRt: '', dplcMtrlRt: '', dplcProdRt: '' }
+  form.value.dplcGrpGrade = buildEmptyEstimateGrade()
+  form.value.dplcRate = buildEmptyEstimateRate()
 }
 
 function onDplcPick(row) {
@@ -259,22 +258,102 @@ function onDplcPick(row) {
     dplcDcGrd:        row.dcGrd        || '',
     dplcDcGrdDoor:    row.dcGrdDoor    || '',
     dplcDcGrdPannel:  row.dcGrdPannel  || '',
-    dplcDcGrdEtc:     row.dcGrdOtherComp || row.dcGrdEtc || '',
+    dplcDcGrdOtherComp: row.dcGrdOtherComp || row.dcGrdEtc || '',
     dplcDcGrdGlas:    row.dcGrdGlas    || '',
-    dplcDcGrdMlng:    row.dcGrdMold    || row.dcGrdMlng  || '',
-    dplcDcGrdMtrl:    row.dcGrdDtbtMtrl || row.dcGrdMtrl || '',
-    dplcDcGrdProd:    row.dcGrdDtbtGoods || row.dcGrdProd || '',
+    dplcDcGrdMold:    row.dcGrdMold    || row.dcGrdMlng  || '',
+    dplcDcGrdDtbtMtrl: row.dcGrdDtbtMtrl || row.dcGrdMtrl || '',
+    dplcDcGrdDtbtGoods: row.dcGrdDtbtGoods || row.dcGrdProd || '',
+    dplcDcGrdDoorCr: row.dcGrdDoorCr || '',
+    dplcDcGrdMoldCr: row.dcGrdMoldCr || '',
+    dplcDcGrdDtbtMtrlCr: row.dcGrdDtbtMtrlCr || '',
+    dplcDcGrdDtbtGoodsCr: row.dcGrdDtbtGoodsCr || '',
   }
 
   form.value.dplcRate = {
     dplcRt:        row.dplcRt       || row.addInfo1  || '',
     dplcDoorRt:    row.dplcDoorRt   || row.addInfo5  || '',
     dplcPannelRt:  row.dplcPannelRt || row.addInfo2  || '',
-    dplcEtcRt:     row.dplcEtcRt    || row.addInfo3  || '',
+    dplcOtherCompRt: row.dplcOtherCompRt || row.dplcEtcRt || row.addInfo3  || '',
     dplcGlasRt:    row.dplcGlasRt   || row.addInfo12 || '',
-    dplcMlngRt:    row.dplcMlngRt   || row.addInfo13 || '',
-    dplcMtrlRt:    row.dplcMtrlRt   || row.addInfo14 || '',
-    dplcProdRt:    row.dplcProdRt   || row.addInfo15 || '',
+    dplcMoldRt:    row.dplcMoldRt   || row.dplcMlngRt || row.addInfo13 || '',
+    dplcDtbtMtrlRt: row.dplcDtbtMtrlRt || row.dplcMtrlRt || row.addInfo14 || '',
+    dplcDtbtGoodsRt: row.dplcDtbtGoodsRt || row.dplcProdRt || row.addInfo15 || '',
+    dplcDoorCrRt: row.dplcDoorCrRt || '',
+    dplcMoldCrRt: row.dplcMoldCrRt || '',
+    dplcDtbtMtrlCrRt: row.dplcDtbtMtrlCrRt || '',
+    dplcDtbtGoodsCrRt: row.dplcDtbtGoodsCrRt || '',
+  }
+}
+
+function buildEmptyEstimateGrade() {
+  return {
+    dplcDcGrd: '',
+    dplcDcGrdDoor: '',
+    dplcDcGrdPannel: '',
+    dplcDcGrdOtherComp: '',
+    dplcDcGrdGlas: '',
+    dplcDcGrdMold: '',
+    dplcDcGrdDtbtMtrl: '',
+    dplcDcGrdDtbtGoods: '',
+    dplcDcGrdDoorCr: '',
+    dplcDcGrdMoldCr: '',
+    dplcDcGrdDtbtMtrlCr: '',
+    dplcDcGrdDtbtGoodsCr: '',
+  }
+}
+
+function buildEmptyEstimateRate() {
+  return {
+    dplcRt: '',
+    dplcDoorRt: '',
+    dplcPannelRt: '',
+    dplcOtherCompRt: '',
+    dplcGlasRt: '',
+    dplcMoldRt: '',
+    dplcDtbtMtrlRt: '',
+    dplcDtbtGoodsRt: '',
+    dplcDoorCrRt: '',
+    dplcMoldCrRt: '',
+    dplcDtbtMtrlCrRt: '',
+    dplcDtbtGoodsCrRt: '',
+  }
+}
+
+function stringValue(value) {
+  return String(value ?? '').trim()
+}
+
+function buildEstimateGradePayload(grades = {}) {
+  return {
+    dplcDcGrd: stringValue(grades.dplcDcGrd),
+    dplcDcGrdDoor: stringValue(grades.dplcDcGrdDoor),
+    dplcDcGrdPannel: stringValue(grades.dplcDcGrdPannel),
+    dplcDcGrdOtherComp: stringValue(grades.dplcDcGrdOtherComp),
+    dplcDcGrdGlas: stringValue(grades.dplcDcGrdGlas),
+    dplcDcGrdMold: stringValue(grades.dplcDcGrdMold),
+    dplcDcGrdDtbtMtrl: stringValue(grades.dplcDcGrdDtbtMtrl),
+    dplcDcGrdDtbtGoods: stringValue(grades.dplcDcGrdDtbtGoods),
+    dplcDcGrdDoorCr: stringValue(grades.dplcDcGrdDoorCr),
+    dplcDcGrdMoldCr: stringValue(grades.dplcDcGrdMoldCr),
+    dplcDcGrdDtbtMtrlCr: stringValue(grades.dplcDcGrdDtbtMtrlCr),
+    dplcDcGrdDtbtGoodsCr: stringValue(grades.dplcDcGrdDtbtGoodsCr),
+  }
+}
+
+function buildEstimateRatePayload(rates = {}) {
+  return {
+    dplcRt: stringValue(rates.dplcRt),
+    dplcDoorRt: stringValue(rates.dplcDoorRt),
+    dplcPannelRt: stringValue(rates.dplcPannelRt),
+    dplcOtherCompRt: stringValue(rates.dplcOtherCompRt),
+    dplcGlasRt: stringValue(rates.dplcGlasRt),
+    dplcMoldRt: stringValue(rates.dplcMoldRt),
+    dplcDtbtMtrlRt: stringValue(rates.dplcDtbtMtrlRt),
+    dplcDtbtGoodsRt: stringValue(rates.dplcDtbtGoodsRt),
+    dplcDoorCrRt: stringValue(rates.dplcDoorCrRt),
+    dplcMoldCrRt: stringValue(rates.dplcMoldCrRt),
+    dplcDtbtMtrlCrRt: stringValue(rates.dplcDtbtMtrlCrRt),
+    dplcDtbtGoodsCrRt: stringValue(rates.dplcDtbtGoodsCrRt),
   }
 }
 
@@ -291,6 +370,8 @@ async function submit() {
   try {
     const payload = {
       ...form.value,
+      ...buildEstimateGradePayload(form.value.dplcGrpGrade),
+      ...buildEstimateRatePayload(form.value.dplcRate),
       bzpc: selectedBzpc.value.bzpc,
       bzpcNm: selectedBzpc.value.bzpcNm,
       estiVldDt: form.value.estiVldDt.replace(/-/g, ''),

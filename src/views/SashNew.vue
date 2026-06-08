@@ -17,6 +17,22 @@
       </div>
 
       <!-- 필수 필드 -->
+      <div class="card">
+        <div class="field">
+          <label>할인등급 *</label>
+          <select v-model="form.dplcDcGrd" :disabled="isReadonly">
+            <option value="">선택</option>
+            <option
+              v-for="grade in discountGradeList"
+              :key="grade.commCdId"
+              :value="grade.commCdVal || grade.commCdId"
+            >
+              {{ grade.addInfo1 || grade.commCdNm || grade.commCdVal || grade.commCdId }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <SashFormMain
         :form="form"
         :wintydi-list="wintydiList"
@@ -192,10 +208,13 @@ const ordTypList = ref([])
 const bsmfList = ref([])
 const colorList = ref([])
 const pickedMdlMtrlCo = ref('')
+const estimateHeader = ref({})
+const discountGradeList = ref([])
 
 const form = ref({
   mdlCd: '', mdlNm: '', wintydiCd: '', mtrlCoNm: '',
   bftydiCd: '', sizCd: '', ctgr2Cd: '', bsmfOrdUtmCd: '',
+  dplcDcGrd: '',
   dblWindYn: '',
   w: null, h: null, qty: 1,
   w1: null, w2: null, w3: null, w4: null, w5: null,
@@ -384,6 +403,7 @@ const canSubmit = computed(
   () =>
     !!itgEstiNo.value && !!form.value.mdlCd && !!form.value.wintydiCd &&
     !!form.value.bsmfOrdUtmCd && !!form.value.sashOrdTypCd &&
+    !!form.value.dplcDcGrd &&
     !!form.value.w && !!form.value.h && !!form.value.qty &&
     !!form.value.screenType && !!form.value.ventLoc &&
     !!form.value.insdColrCd && !!form.value.insdSf &&
@@ -415,13 +435,16 @@ onMounted(async () => {
 async function loadEstimateStatus() {
   headerStatus.value = UNKNOWN_STATUS
   estimateStatus.value = UNKNOWN_STATUS
+  estimateHeader.value = {}
   if (!itgEstiNo.value) return
   try {
     const { data } = await selectEstiHeader(itgEstiNo.value)
     const header = data?.resultData || {}
+    estimateHeader.value = header
     headerStatus.value = resolveEffectiveStatus(header.stCd, header.igStCd)
     estimateStatus.value = headerStatus.value
   } catch (_) {
+    estimateHeader.value = {}
     headerStatus.value = UNKNOWN_STATUS
     estimateStatus.value = UNKNOWN_STATUS
   }
@@ -472,6 +495,7 @@ async function loadEditData() {
     bftydiCd: r.bftydiCd || '',
     sizCd: r.sizCd || '',
     ctgr2Cd: r.ctgr2Cd || '',
+    dplcDcGrd: r.dplcDcGrd || '',
     dblWindYn: r.dblWindYn || '',
     bsmfOrdUtmCd: r.bsmfOrdUtmCd || '',
     sashOrdTypCd: r.sashOrdTypCd || '',
@@ -654,6 +678,7 @@ async function loadEditData() {
     const savedEditValues = captureSashEditValues(form.value)
     await onModelPick({ ...r }, { preserveProductionOptions: true })
     restoreSashEditValues(form.value, savedEditValues)
+    if (r.dplcDcGrd) form.value.dplcDcGrd = r.dplcDcGrd
     applyProductionOptionRules()
     refreshDrawingFromCurrentSelection()
   }
@@ -690,7 +715,7 @@ async function loadWindEstimateAmount() {
 }
 
 async function loadMasters() {
-  const [colorRes, ventRes, screenRes, handleRes, aluMfHandleRes, ordRes, bsmfRes] = await Promise.all([
+  const [colorRes, ventRes, screenRes, handleRes, aluMfHandleRes, ordRes, bsmfRes, gradeRes] = await Promise.all([
     searchColorList(),
     searchCodeList('48'),
     searchCodeList('379'),
@@ -698,6 +723,7 @@ async function loadMasters() {
     searchCodeList('387'),
     searchSashOrdTypCd(),
     searchCodeList('405'),
+    searchCodeList('20'),
   ])
   colorList.value = normCd(colorRes.data?.resultList)
   ventAllList.value = normCd(ventRes.data?.resultList)
@@ -706,10 +732,37 @@ async function loadMasters() {
   aluMfHandleList.value = normalizeSafetyNetHandleOptions(normCd(aluMfHandleRes.data?.resultList))
   ordTypList.value = normCd(ordRes.data?.resultList).filter((c) => c.addInfo2 === 'Y')
   bsmfList.value = normCd(bsmfRes.data?.resultList)
+  discountGradeList.value = normCd(gradeRes.data?.resultList).filter((c) => c.commCdVal !== 'S')
   normalizeBsmfSelection()
   if (ordTypList.value.length && !form.value.sashOrdTypCd) {
     form.value.sashOrdTypCd = ordTypList.value[0].commCdId
   }
+  applyHeaderDiscountGrade()
+}
+
+function firstDiscountGradeValue() {
+  const first = discountGradeList.value[0]
+  return first ? (first.commCdVal || first.commCdId || '') : ''
+}
+
+function resolveHeaderDiscountGrade(row = {}) {
+  const header = estimateHeader.value || {}
+  const defaultGrade = firstValue(header, 'dplcDcGrd', 'dcGrd')
+  const pannelYn = firstValue(row, 'pannelYn', 'panelYn')
+  const mtrlCo = String(firstValue(row, 'mtrlCo') || pickedMdlMtrlCo.value || '').trim().toUpperCase()
+
+  if (isYnValue(pannelYn)) {
+    return firstValue(header, 'dplcDcGrdPannel', 'dcGrdPannel') || defaultGrade || firstDiscountGradeValue()
+  }
+  if (mtrlCo && mtrlCo !== 'CA' && mtrlCo !== 'HC') {
+    return firstValue(header, 'dplcDcGrdOtherComp', 'dcGrdOtherComp') || defaultGrade || firstDiscountGradeValue()
+  }
+  return defaultGrade || firstDiscountGradeValue()
+}
+
+function applyHeaderDiscountGrade(row = {}, { force = false } = {}) {
+  if (!force && form.value.dplcDcGrd) return
+  form.value.dplcDcGrd = resolveHeaderDiscountGrade(row)
 }
 
 // --- 모형 선택 ---
@@ -739,6 +792,7 @@ async function onModelPick(row, { preserveProductionOptions = false } = {}) {
   const resolvedBsmf = resolveBsmfOrdUtmCd(row, bsmfList.value)
   if (resolvedBsmf || !form.value.bsmfOrdUtmCd) form.value.bsmfOrdUtmCd = resolvedBsmf
   pickedMdlMtrlCo.value = row.mtrlCo || ''
+  if (!preserveProductionOptions) applyHeaderDiscountGrade(row, { force: true })
 
   await loadWintydiData(row)
   clearSizeFields()
@@ -1456,6 +1510,7 @@ async function submit({ asNewSeq = false } = {}) {
   if (!form.value.wintydiCd) return failSubmit('창형태를 선택하세요')
   if (!form.value.bsmfOrdUtmCd) return failSubmit('틀짝망을 선택하세요')
   if (!form.value.sashOrdTypCd) return failSubmit('발주구분을 선택하세요')
+  if (!form.value.dplcDcGrd) return failSubmit('할인등급을 선택하세요')
   if (!form.value.w || !form.value.h) return failSubmit('W/H 사이즈를 입력하세요')
   if (!form.value.qty || form.value.qty < 1) return failSubmit('수량을 1 이상 입력하세요')
   if (form.value.alGlass && !alGlassEnabled.value) return failSubmit('알유리견적을 선택할 수 없는 모형입니다')
@@ -1623,6 +1678,7 @@ function validateStandardModelSpec() {
   const spec = form.value.standardSpec || {}
 
   if (spec.wintydiCd && spec.wintydiCd !== form.value.wintydiCd) return '창형태를 규격사양으로 선택하세요'
+  if (spec.dplcDcGrd && spec.dplcDcGrd !== form.value.dplcDcGrd) return '할인등급을 다시 선택하세요'
   if (spec.wSize && String(spec.wSize) !== String(form.value.w)) return 'W치수를 규격사양으로 입력하세요'
   if (spec.hSize && String(spec.hSize) !== String(form.value.h)) return 'H치수를 규격사양으로 입력하세요'
   if (spec.bsmfOrdUtmCd && spec.bsmfOrdUtmCd !== form.value.bsmfOrdUtmCd) return '틀짝망을 규격사양으로 선택하세요'

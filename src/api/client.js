@@ -10,3 +10,13 @@ export function searchClientList(payload) {
 export function saveClient(payload) {
   return http.post('/mobile/dplc/save', payload)
 }
+
+// 거래처 중복 체크 — 기존 BzpcDplcMngService.searchBzpcDplcCntAjax 위임
+export function checkClientDuplicate(payload) {
+  return http.post('/mobile/dplc/duplicate-count', payload)
+}
+
+// 거래처 할인등급 옵션 — 웹 selectAllDplcDcGrdLimit과 동일한 resultList/resultListCross 구조
+export function searchClientGradeOptions(payload = {}) {
+  return http.post('/mobile/dplc/grade-options', payload)
+}

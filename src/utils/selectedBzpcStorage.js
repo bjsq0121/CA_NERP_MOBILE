@@ -5,6 +5,10 @@ export function normalizeSelectedBzpc(value) {
   return {
     bzpc: String(value.bzpc),
     bzpcNm: value.bzpcNm || '',
+    vkbur: value.vkbur || '',
+    vkburNm: value.vkburNm || '',
+    vkgrp: value.vkgrp || '',
+    vkgrpNm: value.vkgrpNm || '',
   }
 }
 

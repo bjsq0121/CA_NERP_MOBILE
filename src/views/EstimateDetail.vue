@@ -39,6 +39,13 @@
           <span v-if="header.estiVldDt">유효 {{ formatDate(header.estiVldDt) }}</span>
         </div>
 
+        <div class="estimate-grade-summary grade-row">
+          <div v-for="item in headerGradeItems" :key="item.label" class="grade-item">
+            <span class="grade-label">{{ item.label }}</span>
+            <span class="grade-value">{{ item.value || '-' }}</span>
+          </div>
+        </div>
+
         <div class="summary-amounts">
           <div>
             <span>공급가</span>
@@ -83,7 +90,7 @@
             :size-text="buildSize(row)"
             :qty-text="buildSashMeta(row).qtyText"
             :color-text="buildColor(row)"
-            :bsmf-text="buildSashMeta(row).bsmfText"
+            :bsmf-text="buildBsmfText(row)"
             :option-chips="buildListOptionChips(row)"
             :total-text="fmtPrice(rowTotal(row))"
             @select="selectSash(row)"
@@ -216,14 +223,24 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { selectEstiHeader, searchCodeList, searchModelList, searchSashList, selectSashDetail, issueEstiNo } from '../api/estimate'
+import {
+  selectEstiHeader,
+  searchCodeList,
+  searchColorList,
+  searchGlasList,
+  searchModelList,
+  searchModelSf,
+  searchModelWintydi,
+  searchSashList,
+  selectSashDetail,
+  issueEstiNo,
+} from '../api/estimate'
 import SashDetailPanel from '../components/SashDetailPanel.vue'
 import SashListCard from '../components/SashListCard.vue'
 import {
   buildSashDrawingUrl,
   buildSashMeta,
   buildSashModelText,
-  buildSashScreenText,
   mergeSashDetailRow,
   mergeSashDrawingFiles,
   normalizeSashRows,
@@ -240,6 +257,11 @@ const wEstiNo = ref('')
 const sashRows = ref([])
 const glassRows = ref([])
 const screenList = ref([])
+const ventList = ref([])
+const colorList = ref([])
+const bsmfList = ref([])
+const handleList = ref([])
+const sashPanelNameMaps = ref({})
 const loading = ref(false)
 const issuing = ref(false)
 const openingSash = ref(false)
@@ -257,6 +279,19 @@ const categoryTotals = computed(() => ({
   sash: sumRows(sashRows.value).total,
   glass: sumRows(glassRows.value).total,
 }))
+const headerGradeItems = computed(() => {
+  const h = header.value || {}
+  return [
+    { label: '샤시', value: formatGradeValue(h, 'dplcDcGrd', 'dplcDcGrdNm') },
+    { label: '도어', value: formatGradeValue(h, 'dplcDcGrdDoor', 'dplcDcGrdDoorNm') },
+    { label: '판넬', value: formatGradeValue(h, 'dplcDcGrdPannel', 'dplcDcGrdPannelNm') },
+    { label: '타사', value: formatGradeValue(h, 'dplcDcGrdOtherComp', 'dplcDcGrdOtherCompNm') },
+    { label: '알유리', value: formatGradeValue(h, 'dplcDcGrdGlas', 'dplcDcGrdGlasNm') },
+    { label: '몰딩', value: formatGradeValue(h, 'dplcDcGrdMold', 'dplcDcGrdMoldNm') },
+    { label: '유통자재', value: formatGradeValue(h, 'dplcDcGrdDtbtMtrl', 'dplcDcGrdDtbtMtrlNm') },
+    { label: '유통상품', value: formatGradeValue(h, 'dplcDcGrdDtbtGoods', 'dplcDcGrdDtbtGoodsNm') },
+  ]
+})
 const selectedSashRow = computed(() =>
   sashRows.value.find((row) => sashRowKey(row) === selectedSashKey.value) || sashRows.value[0] || null
 )
@@ -288,6 +323,13 @@ function formatDate(s) {
 }
 function formatDt(s) { return s ? String(s).slice(0, 10) : '' }
 function fmtPrice(v) { return Number(v || 0).toLocaleString() }
+
+function formatGradeValue(row, codeKey, nameKey) {
+  const code = firstText(row?.[codeKey])
+  const name = firstText(row?.[nameKey])
+  if (name && name !== code) return name
+  return code || '-'
+}
 
 function amountNumber(...values) {
   for (const value of values) {
@@ -349,10 +391,10 @@ function buildSize(row) {
 }
 
 function buildColor(row) {
-  const base = firstText(row.crtnColrNm, row.crtnColrCd)
-  const inside = firstText(row.insdColrNm, row.insdColrCd)
-  const outside = firstText(row.ousdColrNm, row.ousdColrCd)
-  const fallback = firstText(row.color, row.colrNm, row.colrCd)
+  const base = resolveNamedSpec({ row, nameKeys: ['crtnColrNm'], codeKeys: ['crtnColrCd'], lists: [colorList.value] })
+  const inside = resolveNamedSpec({ row, nameKeys: ['insdColrNm'], codeKeys: ['insdColrCd'], lists: [colorList.value] })
+  const outside = resolveNamedSpec({ row, nameKeys: ['ousdColrNm'], codeKeys: ['ousdColrCd'], lists: [colorList.value] })
+  const fallback = resolveNamedSpec({ row, nameKeys: ['color', 'colrNm'], codeKeys: ['colrCd'], lists: [colorList.value] })
   const parts = []
   if (base && base !== '-') parts.push(`기준 ${base}`)
   if (inside && outside && inside !== outside) parts.push(`내 ${inside}/외 ${outside}`)
@@ -376,6 +418,121 @@ function firstText(...values) {
   return value == null ? '' : String(value)
 }
 
+function normalizeDisplayCodeList(rows = []) {
+  return rows.map((row) => {
+    const summaryCode = firstText(
+      row.summaryCode,
+      row.commCdId,
+      row.commCdVal,
+      row.colrCd,
+      row.wintydiCd,
+      row.mtrlProdCd,
+      row.mtrlCd,
+      row.glasCd,
+      row.cd,
+      row.code,
+      row.value,
+      row.id
+    )
+    const summaryName = firstText(
+      row.summaryName,
+      row.commCdNm,
+      row.colrNm,
+      row.wintydiNm,
+      row.mtrlProdCdNm,
+      row.mtrlProdNm,
+      row.mtrlCdNm,
+      row.mtrlNm,
+      row.glasNm,
+      row.cdNm,
+      row.codeNm,
+      row.name,
+      row.label,
+      row.text
+    )
+    return {
+      ...row,
+      summaryCode,
+      summaryName,
+      commCdId: row.commCdId || summaryCode,
+      commCdNm: row.commCdNm || summaryName,
+    }
+  })
+}
+
+function normalizedText(value) {
+  return String(value ?? '').trim()
+}
+
+function sameText(leftValue, rightValue) {
+  return normalizedText(leftValue) !== '' && normalizedText(leftValue) === normalizedText(rightValue)
+}
+
+function itemCode(item = {}) {
+  return firstText(item.summaryCode, item.commCdId, item.commCdVal)
+}
+
+function itemName(item = {}) {
+  return firstText(item.summaryName, item.commCdNm, item.addInfo1)
+}
+
+function collectKnownCodes(lists = []) {
+  return lists.flat().map(itemCode).filter(Boolean).map(String)
+}
+
+function looksLikeRawCode(value, knownCodes = []) {
+  const text = normalizedText(value)
+  if (!text) return false
+  if (knownCodes.map(String).includes(text)) return true
+  if (/^(Y|N|TRUE|FALSE)$/i.test(text)) return true
+  if (/^R\d+$/i.test(text)) return true
+  if (/^\d{1,4}$/.test(text)) return true
+  if (/^[A-Z]{0,5}\d{1,6}[A-Z0-9_-]*$/i.test(text)) return true
+  if (/^[A-Z0-9]{1,5}[-_][A-Z0-9_-]+$/i.test(text)) return true
+  return false
+}
+
+function findCodeName(lists = [], value) {
+  const code = normalizedText(value)
+  if (!code) return ''
+  for (const list of lists.filter(Array.isArray)) {
+    const matched = list.find((item) => sameText(itemCode(item), code))
+    const name = itemName(matched)
+    if (name && !sameText(name, code) && !looksLikeRawCode(name, [code])) return name
+  }
+  return ''
+}
+
+function isKnownCode(lists = [], value) {
+  const code = normalizedText(value)
+  if (!code) return false
+  return lists.filter(Array.isArray).some((list) => list.some((item) => sameText(itemCode(item), code)))
+}
+
+function resolveNamedSpec({ row = {}, nameKeys = [], codeKeys = [], lists = [], allowCodeFallback = false, codeLabels = {} } = {}) {
+  const code = firstText(...codeKeys.map((key) => row[key]))
+  const savedName = firstText(...nameKeys.map((key) => row[key]))
+  const safeLists = lists.filter(Array.isArray)
+  const knownCodes = collectKnownCodes(safeLists)
+
+  if (code) {
+    const mappedName = findCodeName(safeLists, code)
+    if (mappedName) return mappedName
+    if (codeLabels[code]) return codeLabels[code]
+  }
+
+  if (savedName) {
+    if (!sameText(savedName, code) && !isKnownCode(safeLists, savedName) && !looksLikeRawCode(savedName, [code, ...knownCodes])) {
+      return savedName
+    }
+    const remappedName = findCodeName(safeLists, savedName)
+    if (remappedName) return remappedName
+    if (codeLabels[savedName]) return codeLabels[savedName]
+  }
+
+  return allowCodeFallback ? code : ''
+}
+
 function isYnValue(value) {
   return String(value || '').toUpperCase() === 'Y'
 }
@@ -394,7 +551,52 @@ function addItem(items, label, value) {
 }
 
 function buildWindowTypeText(row) {
-  return firstText(row.wintydiNm, row.wintydiName, row.wintydiCd, '-')
+  const modelCode = firstText(row.mdlCd, row.modelCd)
+  const code = firstText(row.wintydiCd)
+  const map = sashPanelNameMaps.value.wintydiNameMap || {}
+  const mappedName = firstText(map[`${modelCode}::${code}`], map[code])
+  if (mappedName && !looksLikeRawCode(mappedName, [code])) return mappedName
+  const savedName = firstText(row.wintydiNm, row.wintydiName)
+  if (savedName && !sameText(savedName, code) && !looksLikeRawCode(savedName, [code])) return savedName
+  return '-'
+}
+
+function getWintydiInfo(row = {}) {
+  const modelCode = firstText(row.mdlCd, row.modelCd)
+  const code = firstText(row.wintydiCd)
+  const map = sashPanelNameMaps.value.wintydiInfoMap || {}
+  return map[`${modelCode}::${code}`] || map[code] || {}
+}
+
+function isSingleWindow(row = {}) {
+  const info = getWintydiInfo(row)
+  const sfWinCnt = firstText(row.sfWinCnt, row.wintydiSfWinCnt, info.sfWinCnt, info.addInfo4)
+  const sfWinCntText = sfWinCnt.toUpperCase()
+  const dblWindYn = firstText(row.dblWindYn, row.doubleWindowYn).toUpperCase()
+  const windowTypeText = firstText(buildWindowTypeText(row), row.wintydiNm, row.wintydiName)
+
+  if (dblWindYn === 'N') return true
+  if (dblWindYn === 'Y') return false
+  if (sfWinCntText === '4W' || sfWinCntText === '4') return false
+  if (/^[123]W?$/.test(sfWinCntText)) return true
+  if (windowTypeText.includes('단창')) return true
+  return false
+}
+
+function shouldShowSfOutside(row = {}) {
+  if (isSingleWindow(row)) return false
+  const info = getWintydiInfo(row)
+  const sfWinCnt = firstText(row.sfWinCnt, row.wintydiSfWinCnt, info.sfWinCnt, info.addInfo4).toUpperCase()
+  if (sfWinCnt === '4W' || sfWinCnt === '4') return true
+
+  const maps = sashPanelNameMaps.value
+  const outsideName = resolveNamedSpec({
+    row,
+    nameKeys: ['ousdSfNm', 'ousdSfMtrlNm', 'sfOutMatNm'],
+    codeKeys: ['ousdSf', 'ousdSfMtrlCd', 'sfOutMatCd'],
+    lists: [maps.sfOutMaterialList, maps.materialList],
+  })
+  return Boolean(outsideName)
 }
 
 function buildOrderTypeText(row) {
@@ -402,13 +604,37 @@ function buildOrderTypeText(row) {
 }
 
 function buildVentText(row) {
-  return firstText(row.ventLocNm, row.ventLocName, row.ventLoc, '-')
+  return resolveNamedSpec({
+    row,
+    nameKeys: ['ventLocNm', 'ventLocName'],
+    codeKeys: ['ventLoc'],
+    lists: [ventList.value],
+  }) || '-'
+}
+
+function buildScreenText(row) {
+  return resolveNamedSpec({
+    row,
+    nameKeys: ['screenTypeNm', 'screenTypeName', 'SCREEN_TYPE_NM', 'screenNm'],
+    codeKeys: ['screenType', 'screen', 'screenCd', 'mfScreenType', 'SCREEN_TYPE'],
+    lists: [screenList.value],
+  }) || '-'
+}
+
+function buildBsmfText(row) {
+  const metaText = buildSashMeta(row).bsmfText
+  return resolveNamedSpec({
+    row,
+    nameKeys: ['bsmfOrdUtmNm', 'bsmfNm', 'bsmfOrdUtmCdNm'],
+    codeKeys: ['bsmfOrdUtmCd', 'bsmfCd'],
+    lists: [bsmfList.value],
+  }) || (looksLikeRawCode(metaText) ? '-' : metaText)
 }
 
 function buildCustomerOptionChips(row) {
   const chips = []
   const vent = buildVentText(row)
-  const screen = buildSashScreenText(row, screenList.value)
+  const screen = buildScreenText(row)
   if (vent && vent !== '-') chips.push(`VENT ${vent}`)
   if (screen && screen !== '-') chips.push(screen)
   if (isYnValue(row.glasStdalYn)) chips.push('알유리')
@@ -423,7 +649,7 @@ function buildCustomerOptionChips(row) {
 function buildListOptionChips(row) {
   const chips = []
   const vent = buildVentText(row)
-  const screen = buildSashScreenText(row, screenList.value)
+  const screen = buildScreenText(row)
   if (vent && vent !== '-') chips.push(`VENT ${vent}`)
   if (screen && screen !== '-') chips.push(screen)
   if (isYnValue(row.glasStdalYn)) chips.push('알유리')
@@ -434,7 +660,7 @@ function buildListOptionChips(row) {
 function buildCustomerConfirmItems(row) {
   const items = []
   addItem(items, 'VENT', buildVentText(row))
-  addItem(items, '스크린', buildSashScreenText(row, screenList.value))
+  addItem(items, '스크린', buildScreenText(row))
   addItem(items, '알유리', yesNo(row.glasStdalYn))
   addItem(items, '안전망', yesNo(row.aluMfYn))
   addItem(items, '실리콘 마감', yesNoAny(row.slcnFnshYn, row.bfSlcnFnshYn))
@@ -462,16 +688,25 @@ function buildSizeDetailItems(row) {
 
 function buildMaterialHardwareItems(row) {
   const items = []
-  addItem(items, 'SF 내', firstText(row.insdSfNm, row.insdSfMtrlNm, row.insdSf))
-  addItem(items, 'SF 외', firstText(row.ousdSfNm, row.ousdSfMtrlNm, row.ousdSf))
-  addItem(items, 'BF 내', firstText(row.insdBfNm, row.insdBfMtrlNm, row.insdBf))
-  addItem(items, 'BF 외', firstText(row.ousdBfNm, row.ousdBfMtrlNm, row.ousdBf))
-  addItem(items, 'SF 유리 내', firstText(row.insdSfGlasMtrlNm, row.mtrlCds1Nm, row.mtrlCds1))
-  addItem(items, 'SF 유리 외', firstText(row.ousdSfGlasMtrlNm, row.mtrlCds2Nm, row.mtrlCds2))
-  addItem(items, 'BF 유리 내', firstText(row.insdBfGlasMtrlNm, row.mtrlCds3Nm, row.mtrlCds3))
-  addItem(items, 'BF 유리 외', firstText(row.ousdBfGlasMtrlNm, row.mtrlCds4Nm, row.mtrlCds4))
-  addItem(items, '내부 핸들', firstText(row.hdlInsd, row.insdHandleTypeNm, row.insdHandleType))
-  addItem(items, '외부 핸들', firstText(row.hdlOusd, row.ousdHandleTypeNm, row.ousdHandleType))
+  const maps = sashPanelNameMaps.value
+  const showSfOutside = shouldShowSfOutside(row)
+  const showOutsideGlass = !isSingleWindow(row)
+  addItem(items, 'SF 내', resolveNamedSpec({ row, nameKeys: ['insdSfNm', 'insdSfMtrlNm', 'sfMatNm'], codeKeys: ['insdSf', 'insdSfMtrlCd', 'sfMatCd'], lists: [maps.sfInMaterialList, maps.materialList] }))
+  if (showSfOutside) {
+    addItem(items, 'SF 외', resolveNamedSpec({ row, nameKeys: ['ousdSfNm', 'ousdSfMtrlNm', 'sfOutMatNm'], codeKeys: ['ousdSf', 'ousdSfMtrlCd', 'sfOutMatCd'], lists: [maps.sfOutMaterialList, maps.materialList] }))
+  }
+  addItem(items, 'BF 내', resolveNamedSpec({ row, nameKeys: ['insdBfNm', 'insdBfMtrlNm', 'bfMatNm'], codeKeys: ['insdBf', 'insdBfMtrlCd', 'bfMatCd'], lists: [maps.bfInMaterialList, maps.materialList] }))
+  addItem(items, 'BF 외', resolveNamedSpec({ row, nameKeys: ['ousdBfNm', 'ousdBfMtrlNm', 'bfOutMatNm'], codeKeys: ['ousdBf', 'ousdBfMtrlCd', 'bfOutMatCd'], lists: [maps.bfOutMaterialList, maps.materialList] }))
+  addItem(items, 'SF 유리 내', resolveNamedSpec({ row, nameKeys: ['insdSfGlasMtrlNm', 'insdSfGlasNm', 'mtrlCds1Nm'], codeKeys: ['mtrlCds1', 'insdSfGlasMtrlCd', 'insdSfGlasCd', 'sfGlasCd'], lists: [maps.sfInGlassList, maps.glassList] }))
+  if (showOutsideGlass) {
+    addItem(items, 'SF 유리 외', resolveNamedSpec({ row, nameKeys: ['ousdSfGlasMtrlNm', 'ousdSfGlasNm', 'mtrlCds2Nm'], codeKeys: ['mtrlCds2', 'ousdSfGlasMtrlCd', 'ousdSfGlasCd', 'sfOutGlasCd'], lists: [maps.sfOutGlassList, maps.glassList] }))
+  }
+  addItem(items, 'BF 유리 내', resolveNamedSpec({ row, nameKeys: ['insdBfGlasMtrlNm', 'insdBfGlasNm', 'mtrlCds3Nm'], codeKeys: ['mtrlCds3', 'insdBfGlasMtrlCd', 'insdBfGlasCd', 'bfGlasCd'], lists: [maps.bfInGlassList, maps.glassList] }))
+  if (showOutsideGlass) {
+    addItem(items, 'BF 유리 외', resolveNamedSpec({ row, nameKeys: ['ousdBfGlasMtrlNm', 'ousdBfGlasNm', 'mtrlCds4Nm'], codeKeys: ['mtrlCds4', 'ousdBfGlasMtrlCd', 'ousdBfGlasCd', 'bfOutGlasCd'], lists: [maps.bfOutGlassList, maps.glassList] }))
+  }
+  addItem(items, '내부 핸들', resolveNamedSpec({ row, nameKeys: ['hdlInsd', 'insdHandleTypeNm'], codeKeys: ['insdHandleType'], lists: [handleList.value], codeLabels: { '2': '일반', '4': '없음' } }))
+  addItem(items, '외부 핸들', resolveNamedSpec({ row, nameKeys: ['hdlOusd', 'ousdHandleTypeNm'], codeKeys: ['ousdHandleType'], lists: [handleList.value], codeLabels: { '2': '일반', '4': '없음' } }))
   addItem(items, '핸들높이', firstText(row.insdHndlH, row.ousdHndlH, row.insd2FHndlH, row.ousd2FHndlH))
   addItem(items, '브래킷', firstText(row.insdBrcktH, row.ousdBrcktH, row.insd2FBrcktH, row.ousd2FBrcktH))
   return items
@@ -565,7 +800,113 @@ function handleSashImageError(row) {
 }
 
 function normalizeCodeList(rows = []) {
-  return rows.map((row) => ({ ...row, commCdId: row.commCdId || row.commCdVal }))
+  return normalizeDisplayCodeList(rows)
+}
+
+async function loadSashPanelNameMaps(rows = []) {
+  const modelCodes = [...new Set(rows.map((row) => firstText(row.mdlCd, row.modelCd)).filter(Boolean))]
+  const sfSlots = {
+    sfInMaterialList: [],
+    sfOutMaterialList: [],
+    bfInMaterialList: [],
+    bfOutMaterialList: [],
+  }
+  const sfResults = await Promise.all(modelCodes.map(async (mdlCd) => {
+    try {
+      const { data } = await searchModelSf(mdlCd)
+      const sfIn = data?.insdSf || data?.resultList || []
+      const sfOut = data?.ousdSf || data?.resultList3 || []
+      const bfIn = data?.insdBf || data?.resultList5 || []
+      const bfOut = data?.ousdBf || data?.resultList7 || []
+      sfSlots.sfInMaterialList.push(...sfIn)
+      sfSlots.sfOutMaterialList.push(...sfOut)
+      sfSlots.bfInMaterialList.push(...bfIn)
+      sfSlots.bfOutMaterialList.push(...bfOut)
+      return [...sfIn, ...sfOut, ...bfIn, ...bfOut]
+    } catch (_) {
+      return []
+    }
+  }))
+
+  const glassSlots = {
+    sfInGlassList: [],
+    sfOutGlassList: [],
+    bfInGlassList: [],
+    bfOutGlassList: [],
+  }
+  const glassResults = await Promise.all(rows.map(async (row) => {
+    const mdlCd = firstText(row.mdlCd, row.modelCd)
+    if (!mdlCd) return []
+    try {
+      const { data } = await searchGlasList({
+        searchMdlCd: mdlCd,
+        searchItgEstiNo: itgEstiNo,
+        searchEstiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+        searchEstiNos: row.estiNos || '1',
+        searchEstiSeq: row.estiSeq,
+      })
+      const sfIn = data?.resultList || []
+      const sfOut = data?.resultList3 || []
+      const bfIn = data?.resultList5 || []
+      const bfOut = data?.resultList7 || []
+      glassSlots.sfInGlassList.push(...sfIn)
+      glassSlots.sfOutGlassList.push(...sfOut)
+      glassSlots.bfInGlassList.push(...bfIn)
+      glassSlots.bfOutGlassList.push(...bfOut)
+      return [...sfIn, ...sfOut, ...bfIn, ...bfOut]
+    } catch (_) {
+      return []
+    }
+  }))
+
+  const wintydiEntries = await Promise.all(modelCodes.map(async (mdlCd) => {
+    try {
+      const { data } = await searchModelWintydi(mdlCd)
+      return [mdlCd, normalizeDisplayCodeList(data?.resultList || [])]
+    } catch (_) {
+      return [mdlCd, []]
+    }
+  }))
+  const wintydiNameMap = {}
+  const wintydiInfoMap = {}
+  for (const [mdlCd, list] of wintydiEntries) {
+    for (const item of list) {
+      const code = itemCode(item)
+      const name = itemName(item)
+      if (!code) continue
+      const info = { ...item, sfWinCnt: firstText(item.sfWinCnt, item.addInfo4) }
+      wintydiInfoMap[`${mdlCd}::${code}`] = info
+      if (!wintydiInfoMap[code]) wintydiInfoMap[code] = info
+      if (!name) continue
+      wintydiNameMap[`${mdlCd}::${code}`] = name
+      if (!wintydiNameMap[code]) wintydiNameMap[code] = name
+    }
+  }
+
+  return {
+    materialList: uniqueCodeList(sfResults.flat()),
+    glassList: uniqueCodeList(glassResults.flat()),
+    wintydiNameMap,
+    wintydiInfoMap,
+    sfInMaterialList: uniqueCodeList(sfSlots.sfInMaterialList),
+    sfOutMaterialList: uniqueCodeList(sfSlots.sfOutMaterialList),
+    bfInMaterialList: uniqueCodeList(sfSlots.bfInMaterialList),
+    bfOutMaterialList: uniqueCodeList(sfSlots.bfOutMaterialList),
+    sfInGlassList: uniqueCodeList(glassSlots.sfInGlassList),
+    sfOutGlassList: uniqueCodeList(glassSlots.sfOutGlassList),
+    bfInGlassList: uniqueCodeList(glassSlots.bfInGlassList),
+    bfOutGlassList: uniqueCodeList(glassSlots.bfOutGlassList),
+  }
+}
+
+function uniqueCodeList(rows = []) {
+  const seen = new Map()
+  for (const item of normalizeDisplayCodeList(rows)) {
+    const code = itemCode(item)
+    if (!code || seen.has(code)) continue
+    seen.set(code, item)
+  }
+  return Array.from(seen.values())
 }
 
 async function hydrateSashDetailRows(rows) {
@@ -618,16 +959,41 @@ onMounted(async () => {
 
     if (header.value) {
       try {
-        const [{ data: sashData }, { data: screenData }] = await Promise.all([
+        const [
+          { data: sashData },
+          { data: screenData },
+          { data: ventData },
+          { data: colorData },
+          { data: bsmfData },
+          { data: handleData },
+          { data: safetyHandleData },
+        ] = await Promise.all([
           searchSashList({ itgEstiNo, estiNo: wEstiNo.value }),
           searchCodeList('379'),
+          searchCodeList('48'),
+          searchColorList(),
+          searchCodeList('405'),
+          searchCodeList('378'),
+          searchCodeList('387'),
         ])
         screenList.value = normalizeCodeList(screenData?.resultList || [])
+        ventList.value = normalizeCodeList(ventData?.resultList || [])
+        colorList.value = normalizeCodeList(colorData?.resultList || [])
+        bsmfList.value = normalizeCodeList(bsmfData?.resultList || [])
+        handleList.value = normalizeCodeList([
+          ...(handleData?.resultList || []),
+          ...(safetyHandleData?.resultList || []),
+        ])
         const rows = normalizeSashRows(sashData)
         glassRows.value = rows.filter(isGlassEstimateRow)
         const sashOnlyRows = rows.filter((row) => !isGlassEstimateRow(row))
         const detailRows = await hydrateSashDetailRows(sashOnlyRows)
-        sashRows.value = await hydrateSashDrawingFiles(detailRows)
+        const [drawingRows, panelNameMaps] = await Promise.all([
+          hydrateSashDrawingFiles(detailRows),
+          loadSashPanelNameMaps(detailRows),
+        ])
+        sashPanelNameMaps.value = panelNameMaps
+        sashRows.value = drawingRows
         if (!selectedSashKey.value && sashRows.value.length) selectedSashKey.value = sashRowKey(sashRows.value[0])
       } catch (e) {
         sashRows.value = []

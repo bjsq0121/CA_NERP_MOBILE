@@ -57,6 +57,27 @@
           <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
         </div>
 
+        <div
+          v-if="buildGradeChips(row).length || buildCrossGradeChips(row).length"
+          class="estimate-card-grades"
+        >
+          <span class="estimate-grade-label">할인등급</span>
+          <span
+            v-for="chip in buildGradeChips(row)"
+            :key="chip.label"
+            class="estimate-grade-chip"
+          >
+            {{ chip.label }} {{ chip.value }}
+          </span>
+          <span
+            v-for="chip in buildCrossGradeChips(row)"
+            :key="`cross-${chip.label}`"
+            class="estimate-grade-chip estimate-grade-chip-soft"
+          >
+            크로스 {{ chip.label }} {{ chip.value }}
+          </span>
+        </div>
+
         <div class="estimate-card-foot">
           <div class="estimate-card-dates">
             <span>등록 {{ formatDt(row.inputDtm) }}</span>
@@ -85,7 +106,7 @@ const router = useRouter()
 function goDetail(row) {
   if (row?.itgEstiNo) router.push(`/estimates/${row.itgEstiNo}`)
 }
-const selectedBzpc = ref({ bzpc: '', bzpcNm: '' })
+const selectedBzpc = ref({ bzpc: '', bzpcNm: '', vkbur: '', vkgrp: '' })
 const startDate = ref(daysAgo(1))
 const endDate = ref(today())
 const keyword = ref('')
@@ -118,9 +139,45 @@ function formatEstimateAmount(row = {}) {
   return amount ? `${amount.toLocaleString()}원` : '-'
 }
 
+function gradeValue(row, nameKey, codeKey) {
+  const name = String(row?.[nameKey] ?? '').trim()
+  const code = String(row?.[codeKey] ?? '').trim()
+  if (name && name !== code) return name
+  return code
+}
+
+function buildGradeChips(row = {}) {
+  return [
+    { label: '샤시', value: gradeValue(row, 'dplcDcGrdNm', 'dplcDcGrd') },
+    { label: '도어', value: gradeValue(row, 'dplcDcGrdDoorNm', 'dplcDcGrdDoor') },
+    { label: '알유리', value: gradeValue(row, 'dplcDcGrdGlasNm', 'dplcDcGrdGlas') },
+    { label: '몰딩', value: gradeValue(row, 'dplcDcGrdMoldNm', 'dplcDcGrdMold') },
+    { label: '판넬', value: gradeValue(row, 'dplcDcGrdPannelNm', 'dplcDcGrdPannel') },
+    { label: '타사', value: gradeValue(row, 'dplcDcGrdOtherCompNm', 'dplcDcGrdOtherComp') },
+    { label: '유통자재', value: gradeValue(row, 'dplcDcGrdDtbtMtrlNm', 'dplcDcGrdDtbtMtrl') },
+    { label: '유통상품', value: gradeValue(row, 'dplcDcGrdDtbtGoodsNm', 'dplcDcGrdDtbtGoods') },
+  ].filter((chip) => chip.value)
+}
+
+function buildCrossGradeChips(row = {}) {
+  return [
+    { label: '도어', value: gradeValue(row, 'dplcDcGrdDoorCrNm', 'dplcDcGrdDoorCr') },
+    { label: '몰딩', value: gradeValue(row, 'dplcDcGrdMoldCrNm', 'dplcDcGrdMoldCr') },
+    { label: '유통자재', value: gradeValue(row, 'dplcDcGrdDtbtMtrlCrNm', 'dplcDcGrdDtbtMtrlCr') },
+    { label: '유통상품', value: gradeValue(row, 'dplcDcGrdDtbtGoodsCrNm', 'dplcDcGrdDtbtGoodsCr') },
+  ].filter((chip) => chip.value)
+}
+
 onMounted(() => {
   if (!auth.isAdmin && auth.bzpc) {
-    selectedBzpc.value = { bzpc: auth.bzpc, bzpcNm: auth.bzpcNm }
+    selectedBzpc.value = {
+      bzpc: auth.bzpc,
+      bzpcNm: auth.bzpcNm,
+      vkbur: auth.vkbur,
+      vkburNm: auth.vkburNm,
+      vkgrp: auth.vkgrp,
+      vkgrpNm: auth.vkgrpNm,
+    }
     search()
     return
   }

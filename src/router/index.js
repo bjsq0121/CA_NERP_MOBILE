@@ -15,6 +15,7 @@ const routes = [
   // 거래처
   { path: '/clients', component: () => import('../views/ClientList.vue') },
   { path: '/clients/new', component: () => import('../views/ClientNew.vue') },
+  { path: '/clients/:dplcCd/edit', component: () => import('../views/ClientEdit.vue') },
 ]
 
 const router = createRouter({

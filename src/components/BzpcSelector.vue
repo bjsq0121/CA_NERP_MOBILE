@@ -65,16 +65,43 @@ const filtered = computed(() => {
   return list.value.filter((r) => (r.bzpcNm || '').toLowerCase().includes(k) || (r.bzpc || '').toLowerCase().includes(k))
 })
 
+function normalizeBzpcSelection(row = {}) {
+  return {
+    bzpc: row.bzpc || '',
+    bzpcNm: row.bzpcNm || '',
+    vkbur: row.vkbur || '',
+    vkburNm: row.vkburNm || '',
+    vkgrp: row.vkgrp || '',
+    vkgrpNm: row.vkgrpNm || '',
+  }
+}
+
 onMounted(() => {
   if (!auth.isAdmin && auth.bzpc && !props.modelValue?.bzpc) {
-    emit('update:modelValue', { bzpc: auth.bzpc, bzpcNm: auth.bzpcNm })
+    emit('update:modelValue', normalizeBzpcSelection({
+      bzpc: auth.bzpc,
+      bzpcNm: auth.bzpcNm,
+      vkbur: auth.vkbur,
+      vkburNm: auth.user?.vkburNm || '',
+      vkgrp: auth.vkgrp,
+      vkgrpNm: auth.user?.vkgrpNm || '',
+    }))
   }
 })
 
 watch(
   () => auth.user,
   () => {
-    if (!auth.isAdmin && auth.bzpc) emit('update:modelValue', { bzpc: auth.bzpc, bzpcNm: auth.bzpcNm })
+    if (!auth.isAdmin && auth.bzpc) {
+      emit('update:modelValue', normalizeBzpcSelection({
+        bzpc: auth.bzpc,
+        bzpcNm: auth.bzpcNm,
+        vkbur: auth.vkbur,
+        vkburNm: auth.user?.vkburNm || '',
+        vkgrp: auth.vkgrp,
+        vkgrpNm: auth.user?.vkgrpNm || '',
+      }))
+    }
   }
 )
 
@@ -96,7 +123,7 @@ async function open() {
 }
 
 function pick(row) {
-  emit('update:modelValue', { bzpc: row.bzpc, bzpcNm: row.bzpcNm })
+  emit('update:modelValue', normalizeBzpcSelection(row))
   visible.value = false
 }
 </script>
