@@ -41,9 +41,27 @@ test('SashNew applies editable header category discount grade before sash save',
   assert.match(source, /dcGrdOtherComp/)
   assert.match(source, /!!form\.value\.dplcDcGrd/)
   assert.match(source, /if \(!form\.value\.dplcDcGrd\) return failSubmit\('할인등급을 선택하세요'\)/)
+  assert.match(source, /if \(form\.value\.dplcDcGrd === 'S'\) return failSubmit\('S등급은 샤시 견적 저장이 불가합니다\. 견적헤더 할인등급을 수정하세요\.'\)/)
   assert.match(source, /dplcDcGrd:\s*r\.dplcDcGrd/)
   assert.match(source, /if \(r\.dplcDcGrd\) form\.value\.dplcDcGrd = r\.dplcDcGrd/)
   assert.match(source, /if \(spec\.dplcDcGrd && spec\.dplcDcGrd !== form\.value\.dplcDcGrd\) return '할인등급을 다시 선택하세요'/)
+})
+
+test('SashNew verifies the saved sash row after successful save without converting verify failure to save failure', () => {
+  assert.match(source, /async function verifySavedSashEstimate\(estiSeq\)/)
+  assert.match(source, /await selectSashDetail\(\{[\s\S]*itgEstiNo:\s*itgEstiNo\.value[\s\S]*estiSeq:\s*targetSeq[\s\S]*\}\)/)
+  assert.match(source, /const verifyResult = await verifySavedSashEstimate\(savedSeq\.value\)/)
+  assert.match(source, /저장은 되었으나 재조회 확인 실패/)
+  assert.match(source, /showNotice\(`저장은 되었으나 재조회 확인 실패: \$\{verifyResult\.message\}`\)/)
+  assert.match(source, /return \{ ok: true, estiSeq: savedSeq\.value, verifyOk: verifyResult\.ok \}/)
+  assert.match(source, /alGlassChecked:\s*form\.value\.alGlass \|\| row\?\.glasStdalYn === 'Y'/)
+})
+
+test('SashNew discount grade select shows grade name while saving grade code', () => {
+  assert.match(source, /:value="grade\.commCdVal \|\| grade\.commCdId"/)
+  assert.match(source, /\{\{\s*grade\.commCdNm \|\| grade\.commCdVal \|\| grade\.commCdId\s*\}\}/)
+  assert.doesNotMatch(source, /\{\{\s*grade\.addInfo1 \|\| grade\.commCdNm/)
+  assert.doesNotMatch(source, /:value="grade\.addInfo1/)
 })
 
 test('SashNew validates model size lower and upper limits when model data provides them', () => {
@@ -90,13 +108,17 @@ test('SashNew does not clear saved bsmf code while reloading an existing sash', 
   assert.match(source, /if \(resolvedBsmf \|\| !form\.value\.bsmfOrdUtmCd\) form\.value\.bsmfOrdUtmCd = resolvedBsmf/)
 })
 
-test('SashNew shows only add-estimate and save actions for editable mode', () => {
-  assert.match(source, />\s*견적추가\s*</)
-  assert.match(source, />\s*저장\s*</)
-  assert.doesNotMatch(source, /샤시 견적 저장/)
-  assert.doesNotMatch(source, /수정 저장/)
-  assert.doesNotMatch(source, /저장 \+ 추가/)
-  assert.doesNotMatch(source, /\+ 샤시 추가/)
+test('SashNew shows only add-estimate and close-save actions for editable mode', () => {
+  const actionStart = source.indexOf('<div class="bottom-action-bar sash-action-bar">')
+  const actionEnd = source.indexOf('</div>', actionStart)
+  const actionSource = source.slice(actionStart, actionEnd)
+  assert.ok(actionStart > -1)
+  assert.match(actionSource, /저장 후 항목 추가/)
+  assert.match(actionSource, /저장하고 상세로/)
+  assert.doesNotMatch(actionSource, /샤시 견적 저장/)
+  assert.doesNotMatch(actionSource, /수정 저장/)
+  assert.doesNotMatch(actionSource, /저장 \+ 추가/)
+  assert.doesNotMatch(actionSource, /\+ 샤시 추가/)
 })
 
 test('SashNew places estimate identifiers at the bottom and production options after glass options', () => {
@@ -117,8 +139,8 @@ test('SashNew places estimate identifiers at the bottom and production options a
   assert.match(source, /견적순번:\s*{{ editEstiSeq \|\| '\(신규\)' }}/)
 })
 
-test('SashNew title follows web estimate detail wording and shows sequence separately', () => {
-  assert.match(source, /<h2 class="page-title">견적상세<\/h2>/)
+test('SashNew title distinguishes add and edit mode and shows sequence separately', () => {
+  assert.match(source, /{{ isEditMode \? '샤시 항목 수정' : '샤시 항목 추가' }}/)
   assert.match(source, /class="page-subtitle"[\s\S]*견적순번:\s*{{ editEstiSeq \|\| '\(신규\)' }}/)
   assert.doesNotMatch(source, /샤시 견적 #/)
 })
@@ -258,7 +280,7 @@ test('SashNew add-estimate saves as a new sequence, while save keeps current seq
   assert.match(source, /async function saveAndAdd\(\)[\s\S]*const result = await submit\(\{ asNewSeq: true \}\)[\s\S]*if \(result\.ok\) await loadSavedEstimate\(result\.estiSeq\)/)
   assert.match(source, /async function saveAndClose\(\)[\s\S]*const result = await submit\(\)[\s\S]*if \(result\.ok\) goBack\(\)/)
   assert.match(source, /editEstiSeq: asNewSeq \? '' : editEstiSeq\.value/)
-  assert.match(source, /return \{ ok: true, estiSeq: savedSeq\.value \}[\s\S]*catch/)
+  assert.match(source, /return \{ ok: true, estiSeq: savedSeq\.value, verifyOk: verifyResult\.ok \}[\s\S]*catch/)
 })
 
 test('SashNew reloads the newly added estimate after add-estimate', () => {
@@ -1041,4 +1063,43 @@ test('SashNew captures and restores saved edit values around model master reload
   assert.match(source, /restoreSashEditValues\(form\.value, savedEditValues\)/)
   assert.ok(source.indexOf('const savedEditValues = captureSashEditValues(form.value)') < source.indexOf('await onModelPick({ ...r }, { preserveProductionOptions: true })'))
   assert.ok(source.indexOf('await onModelPick({ ...r }, { preserveProductionOptions: true })') < source.indexOf('restoreSashEditValues(form.value, savedEditValues)'))
+})
+
+test('SashNew uses polished mobile sections and bottom action bar without changing save flow', () => {
+  assert.match(source, /{{ isEditMode \? '샤시 항목 수정' : '샤시 항목 추가' }}/)
+  assert.match(source, /견적순번/)
+  assert.match(source, /class="form-section-title"[\s\S]*할인등급/)
+  assert.match(source, /현재 상태에서는 샤시 항목을 수정할 수 없습니다/)
+  assert.match(source, /class="bottom-action-bar sash-action-bar"/)
+  assert.match(source, /저장 후 항목 추가/)
+  assert.match(source, /저장하고 상세로/)
+  assert.match(source, /저장 중\.\.\./)
+  assert.match(source, /<details class="sash-bottom-meta"/)
+})
+
+test('SashNew renders save actions from readonly state, not amount summary state', () => {
+  const amountIndex = source.indexOf('v-if="hasAmountSummary" class="sash-amount-summary"')
+  const actionTemplateIndex = source.indexOf('<template v-if="!isReadonly">', amountIndex)
+  const actionBarIndex = source.indexOf('class="bottom-action-bar sash-action-bar"', actionTemplateIndex)
+  const saveAndAddIndex = source.indexOf('@click="saveAndAdd"', actionTemplateIndex)
+  const saveAndCloseIndex = source.indexOf('@click="saveAndClose"', actionTemplateIndex)
+  const betweenAmountAndAction = source.slice(amountIndex, actionTemplateIndex)
+
+  assert.ok(amountIndex > -1)
+  assert.ok(actionTemplateIndex > amountIndex)
+  assert.ok(actionBarIndex > actionTemplateIndex)
+  assert.ok(saveAndAddIndex > actionTemplateIndex)
+  assert.ok(saveAndCloseIndex > actionTemplateIndex)
+  assert.doesNotMatch(betweenAmountAndAction, /<template v-else>/)
+})
+
+test('SashQuickConfigSheet restores keyword search and improves card scan fields', () => {
+  assert.match(quickConfigSheetSource, /v-model\.trim="keyword"/)
+  assert.match(quickConfigSheetSource, /placeholder="설정명, 모형, 창형태 검색"/)
+  assert.match(quickConfigSheetSource, /class="quick-config-spec-grid"/)
+  assert.match(quickConfigSheetSource, /모형/)
+  assert.match(quickConfigSheetSource, /창형태/)
+  assert.match(quickConfigSheetSource, /색상/)
+  assert.match(quickConfigSheetSource, /망/)
+  assert.match(quickConfigSheetSource, /유리/)
 })

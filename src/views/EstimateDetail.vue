@@ -10,7 +10,7 @@
     <div class="page-title-row">
       <h2 class="page-title">견적 상세</h2>
       <div class="title-actions">
-        <button class="btn secondary btn-xs" @click="router.push(`/estimates/${itgEstiNo}/sash-summary`)">샤시 요약</button>
+        <button class="btn secondary btn-xs" @click="router.push(`/estimates/${itgEstiNo}/sash-summary`)">견적요약</button>
         <button class="btn-back" @click="router.back()">뒤로</button>
       </div>
     </div>
@@ -34,11 +34,26 @@
         <div class="estimate-hero-meta">
           <span>{{ header.dplcNm || '-' }}</span>
           <span>{{ header.bzpcNm || header.bzpc || '-' }}</span>
-          <span v-if="header.jobsNm">{{ header.jobsNm }}</span>
           <span>등록 {{ formatDt(header.inputDtm) }}</span>
           <span v-if="header.estiVldDt">유효 {{ formatDate(header.estiVldDt) }}</span>
         </div>
 
+        <div class="estimate-header-info">
+          <div>
+            <span>거래처</span>
+            <strong>{{ header.dplcNm || '-' }}</strong>
+          </div>
+          <div>
+            <span>현장명</span>
+            <strong>{{ header.jobsNm || '-' }}</strong>
+          </div>
+          <div class="estimate-header-info-wide">
+            <span>고객견적비고</span>
+            <strong class="estimate-header-info-value">{{ header.dplcReqRemSrc || '-' }}</strong>
+          </div>
+        </div>
+
+        <div class="section-title">할인등급</div>
         <div class="estimate-grade-summary grade-row">
           <div v-for="item in headerGradeItems" :key="item.label" class="grade-item">
             <span class="grade-label">{{ item.label }}</span>
@@ -62,13 +77,12 @@
           <span>{{ sashRows.length + glassRows.length }}개 품목</span>
         </div>
         <div class="estimate-action-row">
+          <button v-if="canEditHeader" class="btn secondary" @click="router.push(`/estimates/${itgEstiNo}/edit`)">헤더 수정</button>
           <button v-if="canAddItem" class="btn accent" :disabled="issuing" @click="openItemSheet">
             {{ issuing ? '준비 중...' : '+ 품목 추가' }}
           </button>
-          <button class="btn secondary" @click="router.push(`/estimates/${itgEstiNo}/sash-summary`)">샤시 요약</button>
         </div>
         <div v-if="issueError" class="error">{{ issueError }}</div>
-        <div v-if="header.dplcReqRemSrc" class="estimate-hero-note">{{ header.dplcReqRemSrc }}</div>
       </section>
 
       <!-- 샤시 견적 목록 -->
@@ -270,6 +284,7 @@ const issueError = ref('')
 const selectedSashKey = ref('')
 
 const headerStatus = computed(() => resolveEffectiveStatus(header.value?.stCd, header.value?.igStCd))
+const canEditHeader = computed(() => ['0', '10'].includes(headerStatus.value))
 
 // 품목 추가는 헤더 0/10/20 상태에서 가능. 상태 미확인은 fail-closed.
 const canAddItem = computed(() => isEditableHeaderStatus(headerStatus.value))

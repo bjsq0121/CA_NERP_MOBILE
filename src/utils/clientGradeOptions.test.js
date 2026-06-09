@@ -9,6 +9,7 @@ import {
 
 const normalRows = [
   { commCdVal: 'B', addInfo1: 'B', addInfo5: 'DB', addInfo12: 'MB', addInfo13: 'GB', addInfo14: 'MTB', addInfo15: 'PDB', addInfo17: '20' },
+  { commCdVal: 'S', commCdNm: 'S등급', addInfo1: 'S', addInfo5: 'DS', addInfo12: 'MS', addInfo13: 'GS', addInfo14: 'MTS', addInfo15: 'PDS', addInfo17: '5' },
   { commCdVal: 'A', addInfo1: 'A', addInfo5: 'DA', addInfo12: 'MA', addInfo13: 'GA', addInfo14: 'MTA', addInfo15: 'PDA', addInfo17: '10' },
 ]
 
@@ -37,6 +38,15 @@ test('client grade options use commCdVal as saved value and keep addInfo only as
   assert.equal(groups.normal.glass[0].rate, 'GA')
   assert.equal(groups.cross.crossDoor[0].rate, 'DS')
   assert.notEqual(groups.normal.door[0].value, groups.normal.door[0].rate)
+})
+
+test('client normal grade options exclude S grade from estimate header selects', () => {
+  const groups = buildClientGradeOptionGroups({ resultList: normalRows, resultListCross: crossRows })
+
+  for (const options of Object.values(groups.normal)) {
+    assert.equal(options.some((option) => option.value === 'S'), false)
+    assert.equal(options.some((option) => option.label === 'S등급'), false)
+  }
 })
 
 test('client grade payload includes all normal and cross grade fields', () => {
@@ -78,6 +88,7 @@ test('client grade defaults match mobile quick registration defaults', () => {
 test('normalizeGradeOptions sorts by rn then addInfo17 and never uses addInfo as option value', () => {
   assert.deepEqual(normalizeGradeOptions([
     { commCdVal: 'B', addInfo1: 'RATE_B', addInfo17: '2', rn: '2' },
+    { commCdVal: 'S', commCdNm: 'S등급', addInfo1: 'RATE_S', addInfo17: '1', rn: '0' },
     { commCdVal: 'A', commCdNm: 'A 등급', addInfo1: 'RATE_A', addInfo17: '9', rn: '1' },
   ], 'addInfo1'), [
     { value: 'A', label: 'A 등급', rate: 'RATE_A' },

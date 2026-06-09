@@ -1,9 +1,32 @@
 <template>
   <div class="estimate-list-page">
-    <div class="page-title-row estimate-list-title-row">
-      <div>
-        <h2 class="page-title">견적 목록</h2>
-        <p class="page-subtitle">거래처 샤시 공급견적을 확인합니다</p>
+    <div class="page-hero-card estimate-list-hero">
+      <div class="page-hero-main">
+        <div>
+          <h2 class="page-title">통합견적</h2>
+          <p class="page-subtitle">거래처별 모바일 견적을 빠르게 조회하고 작성합니다</p>
+        </div>
+        <div class="page-hero-actions">
+          <button type="button" class="btn accent" @click="goNewEstimate">신규 견적</button>
+        </div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span>조회 결과</span>
+          <strong>{{ summaryMetrics.total }}건</strong>
+        </div>
+        <div class="metric-card">
+          <span>작성중</span>
+          <strong>{{ summaryMetrics.draft }}건</strong>
+        </div>
+        <div class="metric-card">
+          <span>진행중</span>
+          <strong>{{ summaryMetrics.progress }}건</strong>
+        </div>
+        <div class="metric-card metric-card-wide">
+          <span>총 견적금액</span>
+          <strong>{{ totalAmountText }}</strong>
+        </div>
       </div>
     </div>
 
@@ -34,7 +57,10 @@
       <strong>{{ rows.length }}건</strong>
     </div>
 
-    <div v-if="!loading && !rows.length" class="empty">조회된 견적이 없습니다.</div>
+    <div v-if="!loading && !rows.length" class="empty empty-action">
+      <p>조회된 견적이 없습니다.</p>
+      <button type="button" class="btn secondary" @click="goNewEstimate">견적을 새로 작성</button>
+    </div>
     <div class="estimate-card-list">
       <button
         v-for="row in rows"
@@ -57,10 +83,7 @@
           <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
         </div>
 
-        <div
-          v-if="buildGradeChips(row).length || buildCrossGradeChips(row).length"
-          class="estimate-card-grades"
-        >
+        <div v-if="buildGradeChips(row).length" class="estimate-card-grades">
           <span class="estimate-grade-label">할인등급</span>
           <span
             v-for="chip in buildGradeChips(row)"
@@ -68,13 +91,6 @@
             class="estimate-grade-chip"
           >
             {{ chip.label }} {{ chip.value }}
-          </span>
-          <span
-            v-for="chip in buildCrossGradeChips(row)"
-            :key="`cross-${chip.label}`"
-            class="estimate-grade-chip estimate-grade-chip-soft"
-          >
-            크로스 {{ chip.label }} {{ chip.value }}
           </span>
         </div>
 
@@ -94,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import BzpcSelector from '../components/BzpcSelector.vue'
@@ -105,6 +121,9 @@ const auth = useAuthStore()
 const router = useRouter()
 function goDetail(row) {
   if (row?.itgEstiNo) router.push(`/estimates/${row.itgEstiNo}`)
+}
+function goNewEstimate() {
+  router.push('/estimates/new')
 }
 const selectedBzpc = ref({ bzpc: '', bzpcNm: '', vkbur: '', vkgrp: '' })
 const startDate = ref(daysAgo(1))
@@ -139,6 +158,36 @@ function formatEstimateAmount(row = {}) {
   return amount ? `${amount.toLocaleString()}원` : '-'
 }
 
+function statusValue(row = {}) {
+  return [row.stNm, row.igStNm, row.stCd, row.igStCd].map((value) => String(value ?? '').trim()).filter(Boolean)
+}
+
+function isDraftStatus(row = {}) {
+  return statusValue(row).some((value) => value === '0' || value === '00' || value.includes('작성') || value.includes('임시'))
+}
+
+function isProgressStatus(row = {}) {
+  return statusValue(row).some((value) => value === '10' || value === '20' || value.includes('진행') || value.includes('견적'))
+}
+
+const summaryMetrics = computed(() => {
+  const draft = rows.value.filter(isDraftStatus).length
+  const progress = rows.value.filter((row) => !isDraftStatus(row) && isProgressStatus(row)).length
+  return {
+    total: rows.value.length,
+    draft,
+    progress,
+  }
+})
+
+const totalAmountText = computed(() => {
+  const total = rows.value.reduce(
+    (sum, row) => sum + amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt),
+    0
+  )
+  return total ? `${total.toLocaleString()}원` : '-'
+})
+
 function gradeValue(row, nameKey, codeKey) {
   const name = String(row?.[nameKey] ?? '').trim()
   const code = String(row?.[codeKey] ?? '').trim()
@@ -156,15 +205,6 @@ function buildGradeChips(row = {}) {
     { label: '타사', value: gradeValue(row, 'dplcDcGrdOtherCompNm', 'dplcDcGrdOtherComp') },
     { label: '유통자재', value: gradeValue(row, 'dplcDcGrdDtbtMtrlNm', 'dplcDcGrdDtbtMtrl') },
     { label: '유통상품', value: gradeValue(row, 'dplcDcGrdDtbtGoodsNm', 'dplcDcGrdDtbtGoods') },
-  ].filter((chip) => chip.value)
-}
-
-function buildCrossGradeChips(row = {}) {
-  return [
-    { label: '도어', value: gradeValue(row, 'dplcDcGrdDoorCrNm', 'dplcDcGrdDoorCr') },
-    { label: '몰딩', value: gradeValue(row, 'dplcDcGrdMoldCrNm', 'dplcDcGrdMoldCr') },
-    { label: '유통자재', value: gradeValue(row, 'dplcDcGrdDtbtMtrlCrNm', 'dplcDcGrdDtbtMtrlCr') },
-    { label: '유통상품', value: gradeValue(row, 'dplcDcGrdDtbtGoodsCrNm', 'dplcDcGrdDtbtGoodsCr') },
   ].filter((chip) => chip.value)
 }
 

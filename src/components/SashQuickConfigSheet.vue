@@ -10,12 +10,12 @@
       </div>
 
       <div class="quick-config-search">
-        <!-- <input
+        <input
           v-model.trim="keyword"
           type="search"
           placeholder="설정명, 모형, 창형태 검색"
           @keyup.enter="loadList"
-        /> -->
+        />
         <button type="button" class="btn secondary" :disabled="loading" @click="loadList">
           {{ loading ? '조회중' : '조회' }}
         </button>
@@ -37,17 +37,27 @@
             <strong>{{ summarize(card).title }}</strong>
             <span>{{ card.header.mtrlCoNm || card.header.mtrlCo || '-' }}</span>
           </div>
-          <div class="quick-config-main">
-            <div>{{ summarize(card).modelText }}</div>
-            <div>{{ summarize(card).shapeText }}</div>
-            <div>{{ summarize(card).bsmfText }}</div>
-          </div>
-          <div class="quick-config-sub">
-            <span>색상 {{ summarize(card).colorText }}</span>
-            <span>망 {{ summarize(card).screenText }}</span>
-          </div>
-          <div class="quick-config-sub">
-            <span>유리 {{ summarize(card).glassText }}</span>
+          <div class="quick-config-spec-grid">
+            <div>
+              <span>모형</span>
+              <strong>{{ summarize(card).modelText }}</strong>
+            </div>
+            <div>
+              <span>창형태</span>
+              <strong>{{ summarize(card).shapeText }}</strong>
+            </div>
+            <div>
+              <span>색상</span>
+              <strong>{{ summarize(card).colorText }}</strong>
+            </div>
+            <div>
+              <span>망</span>
+              <strong>{{ summarize(card).screenText }}</strong>
+            </div>
+            <div class="quick-config-spec-wide">
+              <span>유리</span>
+              <strong>{{ summarize(card).glassText }}</strong>
+            </div>
           </div>
           <div v-if="summarize(card).noteText" class="quick-config-note">
             {{ summarize(card).noteText }}
@@ -184,9 +194,7 @@ watch(
   padding: 12px;
   box-shadow: var(--shadow-xs);
 }
-.quick-config-title-row,
-.quick-config-main,
-.quick-config-sub {
+.quick-config-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -205,22 +213,37 @@ watch(
   font-size: 11px;
   font-weight: 700;
 }
-.quick-config-main {
-  margin-top: 8px;
-  font-size: 12px;
-  font-weight: 700;
+.quick-config-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
 }
-.quick-config-main div,
-.quick-config-sub span {
+.quick-config-spec-grid div {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+.quick-config-spec-grid span {
+  display: block;
+  color: var(--c-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+.quick-config-spec-grid strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--c-text);
+  font-size: 12px;
+  font-weight: 850;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.quick-config-sub {
-  margin-top: 5px;
-  color: var(--c-text-secondary);
-  font-size: 11px;
+.quick-config-spec-wide {
+  grid-column: 1 / -1;
 }
 .quick-config-note {
   margin-top: 8px;

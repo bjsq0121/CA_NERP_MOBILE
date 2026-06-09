@@ -26,6 +26,23 @@ function requiredForm(overrides = {}) {
   }
 }
 
+test('buildSashSavePayload keeps mobile MVP web parity fixed defaults explicit', () => {
+  const payload = buildSashSavePayload({
+    form: requiredForm(),
+    itgEstiNo: 'ITG001',
+    wEstiNo: 'W001',
+    estiNos: '1',
+    editEstiSeq: '',
+  })
+
+  assert.equal(payload.ctgrCd, 'P')
+  assert.equal(payload.windLocCd, '01')
+  assert.equal(payload.rt, 1)
+  assert.equal(payload.glasDblYn, 'Y')
+  assert.equal(payload.unpAplScn, '01')
+  assert.equal(payload.crtnColrCd, 'WH')
+})
+
 test('buildSashSavePayload maps required sash fields for a new estimate', () => {
   const payload = buildSashSavePayload({
     form: {

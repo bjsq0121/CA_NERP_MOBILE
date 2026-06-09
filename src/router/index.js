@@ -10,6 +10,7 @@ const routes = [
   { path: '/estimates/new', component: () => import('../views/EstimateNew.vue') },
   { path: '/estimates/sash/new', component: () => import('../views/SashNew.vue') },
   { path: '/estimates/:itgEstiNo/sash-summary', component: () => import('../views/SashEstimateSummary.vue') },
+  { path: '/estimates/:itgEstiNo/edit', component: () => import('../views/EstimateEdit.vue') },
   { path: '/estimates/:itgEstiNo', component: () => import('../views/EstimateDetail.vue') },
 
   // 거래처

@@ -12,6 +12,14 @@ export function selectEstiHeader(itgEstiNo) {
   return http.post('/mobile/esti/header/detail', { itgEstiNo })
 }
 
+export function searchDvpcListSysAdmin(payload = {}) {
+  return http.post('/ItgEstiOne/searchDvpcListSysAdmin', payload)
+}
+
+export function searchDvpcCode(payload = {}) {
+  return http.post('/ItgEstiOne/searchDvpcCode', payload)
+}
+
 // 견적 헤더 저장 후 샤시/도어/유리 등 타입별 estiNo 발번
 // itgTypeChk: "wind" | "door" | "glas" | "mold" | "buil" | "goods"
 export function issueEstiNo(itgEstiNo, itgTypeChk = 'wind') {

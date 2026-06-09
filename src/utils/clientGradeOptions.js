@@ -34,7 +34,7 @@ const CROSS_MAP = {
   crossProduct: 'addInfo15',
 }
 
-export function normalizeGradeOptions(rows = [], valueKey = 'addInfo1') {
+export function normalizeGradeOptions(rows = [], valueKey = 'addInfo1', { excludeS = true } = {}) {
   return [...rows]
     .sort((a, b) => sortValue(a) - sortValue(b))
     .map((row) => ({
@@ -42,7 +42,7 @@ export function normalizeGradeOptions(rows = [], valueKey = 'addInfo1') {
       label: stringValue(row?.commCdNm) || stringValue(row?.commCdVal),
       rate: stringValue(row?.[valueKey]),
     }))
-    .filter((option) => option.value)
+    .filter((option) => option.value && (!excludeS || option.value !== 'S'))
 }
 
 export function buildClientGradeOptionGroups(data = {}) {
@@ -55,7 +55,7 @@ export function buildClientGradeOptionGroups(data = {}) {
     normal[key] = normalizeGradeOptions(normalRows, valueKey)
   }
   for (const [key, valueKey] of Object.entries(CROSS_MAP)) {
-    cross[key] = normalizeGradeOptions(crossRows, valueKey)
+    cross[key] = normalizeGradeOptions(crossRows, valueKey, { excludeS: false })
   }
 
   return { normal, cross }

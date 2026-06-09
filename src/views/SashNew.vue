@@ -7,7 +7,7 @@
     <template v-else>
       <div class="page-title-row sash-header">
         <div class="sash-header-title">
-          <h2 class="page-title">견적상세</h2>
+          <h2 class="page-title">{{ isEditMode ? '샤시 항목 수정' : '샤시 항목 추가' }}</h2>
           <div class="page-subtitle">견적순번: {{ editEstiSeq || '(신규)' }}</div>
         </div>
         <div class="sash-header-actions title-actions">
@@ -18,6 +18,7 @@
 
       <!-- 필수 필드 -->
       <div class="card">
+        <div class="form-section-title">할인등급</div>
         <div class="field">
           <label>할인등급 *</label>
           <select v-model="form.dplcDcGrd" :disabled="isReadonly">
@@ -27,7 +28,7 @@
               :key="grade.commCdId"
               :value="grade.commCdVal || grade.commCdId"
             >
-              {{ grade.addInfo1 || grade.commCdNm || grade.commCdVal || grade.commCdId }}
+              {{ grade.commCdNm || grade.commCdVal || grade.commCdId }}
             </option>
           </select>
         </div>
@@ -87,37 +88,8 @@
 
       <!-- readonly: 조회 모드 -->
       <div v-if="isReadonly" class="card card-info">
-        <div class="text-xs">이 견적은 현재 수정할 수 없는 상태입니다.</div>
+        <div class="text-xs">현재 상태에서는 샤시 항목을 수정할 수 없습니다. 상세 확인만 가능합니다.</div>
       </div>
-
-      <!-- 저장/추가 버튼 (편집 가능할 때만) -->
-      <template v-else>
-        <div class="row-flex">
-          <button class="btn accent" :disabled="loading || !canSubmit" @click="saveAndAdd">
-            견적추가
-          </button>
-          <button class="btn" :disabled="loading || !canSubmit" @click="saveAndClose">
-            저장
-          </button>
-        </div>
-      </template>
-
-      <div v-if="error" class="card card-error">{{ error }}</div>
-
-      <div v-if="alertMessage" class="modal-mask" @click.self="closeAlert">
-        <div class="modal-sheet alert-sheet">
-          <h3>안내</h3>
-          <p class="alert-message">{{ alertMessage }}</p>
-          <button type="button" class="btn accent" @click="closeAlert">확인</button>
-        </div>
-      </div>
-
-      <SashQuickConfigSheet
-        v-if="showQuickConfigSheet"
-        :visible="showQuickConfigSheet"
-        @close="closeQuickSashSheet"
-        @select="handleQuickSashSelect"
-      />
 
       <div v-if="hasAmountSummary" class="sash-amount-summary">
         <div class="amount-summary-title">금액</div>
@@ -149,12 +121,45 @@
         </div>
       </div>
 
-      <div class="sash-bottom-meta">
-        <span>통합견적번호: {{ itgEstiNo || '(없음)' }}</span>
-        <span>견적번호: {{ wEstiNo || '(없음)' }}</span>
-        <span>견적차수: {{ estiNos || '1' }}</span>
-        <span>견적순번: {{ editEstiSeq || '(신규)' }}</span>
+      <!-- 저장/추가 버튼 (편집 가능할 때만) -->
+      <template v-if="!isReadonly">
+        <div class="bottom-action-spacer"></div>
+        <div class="bottom-action-bar sash-action-bar">
+          <button class="btn accent" :disabled="loading || !canSubmit" @click="saveAndAdd">
+            {{ loading ? '저장 중...' : '저장 후 항목 추가' }}
+          </button>
+          <button class="btn" :disabled="loading || !canSubmit" @click="saveAndClose">
+            {{ loading ? '저장 중...' : '저장하고 상세로' }}
+          </button>
+        </div>
+      </template>
+
+      <div v-if="error" class="card card-error">{{ error }}</div>
+
+      <div v-if="alertMessage" class="modal-mask" @click.self="closeAlert">
+        <div class="modal-sheet alert-sheet">
+          <h3>안내</h3>
+          <p class="alert-message">{{ alertMessage }}</p>
+          <button type="button" class="btn accent" @click="closeAlert">확인</button>
+        </div>
       </div>
+
+      <SashQuickConfigSheet
+        v-if="showQuickConfigSheet"
+        :visible="showQuickConfigSheet"
+        @close="closeQuickSashSheet"
+        @select="handleQuickSashSelect"
+      />
+
+      <details class="sash-bottom-meta">
+        <summary>견적 식별정보</summary>
+        <div>
+          <span>통합견적번호: {{ itgEstiNo || '(없음)' }}</span>
+          <span>견적번호: {{ wEstiNo || '(없음)' }}</span>
+          <span>견적차수: {{ estiNos || '1' }}</span>
+          <span>견적순번: {{ editEstiSeq || '(신규)' }}</span>
+        </div>
+      </details>
 
       <ModelSearchModal ref="modelModal" @select="onModelPick" />
     </template>
@@ -1511,6 +1516,7 @@ async function submit({ asNewSeq = false } = {}) {
   if (!form.value.bsmfOrdUtmCd) return failSubmit('틀짝망을 선택하세요')
   if (!form.value.sashOrdTypCd) return failSubmit('발주구분을 선택하세요')
   if (!form.value.dplcDcGrd) return failSubmit('할인등급을 선택하세요')
+  if (form.value.dplcDcGrd === 'S') return failSubmit('S등급은 샤시 견적 저장이 불가합니다. 견적헤더 할인등급을 수정하세요.')
   if (!form.value.w || !form.value.h) return failSubmit('W/H 사이즈를 입력하세요')
   if (!form.value.qty || form.value.qty < 1) return failSubmit('수량을 1 이상 입력하세요')
   if (form.value.alGlass && !alGlassEnabled.value) return failSubmit('알유리견적을 선택할 수 없는 모형입니다')
@@ -1541,8 +1547,10 @@ async function submit({ asNewSeq = false } = {}) {
     }
     const { data } = await saveSashEsti(payload)
     if (data.resultCd === 'save.ok' || data.resultCd === 'save.success' || data.resultCd === 'procedure complete') {
-      savedSeq.value = data.estiSeq || '저장됨'
-      return { ok: true, estiSeq: savedSeq.value }
+      savedSeq.value = data.estiSeq || payload.estiSeq || '저장됨'
+      const verifyResult = await verifySavedSashEstimate(savedSeq.value)
+      if (!verifyResult.ok) showNotice(`저장은 되었으나 재조회 확인 실패: ${verifyResult.message}`)
+      return { ok: true, estiSeq: savedSeq.value, verifyOk: verifyResult.ok }
     } else {
       error.value = saveErrorMessage(data)
       return { ok: false }
@@ -1568,6 +1576,35 @@ function exceptionErrorMessage(e) {
 function failSubmit(message) {
   error.value = message
   return { ok: false }
+}
+
+function savedSashRowFromResponse(data = {}) {
+  if (data?.resultData) return data.resultData
+  if (Array.isArray(data?.resultList)) return data.resultList[0] || null
+  if (data?.estiSeq) return data
+  return null
+}
+
+async function verifySavedSashEstimate(estiSeq) {
+  const targetSeq = String(estiSeq || '').trim()
+  if (!targetSeq || targetSeq === '저장됨') return { ok: false, message: '저장 순번을 확인할 수 없습니다' }
+
+  try {
+    const { data } = await selectSashDetail({
+      itgEstiNo: itgEstiNo.value,
+      estiNo: wEstiNo.value,
+      estiNos: estiNos.value,
+      estiSeq: targetSeq,
+    })
+    const row = savedSashRowFromResponse(data)
+    const confirmedSeq = String(row?.estiSeq || '').trim()
+    if (confirmedSeq && confirmedSeq === targetSeq) {
+      return { ok: true, alGlassChecked: form.value.alGlass || row?.glasStdalYn === 'Y' }
+    }
+    return { ok: false, message: '저장 행을 다시 조회하지 못했습니다' }
+  } catch (_) {
+    return { ok: false, message: '저장 행 재조회 중 오류가 발생했습니다' }
+  }
 }
 
 function amountText(value) {

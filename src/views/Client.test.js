@@ -123,19 +123,18 @@ test('EstimateNew keeps customer grade mapping from selected customer row', () =
   assert.match(estimateNewSource, /dplcDcGrdMold:\s*row\.dcGrdMold/)
   assert.match(estimateNewSource, /dplcDcGrdDtbtMtrl:\s*row\.dcGrdDtbtMtrl/)
   assert.match(estimateNewSource, /dplcDcGrdDtbtGoods:\s*row\.dcGrdDtbtGoods/)
-  assert.match(estimateNewSource, /dplcDcGrdDoorCr:\s*row\.dcGrdDoorCr/)
-  assert.match(estimateNewSource, /dplcDcGrdMoldCr:\s*row\.dcGrdMoldCr/)
-  assert.match(estimateNewSource, /dplcDcGrdDtbtMtrlCr:\s*row\.dcGrdDtbtMtrlCr/)
-  assert.match(estimateNewSource, /dplcDcGrdDtbtGoodsCr:\s*row\.dcGrdDtbtGoodsCr/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdEtc:/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdMlng:/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdMtrl:/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdProd:/)
+  assert.doesNotMatch(estimateNewSource, /dplcDcGrdDoorCr|dplcDcGrdMoldCr|dplcDcGrdDtbtMtrlCr|dplcDcGrdDtbtGoodsCr/)
 })
 
 test('EstimateNew sends flat ItgEstiH grade fields with the header payload', () => {
   assert.match(estimateNewSource, /buildEstimateGradePayload\(form\.value\.dplcGrpGrade\)/)
-  assert.match(estimateNewSource, /buildEstimateRatePayload\(form\.value\.dplcRate\)/)
+  assert.match(estimateNewSource, /buildEstimateRatePayload\(form\.value\.dplcGrpGrade,\s*form\.value\.dplcRate\)/)
+  assert.match(estimateNewSource, /selectedGradeRate\(item,\s*grades\[item\.field\],\s*fallbackRates\)/)
+  assert.match(estimateNewSource, /dplcRate:\s*ratePayload/)
   for (const field of [
     'dplcDcGrd',
     'dplcDcGrdDoor',
@@ -145,13 +144,23 @@ test('EstimateNew sends flat ItgEstiH grade fields with the header payload', () 
     'dplcDcGrdMold',
     'dplcDcGrdDtbtMtrl',
     'dplcDcGrdDtbtGoods',
-    'dplcDcGrdDoorCr',
-    'dplcDcGrdMoldCr',
-    'dplcDcGrdDtbtMtrlCr',
-    'dplcDcGrdDtbtGoodsCr',
   ]) {
     assert.match(estimateNewSource, new RegExp(`${field}:\\s*stringValue\\(grades\\.${field}\\)`))
   }
+  for (const field of [
+    'dplcRt',
+    'dplcDoorRt',
+    'dplcPannelRt',
+    'dplcOtherCompRt',
+    'dplcGlasRt',
+    'dplcMoldRt',
+    'dplcDtbtMtrlRt',
+    'dplcDtbtGoodsRt',
+  ]) {
+    assert.match(estimateNewSource, new RegExp(field))
+  }
+  assert.doesNotMatch(estimateNewSource, /dplcDcGrdDoorCr|dplcDcGrdMoldCr|dplcDcGrdDtbtMtrlCr|dplcDcGrdDtbtGoodsCr/)
+  assert.doesNotMatch(estimateNewSource, /dplcDoorCrRt|dplcMoldCrRt|dplcDtbtMtrlCrRt|dplcDtbtGoodsCrRt/)
 })
 
 test('EstimateDetail shows saved customer grade fields in the header card', () => {
@@ -170,4 +179,16 @@ test('EstimateDetail shows saved customer grade fields in the header card', () =
   ]) {
     assert.match(estimateDetailSource, new RegExp(field))
   }
+})
+
+test('ClientList renders customers as estimate-style cards with registration CTA empty state', () => {
+  assert.match(listSource, /class="page-title-row"/)
+  assert.match(listSource, /class="client-card-list"/)
+  assert.match(listSource, /class="client-card"/)
+  assert.match(listSource, /class="client-card-title"/)
+  assert.match(listSource, /class="client-card-meta"/)
+  assert.match(listSource, /class="empty empty-action"/)
+  assert.match(listSource, /거래처 등록/)
+  assert.match(listSource, /@click="goNew"/)
+  assert.match(listSource, /@click="goEdit\(row\)"/)
 })

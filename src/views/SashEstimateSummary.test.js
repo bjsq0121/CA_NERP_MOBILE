@@ -12,11 +12,10 @@ const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'ut
 const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')
 const summaryUtilSource = readFileSync(resolve(currentDir, '../utils/sashEstimateSummary.js'), 'utf8')
 
-test('SashEstimateSummary is routed from estimate detail as an internal B2B summary screen', () => {
+test('SashEstimateSummary route remains available without requiring a header-card shortcut', () => {
   assert.match(routerSource, /\/estimates\/:itgEstiNo\/sash-summary/)
   assert.match(routerSource, /import\('\.\.\/views\/SashEstimateSummary\.vue'\)/)
-  assert.match(detailSource, /샤시 요약/)
-  assert.match(detailSource, /sash-summary/)
+  assert.doesNotMatch(detailSource, /estimate-action-row[\s\S]*샤시 요약/)
 })
 
 test('SashEstimateSummary loads header and sash rows from existing mobile APIs', () => {

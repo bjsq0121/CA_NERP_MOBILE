@@ -1,6 +1,14 @@
 <template>
-  <div>
-    <h2 class="page-title">거래처 목록</h2>
+  <div class="client-list-page">
+    <div class="page-title-row">
+      <div>
+        <h2 class="page-title">거래처 목록</h2>
+        <p class="page-subtitle">샤시 견적 거래처를 조회하고 관리합니다</p>
+      </div>
+      <div class="title-actions">
+        <button type="button" class="btn secondary btn-sm" @click="goNew">거래처 등록</button>
+      </div>
+    </div>
     <div class="card">
       <BzpcSelector v-model="selectedBzpc" />
       <div class="row-flex">
@@ -29,19 +37,36 @@
       <div v-if="error" class="error">{{ error }}</div>
     </div>
 
-    <div v-if="!loading && !rows.length" class="empty">조회된 거래처가 없습니다.</div>
-    <div v-for="row in rows" :key="row.dplcCd" class="list-row" @click="goEdit(row)">
-      <div class="title">{{ row.dplcNm || row.dplcCdNm }}</div>
-      <div class="meta">
-        <span class="badge">{{ row.dplcCd }}</span>
-        <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
-        <span v-if="row.repNm">대표 {{ row.repNm }}</span>
-        <span v-if="row.bzno">사업자 {{ row.bzno }}</span>
-        <span v-if="row.dplcCrgrNm">담당 {{ row.dplcCrgrNm }}</span>
-        <span v-if="row.dplcCrgrMobile || row.dplcCrgrCcpc">{{ row.dplcCrgrMobile || row.dplcCrgrCcpc }}</span>
-      </div>
+    <div v-if="!loading && !rows.length" class="empty empty-action">
+      <p>조회된 거래처가 없습니다.</p>
+      <button type="button" class="btn secondary" @click="goNew">거래처 등록</button>
     </div>
-  </div>
+    <div class="client-card-list">
+      <button
+        v-for="row in rows"
+        :key="row.dplcCd"
+        type="button"
+        class="client-card"
+        @click="goEdit(row)"
+      >
+        <div class="client-card-head">
+          <div class="client-card-title">
+            <strong>{{ row.dplcNm || row.dplcCdNm || '거래처명 없음' }}</strong>
+            <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
+          </div>
+          <span class="badge">{{ row.dplcCd }}</span>
+        </div>
+        <div class="client-card-meta">
+          <span v-if="row.repNm">대표 {{ row.repNm }}</span>
+          <span v-if="row.bzno">사업자 {{ row.bzno }}</span>
+          <span v-if="row.dplcCrgrNm">담당 {{ row.dplcCrgrNm }}</span>
+          <span v-if="row.dplcCrgrMobile || row.dplcCrgrCcpc">
+            {{ row.dplcCrgrMobile || row.dplcCrgrCcpc }}
+          </span>
+        </div>
+      </button>
+    </div>
+      </div>
 </template>
 
 <script setup>
@@ -110,5 +135,9 @@ function goEdit(row) {
     path: `/clients/${row.dplcCd}/edit`,
     query: { bzpc: row.bzpc || selectedBzpc.value.bzpc || '' },
   })
+}
+
+function goNew() {
+  router.push('/clients/new')
 }
 </script>

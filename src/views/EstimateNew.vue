@@ -1,9 +1,20 @@
 <template>
-  <div>
-    <h2 class="page-title">신규 견적</h2>
+  <div class="estimate-new-page">
+    <div class="page-title-row">
+      <div>
+        <h2 class="page-title">신규 견적</h2>
+        <p class="page-subtitle">거래처 기본정보를 저장한 뒤 샤시 항목을 추가합니다</p>
+      </div>
+    </div>
+
+    <div class="form-step-note">
+      <strong>1/3 기본정보</strong>
+      <span>거래처 선택 후 샤시 항목을 추가합니다</span>
+    </div>
 
     <!-- 1. 영업소 + 견적 기본 -->
     <div class="card">
+      <div class="form-section-title">영업소/견적 기본정보</div>
       <BzpcSelector v-model="selectedBzpc" :locked="bzpcLocked" />
 
       <div class="field">
@@ -25,6 +36,7 @@
 
     <!-- 2. 거래처 -->
     <div class="card">
+      <div class="form-section-title">거래처</div>
       <div class="field">
         <label>거래처 *</label>
         <input
@@ -44,13 +56,13 @@
             <input v-model="form.dplcCrgrNm" />
           </div>
           <div class="field">
-            <label>휴대폰</label>
+            <label>담당자 휴대폰</label>
             <input v-model="form.dplcCrgrMobile" />
           </div>
         </div>
         <div class="row-flex">
           <div class="field">
-            <label>전화번호</label>
+            <label>담당자 전화번호</label>
             <input v-model="form.dplcCrgrTel" />
           </div>
           <div class="field">
@@ -59,20 +71,40 @@
           </div>
         </div>
 
-        <div class="grade-row">
-          <div v-for="item in gradeDisplayItems" :key="item.label" class="grade-item">
-            <span class="grade-label">{{ item.label }}</span>
-            <span class="grade-value">{{ item.value || '-' }}</span>
+        <div class="form-subsection-title">견적 할인등급</div>
+        <div class="grade-edit-grid">
+          <div v-for="item in normalGradeItems" :key="item.field" class="field">
+            <label>{{ item.label }}</label>
+            <select v-model="form.dplcGrpGrade[item.field]">
+              <option value="">선택</option>
+              <option v-for="option in item.options" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
           </div>
         </div>
       </template>
     </div>
 
-    <!-- 3. 현장 / 주소 -->
+    <!-- 3. 현장 / 배송정보 -->
     <div class="card">
+      <div class="form-section-title">현장/배송정보</div>
       <div class="field">
         <label>현장명</label>
         <input v-model="form.jobsNm" />
+      </div>
+      <div class="field">
+        <label>고객요청 비고</label>
+        <textarea v-model="form.dplcReqRemSrc" rows="2" />
+      </div>
+      <div class="field">
+        <label>배송지점</label>
+        <select v-model="form.headerSaveDvpc" :disabled="!selectedBzpc.bzpc || loadingDvpc" @change="selectHeaderDvpc">
+          <option value="">선택</option>
+          <option v-for="option in dvpcOptions" :key="option.value" :value="option.value">
+            {{ option.text }}
+          </option>
+        </select>
       </div>
       <div class="field">
         <label>주소</label>
@@ -86,6 +118,7 @@
 
     <!-- 4. 인수/주문자 -->
     <div class="card">
+      <div class="form-section-title">주문/인수 정보</div>
       <div class="field">
         <label>주문자 / 연락처</label>
         <input v-model="form.ordrInfo" placeholder="주문자명 / 010-0000-0000" />
@@ -98,10 +131,7 @@
 
     <!-- 5. 비고 -->
     <div class="card">
-      <div class="field">
-        <label>고객요청 비고</label>
-        <textarea v-model="form.dplcReqRemSrc" rows="2" />
-      </div>
+      <div class="form-section-title">비고</div>
       <div class="field">
         <label>비고</label>
         <textarea v-model="form.remSrc" rows="2" />
@@ -109,11 +139,14 @@
     </div>
 
     <!-- 저장 -->
-    <button class="btn" :disabled="loading || !canSubmit" @click="submit">
-      {{ loading ? '저장 중...' : '견적 헤더 저장' }}
-    </button>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="result" class="success-msg">{{ result }}</div>
+    <div class="bottom-action-spacer"></div>
+    <div class="bottom-action-bar">
+      <button class="btn accent" :disabled="loading || !canSubmit" @click="submit">
+        {{ loading ? '저장 중...' : '견적 저장 후 샤시 추가' }}
+      </button>
+    </div>
 
     <DplcSearchModal
       ref="dplcModal"
@@ -129,7 +162,9 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BzpcSelector from '../components/BzpcSelector.vue'
 import DplcSearchModal from '../components/DplcSearchModal.vue'
-import { saveEstiHeader } from '../api/estimate'
+import { searchClientGradeOptions } from '../api/client'
+import { saveEstiHeader, searchDvpcCode, searchDvpcListSysAdmin } from '../api/estimate'
+import { buildClientGradeOptionGroups } from '../utils/clientGradeOptions'
 import { loadSelectedBzpc } from '../utils/selectedBzpcStorage'
 
 const router = useRouter()
@@ -145,7 +180,8 @@ const selectedBzpc = ref({ bzpc: '', bzpcNm: '' })
 const bzpcLocked = ref(false)
 
 // 견적 목록에서 선택한 영업소가 있으면 고정
-onMounted(() => {
+onMounted(async () => {
+  await loadGradeOptions()
   const saved = loadSelectedBzpc()
   if (saved?.bzpc) {
     selectedBzpc.value = saved
@@ -154,8 +190,12 @@ onMounted(() => {
 })
 const dplcModal = ref(null)
 const loading = ref(false)
+const loadingDvpc = ref(false)
 const error = ref('')
 const result = ref('')
+const dvpcOptions = ref([])
+const dvpcYn = ref('')
+const gradeGroups = ref(buildClientGradeOptionGroups({ resultList: [], resultListCross: [] }))
 
 const form = ref({
   itgEstiNm: '',
@@ -168,6 +208,8 @@ const form = ref({
   dplcCrgrTel: '',
   dplcCrgrMobile: '',
   monCreditLimit: '',
+  headerSaveDvpc: '',
+  headerBasicDvpc: '',
   adr1: '',
   adr2: '',
 
@@ -180,33 +222,29 @@ const form = ref({
   dplcGrpGrade: {
     dplcDcGrd: '', dplcDcGrdDoor: '', dplcDcGrdPannel: '', dplcDcGrdOtherComp: '',
     dplcDcGrdGlas: '', dplcDcGrdMold: '', dplcDcGrdDtbtMtrl: '', dplcDcGrdDtbtGoods: '',
-    dplcDcGrdDoorCr: '', dplcDcGrdMoldCr: '', dplcDcGrdDtbtMtrlCr: '', dplcDcGrdDtbtGoodsCr: '',
   },
   dplcRate: {
     dplcRt: '', dplcDoorRt: '', dplcPannelRt: '', dplcOtherCompRt: '',
     dplcGlasRt: '', dplcMoldRt: '', dplcDtbtMtrlRt: '', dplcDtbtGoodsRt: '',
-    dplcDoorCrRt: '', dplcMoldCrRt: '', dplcDtbtMtrlCrRt: '', dplcDtbtGoodsCrRt: '',
   },
 })
 
 const dplcDisplay = computed(() => (form.value.dplcCd ? `${form.value.dplcNm} (${form.value.dplcCd})` : ''))
 
-const gradeDisplayItems = computed(() => {
-  const grade = form.value.dplcGrpGrade
-  return [
-    { label: '샤시', value: grade.dplcDcGrd },
-    { label: '도어', value: grade.dplcDcGrdDoor },
-    { label: '판넬', value: grade.dplcDcGrdPannel },
-    { label: '타사', value: grade.dplcDcGrdOtherComp },
-    { label: '알유리', value: grade.dplcDcGrdGlas },
-    { label: '몰딩', value: grade.dplcDcGrdMold },
-    { label: '유통자재', value: grade.dplcDcGrdDtbtMtrl },
-    { label: '유통상품', value: grade.dplcDcGrdDtbtGoods },
-    { label: '크로스 도어', value: grade.dplcDcGrdDoorCr },
-    { label: '크로스 몰딩', value: grade.dplcDcGrdMoldCr },
-    { label: '크로스 유통자재', value: grade.dplcDcGrdDtbtMtrlCr },
-    { label: '크로스 유통상품', value: grade.dplcDcGrdDtbtGoodsCr },
-  ]
+const ESTIMATE_GRADE_ITEMS = [
+  { field: 'dplcDcGrd', rateField: 'dplcRt', label: '샤시 *', groupKey: 'sash' },
+  { field: 'dplcDcGrdDoor', rateField: 'dplcDoorRt', label: '도어', groupKey: 'door' },
+  { field: 'dplcDcGrdPannel', rateField: 'dplcPannelRt', label: '판넬', groupKey: 'panel' },
+  { field: 'dplcDcGrdOtherComp', rateField: 'dplcOtherCompRt', label: '타사', groupKey: 'tasa' },
+  { field: 'dplcDcGrdGlas', rateField: 'dplcGlasRt', label: '알유리', groupKey: 'glass' },
+  { field: 'dplcDcGrdMold', rateField: 'dplcMoldRt', label: '몰딩', groupKey: 'molding' },
+  { field: 'dplcDcGrdDtbtMtrl', rateField: 'dplcDtbtMtrlRt', label: '유통자재', groupKey: 'material' },
+  { field: 'dplcDcGrdDtbtGoods', rateField: 'dplcDtbtGoodsRt', label: '유통상품', groupKey: 'product' },
+]
+
+const normalGradeItems = computed(() => {
+  const normal = gradeGroups.value.normal
+  return ESTIMATE_GRADE_ITEMS.map((item) => ({ ...item, options: normal[item.groupKey] || [] }))
 })
 
 const canSubmit = computed(
@@ -219,14 +257,24 @@ const canSubmit = computed(
 
 watch(
   () => selectedBzpc.value.bzpc,
-  (next, prev) => {
+  async (next, prev) => {
     if (prev && next !== prev) clearDplc()
+    await loadDeliveryBranches()
   }
 )
 
 function openDplcSearch() {
   if (!selectedBzpc.value.bzpc) return
   dplcModal.value?.open()
+}
+
+async function loadGradeOptions() {
+  try {
+    const { data } = await searchClientGradeOptions()
+    gradeGroups.value = buildClientGradeOptionGroups(data || {})
+  } catch (_) {
+    gradeGroups.value = buildClientGradeOptionGroups({ resultList: [], resultListCross: [] })
+  }
 }
 
 function clearDplc() {
@@ -236,6 +284,78 @@ function clearDplc() {
   })
   form.value.dplcGrpGrade = buildEmptyEstimateGrade()
   form.value.dplcRate = buildEmptyEstimateRate()
+}
+
+function normalizeDvpcOptions(data) {
+  const rows = Array.isArray(data) ? data : Array.isArray(data?.resultList) ? data.resultList : []
+  return rows
+    .map((row) => ({
+      text: stringValue(row.dvpcNm || row.text),
+      value: stringValue(row.dvpc || row.value),
+    }))
+    .filter((option) => option.value)
+}
+
+function matchBranchDvpcOption() {
+  const branchName = stringValue(selectedBzpc.value.bzpcNm)
+  if (!branchName) return null
+  return dvpcOptions.value.find((option) => option.text === branchName) || null
+}
+
+function setHeaderDvpc(value, forceBasic = false) {
+  const next = stringValue(value)
+  form.value.headerSaveDvpc = next
+  form.value.headerBasicDvpc = forceBasic || dvpcYn.value === 'Y' ? next : ''
+}
+
+function selectHeaderDvpc() {
+  setHeaderDvpc(form.value.headerSaveDvpc, true)
+}
+
+function applyFallbackDvpc() {
+  const matchedDvpc = matchBranchDvpcOption()
+  const fallback = matchedDvpc?.value || dvpcOptions.value[0]?.value || ''
+  setHeaderDvpc(fallback, dvpcYn.value === 'Y')
+}
+
+function applyCustomerDefaultDvpc(row = {}) {
+  const defaultDvpcVisibleBzpcYn = stringValue(row.defaultDvpcVisibleBzpcYn)
+  const defaultDvpc = stringValue(row.defaultDvpc)
+  if (defaultDvpcVisibleBzpcYn === 'Y' && defaultDvpc && dvpcYn.value === 'Y') {
+    setHeaderDvpc(defaultDvpc, true)
+    return
+  }
+  applyFallbackDvpc()
+}
+
+async function loadDeliveryBranches() {
+  dvpcOptions.value = []
+  dvpcYn.value = ''
+  setHeaderDvpc('')
+  if (!selectedBzpc.value.bzpc) return
+
+  loadingDvpc.value = true
+  try {
+    const listResponse = await searchDvpcListSysAdmin({ bzpc: selectedBzpc.value.bzpc })
+    dvpcOptions.value = normalizeDvpcOptions(listResponse.data)
+
+    const codeResponse = await searchDvpcCode({ bzpc: selectedBzpc.value.bzpc })
+    const resultList = codeResponse.data?.resultList || {}
+    dvpcYn.value = stringValue(resultList.dvpcYn)
+    const defaultDvpc = stringValue(resultList.dvpc)
+
+    if (defaultDvpc && defaultDvpc !== 'N') {
+      setHeaderDvpc(defaultDvpc, dvpcYn.value === 'Y')
+    } else {
+      applyFallbackDvpc()
+    }
+  } catch (_) {
+    dvpcOptions.value = []
+    dvpcYn.value = ''
+    setHeaderDvpc('')
+  } finally {
+    loadingDvpc.value = false
+  }
 }
 
 function onDplcPick(row) {
@@ -249,6 +369,7 @@ function onDplcPick(row) {
   form.value.monCreditLimit = row.monCreditLimit || ''
   form.value.adr1 = row.adr1 || ''
   form.value.adr2 = row.adr2 || ''
+  applyCustomerDefaultDvpc(row)
 
   if (!form.value.ordrInfo && form.value.dplcCrgrNm) {
     form.value.ordrInfo = form.value.dplcCrgrNm
@@ -263,10 +384,6 @@ function onDplcPick(row) {
     dplcDcGrdMold:    row.dcGrdMold    || row.dcGrdMlng  || '',
     dplcDcGrdDtbtMtrl: row.dcGrdDtbtMtrl || row.dcGrdMtrl || '',
     dplcDcGrdDtbtGoods: row.dcGrdDtbtGoods || row.dcGrdProd || '',
-    dplcDcGrdDoorCr: row.dcGrdDoorCr || '',
-    dplcDcGrdMoldCr: row.dcGrdMoldCr || '',
-    dplcDcGrdDtbtMtrlCr: row.dcGrdDtbtMtrlCr || '',
-    dplcDcGrdDtbtGoodsCr: row.dcGrdDtbtGoodsCr || '',
   }
 
   form.value.dplcRate = {
@@ -278,10 +395,6 @@ function onDplcPick(row) {
     dplcMoldRt:    row.dplcMoldRt   || row.dplcMlngRt || row.addInfo13 || '',
     dplcDtbtMtrlRt: row.dplcDtbtMtrlRt || row.dplcMtrlRt || row.addInfo14 || '',
     dplcDtbtGoodsRt: row.dplcDtbtGoodsRt || row.dplcProdRt || row.addInfo15 || '',
-    dplcDoorCrRt: row.dplcDoorCrRt || '',
-    dplcMoldCrRt: row.dplcMoldCrRt || '',
-    dplcDtbtMtrlCrRt: row.dplcDtbtMtrlCrRt || '',
-    dplcDtbtGoodsCrRt: row.dplcDtbtGoodsCrRt || '',
   }
 }
 
@@ -295,10 +408,6 @@ function buildEmptyEstimateGrade() {
     dplcDcGrdMold: '',
     dplcDcGrdDtbtMtrl: '',
     dplcDcGrdDtbtGoods: '',
-    dplcDcGrdDoorCr: '',
-    dplcDcGrdMoldCr: '',
-    dplcDcGrdDtbtMtrlCr: '',
-    dplcDcGrdDtbtGoodsCr: '',
   }
 }
 
@@ -312,10 +421,6 @@ function buildEmptyEstimateRate() {
     dplcMoldRt: '',
     dplcDtbtMtrlRt: '',
     dplcDtbtGoodsRt: '',
-    dplcDoorCrRt: '',
-    dplcMoldCrRt: '',
-    dplcDtbtMtrlCrRt: '',
-    dplcDtbtGoodsCrRt: '',
   }
 }
 
@@ -333,28 +438,33 @@ function buildEstimateGradePayload(grades = {}) {
     dplcDcGrdMold: stringValue(grades.dplcDcGrdMold),
     dplcDcGrdDtbtMtrl: stringValue(grades.dplcDcGrdDtbtMtrl),
     dplcDcGrdDtbtGoods: stringValue(grades.dplcDcGrdDtbtGoods),
-    dplcDcGrdDoorCr: stringValue(grades.dplcDcGrdDoorCr),
-    dplcDcGrdMoldCr: stringValue(grades.dplcDcGrdMoldCr),
-    dplcDcGrdDtbtMtrlCr: stringValue(grades.dplcDcGrdDtbtMtrlCr),
-    dplcDcGrdDtbtGoodsCr: stringValue(grades.dplcDcGrdDtbtGoodsCr),
   }
 }
 
-function buildEstimateRatePayload(rates = {}) {
-  return {
-    dplcRt: stringValue(rates.dplcRt),
-    dplcDoorRt: stringValue(rates.dplcDoorRt),
-    dplcPannelRt: stringValue(rates.dplcPannelRt),
-    dplcOtherCompRt: stringValue(rates.dplcOtherCompRt),
-    dplcGlasRt: stringValue(rates.dplcGlasRt),
-    dplcMoldRt: stringValue(rates.dplcMoldRt),
-    dplcDtbtMtrlRt: stringValue(rates.dplcDtbtMtrlRt),
-    dplcDtbtGoodsRt: stringValue(rates.dplcDtbtGoodsRt),
-    dplcDoorCrRt: stringValue(rates.dplcDoorCrRt),
-    dplcMoldCrRt: stringValue(rates.dplcMoldCrRt),
-    dplcDtbtMtrlCrRt: stringValue(rates.dplcDtbtMtrlCrRt),
-    dplcDtbtGoodsCrRt: stringValue(rates.dplcDtbtGoodsCrRt),
+function selectedGradeRate(item, gradeValue, fallbackRates = {}) {
+  const option = (item.options || []).find((candidate) => candidate.value === gradeValue)
+  return stringValue(option?.rate || fallbackRates[item.rateField])
+}
+
+function buildEstimateRatePayload(grades = {}, fallbackRates = {}) {
+  return normalGradeItems.value.reduce((payload, item) => {
+    payload[item.rateField] = selectedGradeRate(item, grades[item.field], fallbackRates)
+    return payload
+  }, {})
+}
+
+function validateEstimateGrades(grades = {}) {
+  for (const item of normalGradeItems.value) {
+    if (!stringValue(grades[item.field])) return `${item.label.replace(' *', '')} 할인등급을 선택하세요`
   }
+  return ''
+}
+
+function validateEstimateRates(rates = {}) {
+  for (const item of normalGradeItems.value) {
+    if (!stringValue(rates[item.rateField])) return `${item.label.replace(' *', '')} 할인율을 확인하세요`
+  }
+  return ''
 }
 
 async function submit() {
@@ -364,16 +474,25 @@ async function submit() {
   if (!selectedBzpc.value.bzpc) return (error.value = '영업소를 선택하세요')
   if (!form.value.itgEstiNm)    return (error.value = '견적제목을 입력하세요')
   if (!form.value.dplcCd)       return (error.value = '거래처를 선택하세요')
+  const gradeError = validateEstimateGrades(form.value.dplcGrpGrade)
+  if (gradeError) return (error.value = gradeError)
+  const ratePayload = buildEstimateRatePayload(form.value.dplcGrpGrade, form.value.dplcRate)
+  const rateError = validateEstimateRates(ratePayload)
+  if (rateError) return (error.value = rateError)
   if (!form.value.estiVldDt)    return (error.value = '견적유효일을 선택하세요')
+  if (dvpcYn.value === 'Y' && !form.value.headerSaveDvpc) return (error.value = '배송지점을 선택하세요')
 
   loading.value = true
   try {
     const payload = {
       ...form.value,
       ...buildEstimateGradePayload(form.value.dplcGrpGrade),
-      ...buildEstimateRatePayload(form.value.dplcRate),
+      ...ratePayload,
+      dplcRate: ratePayload,
       bzpc: selectedBzpc.value.bzpc,
       bzpcNm: selectedBzpc.value.bzpcNm,
+      headerSaveDvpc: stringValue(form.value.headerSaveDvpc),
+      headerBasicDvpc: stringValue(form.value.headerBasicDvpc),
       estiVldDt: form.value.estiVldDt.replace(/-/g, ''),
       delivryDt: form.value.delivryDt ? form.value.delivryDt.replace(/-/g, '') : '',
     }
