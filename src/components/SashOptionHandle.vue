@@ -1,6 +1,7 @@
 <template>
   <details class="card" open>
     <summary>알유리 / 브래킷 / 핸들</summary>
+    <fieldset :disabled="readonly" class="sash-readonly-fieldset">
     <div class="details-body">
       <div class="row-flex">
         <div class="field option-inline-field">
@@ -31,7 +32,7 @@
       <div class="row-flex">
         <div class="field">
           <label>내부 핸들 종류</label>
-          <select v-model="form.insdHandleType">
+          <select class="sash-highlight-input" v-model="form.insdHandleType">
             <option value="">선택</option>
             <option v-for="h in handleOptions" :key="'i'+h.commCdId" :value="h.commCdId">{{ h.commCdNm }}</option>
           </select>
@@ -57,7 +58,7 @@
       <div class="row-flex">
         <div class="field">
           <label>외부 핸들 종류</label>
-          <select v-model="form.ousdHandleType">
+          <select class="sash-highlight-input" v-model="form.ousdHandleType">
             <option value="">선택</option>
             <option v-for="h in handleOptions" :key="'o'+h.commCdId" :value="h.commCdId">{{ h.commCdNm }}</option>
           </select>
@@ -136,6 +137,7 @@
       
       
     </div>
+    </fieldset>
   </details>
 </template>
 
@@ -146,6 +148,7 @@ const props = defineProps({
   ordTypList: { type: Array, default: () => [] },
   alGlassEnabled: { type: Boolean, default: true },
   secondFloorEnabled: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
 })
 
 function toggleAlGlass() {

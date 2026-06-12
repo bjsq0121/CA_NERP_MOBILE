@@ -36,6 +36,7 @@
           <span>{{ header.bzpcNm || header.bzpc || '-' }}</span>
           <span>등록 {{ formatDt(header.inputDtm) }}</span>
           <span v-if="header.estiVldDt">유효 {{ formatDate(header.estiVldDt) }}</span>
+          <span v-if="header.delivryDt">납품예정 {{ formatDate(header.delivryDt) }}</span>
         </div>
 
         <div class="estimate-header-info">
@@ -46,6 +47,10 @@
           <div>
             <span>현장명</span>
             <strong>{{ header.jobsNm || '-' }}</strong>
+          </div>
+          <div>
+            <span>납품예정일</span>
+            <strong>{{ header.delivryDt ? formatDate(header.delivryDt) : '-' }}</strong>
           </div>
           <div class="estimate-header-info-wide">
             <span>고객견적비고</span>
@@ -241,6 +246,7 @@ import {
   selectEstiHeader,
   searchCodeList,
   searchColorList,
+  searchDrwgFileAjax,
   searchGlasList,
   searchModelList,
   searchModelSf,
@@ -260,6 +266,7 @@ import {
   normalizeSashRows,
   resolveWindEstiNo,
 } from '../utils/estimateDetail'
+import { normalizeDrwgFileAjaxResult } from '../utils/sashDrawingState'
 import { UNKNOWN_STATUS, isEditableHeaderStatus, isEditableStatus, resolveEffectiveStatus } from '../utils/estimateStatus'
 
 const route = useRoute()
@@ -282,6 +289,8 @@ const openingSash = ref(false)
 const showItemSheet = ref(false)
 const issueError = ref('')
 const selectedSashKey = ref('')
+const priorityHydratingKeys = new Set()
+const priorityHydratedKeys = new Set()
 
 const headerStatus = computed(() => resolveEffectiveStatus(header.value?.stCd, header.value?.igStCd))
 const canEditHeader = computed(() => ['0', '10'].includes(headerStatus.value))
@@ -381,6 +390,41 @@ function sashRowKey(row = {}) {
 
 function selectSash(row) {
   selectedSashKey.value = sashRowKey(row)
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+    requestAnimationFrame(() => {
+      document.querySelector('.sash-detail-pane')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    })
+  }
+  if (!sashDrawingUrl(row)) hydrateSelectedSashDrawing(row)
+}
+
+function ensureSelectedSashKey(rows = sashRows.value) {
+  if (!rows.length) {
+    selectedSashKey.value = ''
+    return
+  }
+  if (!selectedSashKey.value || !rows.some((row) => sashRowKey(row) === selectedSashKey.value)) {
+    selectedSashKey.value = sashRowKey(rows[0])
+  }
+}
+
+function replaceSashRow(key, row) {
+  sashRows.value = sashRows.value.map((item) =>
+    sashRowKey(item) === key ? { ...item, ...row } : item
+  )
+}
+
+function preservePriorityHydratedRows(rows) {
+  const currentRowsByKey = new Map(sashRows.value.map((row) => [sashRowKey(row), row]))
+  return rows.map((row) => {
+    const key = sashRowKey(row)
+    const current = currentRowsByKey.get(key)
+    if (!priorityHydratedKeys.has(key) || !current || !buildSashDrawingUrl(current)) return row
+    return { ...row, ...current }
+  })
 }
 
 function isSashEditable(row) {
@@ -965,6 +1009,92 @@ async function hydrateSashDrawingFiles(rows) {
   return mergeSashDrawingFiles(rows, Object.fromEntries(entries))
 }
 
+async function loadSashCommonCodeLists() {
+  try {
+    const [
+      { data: screenData },
+      { data: ventData },
+      { data: colorData },
+      { data: bsmfData },
+      { data: handleData },
+      { data: safetyHandleData },
+    ] = await Promise.all([
+      searchCodeList('379'),
+      searchCodeList('48'),
+      searchColorList(),
+      searchCodeList('405'),
+      searchCodeList('378'),
+      searchCodeList('387'),
+    ])
+    screenList.value = normalizeCodeList(screenData?.resultList || [])
+    ventList.value = normalizeCodeList(ventData?.resultList || [])
+    colorList.value = normalizeCodeList(colorData?.resultList || [])
+    bsmfList.value = normalizeCodeList(bsmfData?.resultList || [])
+    handleList.value = normalizeCodeList([
+      ...(handleData?.resultList || []),
+      ...(safetyHandleData?.resultList || []),
+    ])
+  } catch (_) {}
+}
+
+async function hydrateSelectedSashDrawing(row) {
+  const key = sashRowKey(row)
+  if (!key || priorityHydratingKeys.has(key) || priorityHydratedKeys.has(key)) return
+
+  priorityHydratingKeys.add(key)
+  try {
+    const { data } = await selectSashDetail({
+      itgEstiNo,
+      estiNo: row.estiNo || row.windEstiNo || wEstiNo.value,
+      estiNos: row.estiNos || '1',
+      estiSeq: row.estiSeq,
+    })
+    const detailRow = mergeSashDetailRow(row, data?.resultData || {})
+
+    let drawingRow = detailRow
+    if (detailRow.wintydiCd && detailRow.ventLoc) {
+      try {
+        const { data: drawingData } = await searchDrwgFileAjax({
+          wintydiCd: detailRow.wintydiCd,
+          ventLoc: detailRow.ventLoc,
+        })
+        const apiRow = normalizeDrwgFileAjaxResult(drawingData)
+        if (buildSashDrawingUrl(apiRow)) {
+          drawingRow = {
+            ...detailRow,
+            ...apiRow,
+            _displaySrvFileNm: apiRow.srvFileNm,
+            _displayFileExtNm: apiRow.fileExtNm,
+            _displayDrwgFilePath: apiRow.drwgFilePath,
+            _displayDrwgCd: apiRow.drwgCd,
+          }
+          replaceSashRow(key, drawingRow)
+          priorityHydratedKeys.add(key)
+          return
+        }
+      } catch (_) {}
+    }
+
+    if (detailRow.mdlCd) {
+      const { data: drawingData } = await searchModelList({
+        searchMdlCd: detailRow.mdlCd,
+        searchUseYn: 'Y',
+        startRowNum: 0,
+        endRowNum: 99,
+      })
+      drawingRow = mergeSashDrawingFiles([detailRow], {
+        [detailRow.mdlCd]: drawingData?.resultList || [],
+      })[0]
+    }
+
+    replaceSashRow(key, drawingRow)
+    priorityHydratedKeys.add(key)
+  } catch (_) {
+  } finally {
+    priorityHydratingKeys.delete(key)
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -974,42 +1104,27 @@ onMounted(async () => {
 
     if (header.value) {
       try {
-        const [
-          { data: sashData },
-          { data: screenData },
-          { data: ventData },
-          { data: colorData },
-          { data: bsmfData },
-          { data: handleData },
-          { data: safetyHandleData },
-        ] = await Promise.all([
-          searchSashList({ itgEstiNo, estiNo: wEstiNo.value }),
-          searchCodeList('379'),
-          searchCodeList('48'),
-          searchColorList(),
-          searchCodeList('405'),
-          searchCodeList('378'),
-          searchCodeList('387'),
-        ])
-        screenList.value = normalizeCodeList(screenData?.resultList || [])
-        ventList.value = normalizeCodeList(ventData?.resultList || [])
-        colorList.value = normalizeCodeList(colorData?.resultList || [])
-        bsmfList.value = normalizeCodeList(bsmfData?.resultList || [])
-        handleList.value = normalizeCodeList([
-          ...(handleData?.resultList || []),
-          ...(safetyHandleData?.resultList || []),
-        ])
+        const { data: sashData } = await searchSashList({ itgEstiNo, estiNo: wEstiNo.value })
         const rows = normalizeSashRows(sashData)
         glassRows.value = rows.filter(isGlassEstimateRow)
         const sashOnlyRows = rows.filter((row) => !isGlassEstimateRow(row))
-        const detailRows = await hydrateSashDetailRows(sashOnlyRows)
-        const [drawingRows, panelNameMaps] = await Promise.all([
-          hydrateSashDrawingFiles(detailRows),
-          loadSashPanelNameMaps(detailRows),
-        ])
-        sashPanelNameMaps.value = panelNameMaps
-        sashRows.value = drawingRows
-        if (!selectedSashKey.value && sashRows.value.length) selectedSashKey.value = sashRowKey(sashRows.value[0])
+        sashRows.value = sashOnlyRows
+        ensureSelectedSashKey(sashRows.value)
+        loading.value = false
+        const initialSelectedSashRow = selectedSashRow.value
+        hydrateSelectedSashDrawing(initialSelectedSashRow)
+        loadSashCommonCodeLists()
+
+        try {
+          const detailRows = await hydrateSashDetailRows(sashOnlyRows)
+          const [drawingRows, panelNameMaps] = await Promise.all([
+            hydrateSashDrawingFiles(detailRows),
+            loadSashPanelNameMaps(detailRows),
+          ])
+          sashPanelNameMaps.value = panelNameMaps
+          sashRows.value = preservePriorityHydratedRows(drawingRows)
+          ensureSelectedSashKey(drawingRows)
+        } catch (_) {}
       } catch (e) {
         sashRows.value = []
         glassRows.value = []

@@ -36,7 +36,7 @@
         <div class="form-section-title">견적 기본정보</div>
         <div class="field">
           <label>견적제목 *</label>
-          <input v-model="form.itgEstiNm" :disabled="!canSave" />
+          <input ref="titleInput" v-model="form.itgEstiNm" :disabled="!canSave" />
         </div>
         <div class="row-flex">
           <div class="field">
@@ -139,7 +139,7 @@
       <div v-if="result" class="success-msg">{{ result }}</div>
       <div class="bottom-action-spacer"></div>
       <div v-if="canSave" class="bottom-action-bar">
-        <button class="btn accent" :disabled="saving || !canSubmit" @click="submit">
+        <button class="btn accent" :disabled="saving" @click="submit">
           {{ saving ? '저장 중...' : '헤더 저장' }}
         </button>
       </div>
@@ -148,7 +148,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { searchClientGradeOptions } from '../api/client'
 import { saveEstiHeader, selectEstiHeader, searchDvpcCode, searchDvpcListSysAdmin } from '../api/estimate'
@@ -170,8 +170,8 @@ const dvpcOptions = ref([])
 const dvpcYn = ref('')
 const gradeGroups = ref(buildClientGradeOptionGroups({ resultList: [], resultListCross: [] }))
 const headerStatus = ref(UNKNOWN_STATUS)
+const titleInput = ref(null)
 const canSave = computed(() => ['0', '10'].includes(headerStatus.value))
-const canSubmit = computed(() => !!form.value.itgEstiNm && !!form.value.estiVldDt && !!form.value.dplcCd)
 
 const form = ref({
   itgEstiNm: '',
@@ -251,6 +251,12 @@ function firstValue(row, ...keys) {
     if (value != null && value !== '') return value
   }
   return ''
+}
+
+async function focusTitleInput() {
+  await nextTick()
+  titleInput.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  titleInput.value?.focus?.({ preventScroll: true })
 }
 
 async function loadGradeOptions() {
@@ -452,7 +458,11 @@ async function submit() {
   result.value = ''
 
   if (!canSave.value) return (error.value = '현재 상태에서는 견적 헤더를 수정할 수 없습니다')
-  if (!form.value.itgEstiNm) return (error.value = '견적제목을 입력하세요')
+  if (!form.value.itgEstiNm) {
+    error.value = '견적제목을 입력하세요'
+    await focusTitleInput()
+    return
+  }
   if (!form.value.estiVldDt) return (error.value = '견적유효일을 선택하세요')
   const gradeError = validateEstimateGrades(form.value.dplcGrpGrade)
   if (gradeError) return (error.value = gradeError)

@@ -37,6 +37,9 @@ export function searchModelCombo() {
 export function searchColorList(payload = {}) {
   return http.post('/mobile/esti/color/list', payload)
 }
+export function searchColorSearch(payload = {}) {
+  return http.post('/mobile/esti/color/search', payload)
+}
 export function searchCodeList(commCdGrpId) {
   return http.post('/mobile/esti/code/list', { commCdGrpId })
 }

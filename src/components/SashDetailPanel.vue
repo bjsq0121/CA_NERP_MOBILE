@@ -8,7 +8,9 @@
       </div>
       <div class="sash-panel-actions">
         <span :class="statusClass">{{ statusText }}</span>
-        <button v-if="editable" type="button" class="btn accent btn-xs" @click="$emit('edit')">수정</button>
+        <button type="button" :class="['btn btn-xs', editable ? 'accent' : 'secondary']" @click="$emit('edit')">
+          {{ editable ? '수정' : '상세보기' }}
+        </button>
       </div>
     </header>
 
@@ -20,7 +22,9 @@
           :key="drawingUrl"
           :src="drawingUrl"
           alt=""
-          loading="lazy"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
           @error="$emit('image-error')"
         />
         <div v-else class="sash-panel-drawing-fallback">{{ fallbackText || '샤시' }}</div>

@@ -19,7 +19,7 @@
 
       <div class="field">
         <label>견적제목 *</label>
-        <input v-model="form.itgEstiNm" placeholder="예: ○○현장 샤시 견적" />
+        <input ref="titleInput" v-model="form.itgEstiNm" placeholder="견적 제목" />
       </div>
 
       <div class="row-flex">
@@ -40,6 +40,7 @@
       <div class="field">
         <label>거래처 *</label>
         <input
+          ref="dplcInput"
           readonly
           data-clickable
           :value="dplcDisplay"
@@ -91,7 +92,7 @@
       <div class="form-section-title">현장/배송정보</div>
       <div class="field">
         <label>현장명</label>
-        <input v-model="form.jobsNm" />
+        <input v-model="form.jobsNm" placeholder="현장명"/>
       </div>
       <div class="field">
         <label>고객요청 비고</label>
@@ -143,7 +144,7 @@
     <div v-if="result" class="success-msg">{{ result }}</div>
     <div class="bottom-action-spacer"></div>
     <div class="bottom-action-bar">
-      <button class="btn accent" :disabled="loading || !canSubmit" @click="submit">
+      <button class="btn accent" :disabled="loading" @click="submit">
         {{ loading ? '저장 중...' : '견적 저장 후 샤시 추가' }}
       </button>
     </div>
@@ -158,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import BzpcSelector from '../components/BzpcSelector.vue'
 import DplcSearchModal from '../components/DplcSearchModal.vue'
@@ -178,6 +179,8 @@ function plusDays(n) {
 
 const selectedBzpc = ref({ bzpc: '', bzpcNm: '' })
 const bzpcLocked = ref(false)
+const titleInput = ref(null)
+const dplcInput = ref(null)
 
 // 견적 목록에서 선택한 영업소가 있으면 고정
 onMounted(async () => {
@@ -246,14 +249,6 @@ const normalGradeItems = computed(() => {
   const normal = gradeGroups.value.normal
   return ESTIMATE_GRADE_ITEMS.map((item) => ({ ...item, options: normal[item.groupKey] || [] }))
 })
-
-const canSubmit = computed(
-  () =>
-    !!selectedBzpc.value.bzpc &&
-    !!form.value.itgEstiNm &&
-    !!form.value.dplcCd &&
-    !!form.value.estiVldDt
-)
 
 watch(
   () => selectedBzpc.value.bzpc,
@@ -376,25 +371,25 @@ function onDplcPick(row) {
   }
 
   form.value.dplcGrpGrade = {
-    dplcDcGrd:        row.dcGrd        || '',
-    dplcDcGrdDoor:    row.dcGrdDoor    || '',
-    dplcDcGrdPannel:  row.dcGrdPannel  || '',
-    dplcDcGrdOtherComp: row.dcGrdOtherComp || row.dcGrdEtc || '',
-    dplcDcGrdGlas:    row.dcGrdGlas    || '',
-    dplcDcGrdMold:    row.dcGrdMold    || row.dcGrdMlng  || '',
-    dplcDcGrdDtbtMtrl: row.dcGrdDtbtMtrl || row.dcGrdMtrl || '',
-    dplcDcGrdDtbtGoods: row.dcGrdDtbtGoods || row.dcGrdProd || '',
+    dplcDcGrd: stringValue(firstValue(row, 'dcGrd', 'dplcDcGrd')),
+    dplcDcGrdDoor: stringValue(firstValue(row, 'dcGrdDoor', 'dplcDcGrdDoor')),
+    dplcDcGrdPannel: stringValue(firstValue(row, 'dcGrdPannel', 'dplcDcGrdPannel')),
+    dplcDcGrdOtherComp: stringValue(firstValue(row, 'dcGrdOtherComp', 'dplcDcGrdOtherComp', 'dcGrdEtc')),
+    dplcDcGrdGlas: stringValue(firstValue(row, 'dcGrdGlas', 'dplcDcGrdGlas')),
+    dplcDcGrdMold: stringValue(firstValue(row, 'dcGrdMold', 'dplcDcGrdMold', 'dcGrdMlng')),
+    dplcDcGrdDtbtMtrl: stringValue(firstValue(row, 'dcGrdDtbtMtrl', 'dplcDcGrdDtbtMtrl', 'dplcMstDcGrdDtbtMtrl', 'dcGrdMtrl')),
+    dplcDcGrdDtbtGoods: stringValue(firstValue(row, 'dcGrdDtbtGoods', 'dplcDcGrdDtbtGoods', 'dplcMstDcGrdDtbtGoods', 'dcGrdProd')),
   }
 
   form.value.dplcRate = {
-    dplcRt:        row.dplcRt       || row.addInfo1  || '',
-    dplcDoorRt:    row.dplcDoorRt   || row.addInfo5  || '',
-    dplcPannelRt:  row.dplcPannelRt || row.addInfo2  || '',
-    dplcOtherCompRt: row.dplcOtherCompRt || row.dplcEtcRt || row.addInfo3  || '',
-    dplcGlasRt:    row.dplcGlasRt   || row.addInfo12 || '',
-    dplcMoldRt:    row.dplcMoldRt   || row.dplcMlngRt || row.addInfo13 || '',
-    dplcDtbtMtrlRt: row.dplcDtbtMtrlRt || row.dplcMtrlRt || row.addInfo14 || '',
-    dplcDtbtGoodsRt: row.dplcDtbtGoodsRt || row.dplcProdRt || row.addInfo15 || '',
+    dplcRt: stringValue(firstValue(row, 'dplcRt', 'addInfo1')),
+    dplcDoorRt: stringValue(firstValue(row, 'dplcDoorRt', 'addInfo5')),
+    dplcPannelRt: stringValue(firstValue(row, 'dplcPannelRt', 'addInfo2')),
+    dplcOtherCompRt: stringValue(firstValue(row, 'dplcOtherCompRt', 'dplcEtcRt', 'addInfo3')),
+    dplcGlasRt: stringValue(firstValue(row, 'dplcGlasRt', 'addInfo12')),
+    dplcMoldRt: stringValue(firstValue(row, 'dplcMoldRt', 'dplcMlngRt', 'addInfo13')),
+    dplcDtbtMtrlRt: stringValue(firstValue(row, 'dplcDtbtMtrlRt', 'dplcMtrlRt', 'addInfo14')),
+    dplcDtbtGoodsRt: stringValue(firstValue(row, 'dplcDtbtGoodsRt', 'dplcProdRt', 'addInfo15')),
   }
 }
 
@@ -426,6 +421,26 @@ function buildEmptyEstimateRate() {
 
 function stringValue(value) {
   return String(value ?? '').trim()
+}
+
+function firstValue(row = {}, ...keys) {
+  for (const key of keys) {
+    const value = row?.[key]
+    if (value != null && value !== '') return value
+  }
+  return ''
+}
+
+async function focusTitleInput() {
+  await nextTick()
+  titleInput.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  titleInput.value?.focus?.({ preventScroll: true })
+}
+
+async function focusDplcInput() {
+  await nextTick()
+  dplcInput.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  dplcInput.value?.focus?.({ preventScroll: true })
 }
 
 function buildEstimateGradePayload(grades = {}) {
@@ -472,8 +487,16 @@ async function submit() {
   result.value = ''
 
   if (!selectedBzpc.value.bzpc) return (error.value = '영업소를 선택하세요')
-  if (!form.value.itgEstiNm)    return (error.value = '견적제목을 입력하세요')
-  if (!form.value.dplcCd)       return (error.value = '거래처를 선택하세요')
+  if (!form.value.itgEstiNm) {
+    error.value = '견적제목을 입력하세요'
+    await focusTitleInput()
+    return
+  }
+  if (!form.value.dplcCd) {
+    error.value = '거래처를 선택하세요'
+    await focusDplcInput()
+    return
+  }
   const gradeError = validateEstimateGrades(form.value.dplcGrpGrade)
   if (gradeError) return (error.value = gradeError)
   const ratePayload = buildEstimateRatePayload(form.value.dplcGrpGrade, form.value.dplcRate)

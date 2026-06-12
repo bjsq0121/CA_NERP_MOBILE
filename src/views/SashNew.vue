@@ -7,7 +7,7 @@
     <template v-else>
       <div class="page-title-row sash-header">
         <div class="sash-header-title">
-          <h2 class="page-title">{{ isEditMode ? '샤시 항목 수정' : '샤시 항목 추가' }}</h2>
+          <h2 class="page-title">{{ isReadonly ? '샤시 항목 상세' : (isEditMode ? '샤시 항목 수정' : '샤시 항목 추가') }}</h2>
           <div class="page-subtitle">견적순번: {{ editEstiSeq || '(신규)' }}</div>
         </div>
         <div class="sash-header-actions title-actions">
@@ -45,10 +45,12 @@
         :sync-ousd="syncOusd"
         :drawing-url="sashDrawingUrl"
         :drawing-fallback="currentWintydiName"
-        @open-model="modelModal?.open()"
+        :readonly="isReadonly"
+        @open-model="openModelSearch"
         @wintydi-change="onWintydiChange"
         @insd-color-change="onInsdColorChange"
         @ousd-color-change="onOusdColorChange"
+        @open-color-picker="openColorPicker"
         @drawing-error="drawingImageError = true"
       />
 
@@ -59,6 +61,7 @@
         :screen-options="screenOptions"
         :alu-mf-handle-options="aluMfHandleList"
         :silicone-finish-enabled="siliconeFinishEnabled"
+        :readonly="isReadonly"
         @toggle-alu-mf="toggleAluMf"
         @vent-change="onVentChange"
       />
@@ -70,19 +73,20 @@
         :ord-typ-list="ordTypList"
         :al-glass-enabled="alGlassEnabled"
         :second-floor-enabled="isSecondFloorEnabled"
+        :readonly="isReadonly"
       />
 
       <!-- 옵션: 유리 -->
-      <SashOptionGlass :form="form" :glas="glas" />
+      <SashOptionGlass :form="form" :glas="glas" :readonly="isReadonly" />
 
       <!-- 옵션: BF / SF / MF -->
-      <SashOptionFactory :form="form" />
+      <SashOptionFactory :form="form" :readonly="isReadonly" />
 
       <!-- 비고 -->
       <div class="card">
         <div class="field">
           <label>견적비고</label>
-          <textarea v-model="form.remSrc" rows="2" />
+          <textarea v-model="form.remSrc" rows="2" :disabled="isReadonly" />
         </div>
       </div>
 
@@ -151,6 +155,16 @@
         @select="handleQuickSashSelect"
       />
 
+      <SashColorPickerSheet
+        v-if="colorPickerOpen"
+        :visible="colorPickerOpen"
+        :target="colorPickerTarget"
+        :bftydi-cd="form.bftydiCd"
+        :mtrl-co="pickedMdlMtrlCo || form.mtrlCoNm"
+        @close="colorPickerOpen = false"
+        @select="onSelectColor"
+      />
+
       <details class="sash-bottom-meta">
         <summary>견적 식별정보</summary>
         <div>
@@ -176,6 +190,7 @@ import SashOptionHandle from '../components/SashOptionHandle.vue'
 import SashOptionGlass from '../components/SashOptionGlass.vue'
 import SashOptionFactory from '../components/SashOptionFactory.vue'
 import SashQuickConfigSheet from '../components/SashQuickConfigSheet.vue'
+import SashColorPickerSheet from '../components/SashColorPickerSheet.vue'
 import { saveSashEsti, searchColorList, searchModelList, searchModelSf, searchGlasList, searchCodeList, searchCodeDetail, searchModelWintydi, searchSashOrdTypCd, searchWindEstiAmt, selectSashDetail, selectEstiHeader, searchDrwgFileAjax } from '../api/estimate'
 import { buildSashSavePayload } from '../utils/sashPayload'
 import { normalizeSafetyNetHandleOptions, normalizeSafetyNetHandleValue, resolveBsmfOrdUtmCd } from '../utils/sashOptions'
@@ -365,6 +380,8 @@ const error = ref('')
 const savedSeq = ref('')
 const alertMessage = ref('')
 const showQuickConfigSheet = ref(false)
+const colorPickerOpen = ref(false)
+const colorPickerTarget = ref('inner')
 const syncOusd = ref(true)
 const modelDrawings = ref([])
 const selectedDrawing = ref(null)
@@ -818,6 +835,11 @@ async function onModelPick(row, { preserveProductionOptions = false } = {}) {
   await hydrateModelDrawing(row)
 }
 
+function openModelSearch() {
+  if (isReadonly.value) return
+  modelModal.value?.open()
+}
+
 function openQuickSashSheet() {
   if (isReadonly.value) return
   error.value = ''
@@ -829,6 +851,7 @@ function closeQuickSashSheet() {
 }
 
 async function handleQuickSashSelect(card) {
+  if (isReadonly.value) return
   showQuickConfigSheet.value = false
   await applyQuickSashConfig(card)
 }
@@ -1059,6 +1082,52 @@ function onOusdColorChange() {
   syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
 }
 
+function openColorPicker(target) {
+  if (isReadonly.value) return
+  colorPickerTarget.value = target === 'outer' ? 'outer' : 'inner'
+  colorPickerOpen.value = true
+}
+
+function normalizePickedColor(row = {}) {
+  return {
+    ...row,
+    commCdId: stringValue(row.commCdVal || row.commCdId),
+    commCdVal: stringValue(row.commCdVal || row.commCdId),
+    commCdNm: stringValue(row.commCdNm),
+    addInfo10: stringValue(row.addInfo10),
+    addInfo16: stringValue(row.addInfo16),
+    addInfo39: stringValue(row.addInfo39),
+  }
+}
+
+function ensureColorInList(row) {
+  const normalized = normalizePickedColor(row)
+  if (!normalized.commCdVal) return normalized
+  const exists = colorList.value.some(
+    (item) => item.commCdId === normalized.commCdVal || item.commCdVal === normalized.commCdVal
+  )
+  if (!exists) {
+    colorList.value = [
+      normalized,
+      ...colorList.value,
+    ]
+  }
+  return normalized
+}
+
+function onSelectColor(row) {
+  const color = ensureColorInList(row)
+  if (!color.commCdVal) return
+  if (colorPickerTarget.value === 'inner') {
+    form.value.insdColrCd = color.commCdVal
+    if (syncOusd.value) form.value.ousdColrCd = color.commCdVal
+  } else {
+    form.value.ousdColrCd = color.commCdVal
+    syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
+  }
+  colorPickerOpen.value = false
+}
+
 function toggleAluMf() {
   if (!form.value.isAluMf) {
     const safetyNetError = validateSafetyNetSelection()
@@ -1204,6 +1273,10 @@ function normalizeBeforeSubmit() {
 
 function stringifyOptionValue(value) {
   return value == null || value === '' ? '0' : String(value)
+}
+
+function stringValue(value) {
+  return String(value ?? '').trim()
 }
 
 function normalizeYn(value) {

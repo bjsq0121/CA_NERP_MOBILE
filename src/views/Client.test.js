@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
+const bzpcApiSource = readFileSync(resolve(currentDir, '../api/bzpc.js'), 'utf8')
 const clientApiSource = readFileSync(resolve(currentDir, '../api/client.js'), 'utf8')
 const clientGradeOptionsSource = readFileSync(resolve(currentDir, '../utils/clientGradeOptions.js'), 'utf8')
 const routerSource = readFileSync(resolve(currentDir, '../router/index.js'), 'utf8')
@@ -37,6 +38,13 @@ test('BzpcSelector emits vkbur vkgrp while preserving bzpc fields', () => {
   assert.match(bzpcSelectorSource, /vkgrpNm:\s*row\.vkgrpNm/)
   assert.match(bzpcSelectorSource, /auth\.vkbur/)
   assert.match(bzpcSelectorSource, /auth\.vkgrp/)
+})
+
+test('BzpcSelector does not restrict admin branch choices by login sales org', () => {
+  assert.match(bzpcSelectorSource, /searchVkbur:\s*auth\.isAdmin \? '' : auth\.vkbur/)
+  assert.match(bzpcSelectorSource, /searchVkgrp:\s*auth\.vkgrp/)
+  assert.match(bzpcSelectorSource, /inTest:\s*auth\.isAdmin \? 'Y' : 'N'/)
+  assert.match(bzpcApiSource, /addInfoBzpc:\s*37/)
 })
 
 test('client search screens keep sales active filters and separate search fields', () => {
@@ -115,14 +123,15 @@ test('client grade option values are saved grade codes, not addInfo rates', () =
 })
 
 test('EstimateNew keeps customer grade mapping from selected customer row', () => {
-  assert.match(estimateNewSource, /dplcDcGrd:\s*row\.dcGrd/)
-  assert.match(estimateNewSource, /dplcDcGrdDoor:\s*row\.dcGrdDoor/)
-  assert.match(estimateNewSource, /dplcDcGrdPannel:\s*row\.dcGrdPannel/)
-  assert.match(estimateNewSource, /dplcDcGrdOtherComp:\s*row\.dcGrdOtherComp/)
-  assert.match(estimateNewSource, /dplcDcGrdGlas:\s*row\.dcGrdGlas/)
-  assert.match(estimateNewSource, /dplcDcGrdMold:\s*row\.dcGrdMold/)
-  assert.match(estimateNewSource, /dplcDcGrdDtbtMtrl:\s*row\.dcGrdDtbtMtrl/)
-  assert.match(estimateNewSource, /dplcDcGrdDtbtGoods:\s*row\.dcGrdDtbtGoods/)
+  assert.match(estimateNewSource, /function firstValue\(row\s*=\s*\{\},\s*\.\.\.keys\)/)
+  assert.match(estimateNewSource, /dplcDcGrd:\s*stringValue\(firstValue\(row,\s*'dcGrd',\s*'dplcDcGrd'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdDoor:\s*stringValue\(firstValue\(row,\s*'dcGrdDoor',\s*'dplcDcGrdDoor'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdPannel:\s*stringValue\(firstValue\(row,\s*'dcGrdPannel',\s*'dplcDcGrdPannel'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdOtherComp:\s*stringValue\(firstValue\(row,\s*'dcGrdOtherComp',\s*'dplcDcGrdOtherComp',\s*'dcGrdEtc'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdGlas:\s*stringValue\(firstValue\(row,\s*'dcGrdGlas',\s*'dplcDcGrdGlas'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdMold:\s*stringValue\(firstValue\(row,\s*'dcGrdMold',\s*'dplcDcGrdMold',\s*'dcGrdMlng'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdDtbtMtrl:\s*stringValue\(firstValue\(row,\s*'dcGrdDtbtMtrl',\s*'dplcDcGrdDtbtMtrl',\s*'dplcMstDcGrdDtbtMtrl',\s*'dcGrdMtrl'\)\)/)
+  assert.match(estimateNewSource, /dplcDcGrdDtbtGoods:\s*stringValue\(firstValue\(row,\s*'dcGrdDtbtGoods',\s*'dplcDcGrdDtbtGoods',\s*'dplcMstDcGrdDtbtGoods',\s*'dcGrdProd'\)\)/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdEtc:/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdMlng:/)
   assert.doesNotMatch(estimateNewSource, /dplcDcGrdMtrl:/)

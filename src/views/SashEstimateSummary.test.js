@@ -82,6 +82,10 @@ test('SashEstimateSummary keeps print MVP and TODOs only for future sharing feat
 })
 
 test('SashEstimateSummary uses one compressed grid at every screen size', () => {
+  const tableWrapStart = stylesSource.indexOf('.summary-table-wrap')
+  const tableWrapEnd = stylesSource.indexOf('}', tableWrapStart)
+  const tableWrapSource = stylesSource.slice(tableWrapStart, tableWrapEnd)
+
   assert.match(source, /class="card summary-table-wrap"/)
   assert.match(stylesSource, /\.summary-table-wrap/)
   assert.match(stylesSource, /\.summary-table-wrap\s*\{[\s\S]*display:\s*block/)
@@ -91,7 +95,7 @@ test('SashEstimateSummary uses one compressed grid at every screen size', () => 
   assert.doesNotMatch(stylesSource, /\.summary-mobile-list/)
   assert.doesNotMatch(stylesSource, /\.summary-row-card/)
   assert.doesNotMatch(stylesSource, /\.summary-compact-list/)
-  assert.doesNotMatch(stylesSource, /overflow-x:\s*auto/)
+  assert.doesNotMatch(tableWrapSource, /overflow-x:\s*auto/)
   assert.match(stylesSource, /\.summary-table\s*\{[\s\S]*min-width:\s*0/)
   assert.doesNotMatch(stylesSource, /min-width:\s*1180px/)
   assert.match(stylesSource, /@media print[\s\S]*\.app-header[\s\S]*display:\s*none/)

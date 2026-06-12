@@ -5,7 +5,7 @@ import http from './index'
 export function searchBzpcChoice(params) {
   return http.post('/BzpcMng/searchBzpcChoiceAjax', {
     addInfoVkbur: 1,
-    addInfoBzpc: '',
+    addInfoBzpc: 37,
     gridAllItem: 'N',
     inTest: 'N',
     graderYn: 'N',

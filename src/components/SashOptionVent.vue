@@ -1,6 +1,7 @@
 <template>
   <details class="card" open>
     <summary>VENT / 스크린 / 안전망</summary>
+    <fieldset :disabled="readonly" class="sash-readonly-fieldset">
     <div class="details-body">
       <div class="field">
         <label>VENT 위치</label>
@@ -81,6 +82,7 @@
         >{{ form.slcnFnshYn ? 'ON' : 'OFF' }}</button>
       </div>
     </div>
+    </fieldset>
   </details>
 </template>
 
@@ -93,6 +95,7 @@ const props = defineProps({
   ventOptions: { type: Array, default: () => [] },
   screenOptions: { type: Array, default: () => [] },
   siliconeFinishEnabled: { type: Boolean, default: true },
+  readonly: { type: Boolean, default: false },
 })
 const { form, ventOptions, screenOptions, aluMfHandleOptions, siliconeFinishEnabled } = toRefs(props)
 

@@ -111,8 +111,9 @@ async function open() {
   loading.value = true
   try {
     const { data } = await searchBzpcChoice({
-      searchVkbur: auth.vkbur || '',
-      searchVkgrp: auth.isAdmin ? '' : auth.vkgrp,
+      searchVkbur: auth.isAdmin ? '' : auth.vkbur,
+      searchVkgrp: auth.vkgrp,
+      inTest: auth.isAdmin ? 'Y' : 'N',
     })
     list.value = data?.resultList || data?.gridData || []
   } catch (e) {

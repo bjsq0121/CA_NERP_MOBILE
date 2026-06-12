@@ -1,5 +1,6 @@
 <template>
   <div class="card">
+    <fieldset :disabled="readonly" class="sash-readonly-fieldset">
     <!-- 모형 -->
     <div class="field">
       <label>모형 *</label>
@@ -80,6 +81,7 @@
       <div class="field">
         <label>W (폭) *</label>
         <input
+          class="sash-highlight-input"
           :value="form.w ?? ''"
           type="text"
           inputmode="numeric"
@@ -93,6 +95,7 @@
       <div class="field">
         <label>H (높이) *</label>
         <input
+          class="sash-highlight-input"
           :value="form.h ?? ''"
           type="text"
           inputmode="numeric"
@@ -105,7 +108,7 @@
       </div>
       <div class="field field-qty">
         <label>수량 *</label>
-        <input v-model.number="form.qty" type="number" inputmode="numeric" min="1" />
+        <input class="sash-highlight-input" v-model.number="form.qty" type="number" inputmode="numeric" min="1" />
       </div>
     </div>
 
@@ -202,25 +205,43 @@
       </div>
       <div class="field">
         <label>내부색상 *</label>
-        <select v-model="form.insdColrCd" @change="$emit('insdColorChange')">
-          <option value="">선택</option>
-          <option v-for="c in colorList" :key="'i'+c.commCdId" :value="c.commCdId">
-            {{ c.commCdNm }}
-          </option>
-        </select>
+        <div class="color-select-row">
+          <select v-model="form.insdColrCd" @change="$emit('insdColorChange')">
+            <option value="">선택</option>
+            <option v-for="c in colorList" :key="'i'+c.commCdId" :value="c.commCdId">
+              {{ c.commCdNm }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn secondary btn-color-search"
+            :disabled="readonly"
+            @click="$emit('openColorPicker', 'inner')"
+          >
+            색상검색
+          </button>
+        </div>
       </div>
       <div class="field">
-        <label>
-          외부색상
-          <span v-if="syncOusd" class="sync-badge">동기화</span>
-        </label>
-        <select v-model="form.ousdColrCd" @change="$emit('ousdColorChange')">
-          <option v-for="c in colorList" :key="'o'+c.commCdId" :value="c.commCdId">
-            {{ c.commCdNm }}
-          </option>
-        </select>
+        <label>외부색상 <span v-if="syncOusd" class="sync-badge">동기화</span></label>
+        <div class="color-select-row">
+          <select v-model="form.ousdColrCd" @change="$emit('ousdColorChange')">
+            <option v-for="c in colorList" :key="'o'+c.commCdId" :value="c.commCdId">
+              {{ c.commCdNm }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn secondary btn-color-search"
+            :disabled="readonly"
+            @click="$emit('openColorPicker', 'outer')"
+          >
+            색상검색
+          </button>
+        </div>
       </div>
     </div>
+    </fieldset>
   </div>
 </template>
 
@@ -238,9 +259,10 @@ const props = defineProps({
   syncOusd: { type: Boolean, default: true },
   drawingUrl: { type: String, default: '' },
   drawingFallback: { type: String, default: '' },
+  readonly: { type: Boolean, default: false },
 })
 
-defineEmits(['openModel', 'wintydiChange', 'insdColorChange', 'ousdColorChange', 'drawingError'])
+defineEmits(['openModel', 'wintydiChange', 'insdColorChange', 'ousdColorChange', 'openColorPicker', 'drawingError'])
 
 const modelDisplay = computed(() => (props.form.mdlCd ? `${props.form.mdlNm} (${props.form.mdlCd})` : ''))
 

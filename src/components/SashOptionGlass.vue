@@ -1,6 +1,7 @@
 <template>
   <details v-if="hasAnyGlas" class="card" open>
     <summary>유리 자재 (SF / BF)</summary>
+    <fieldset :disabled="readonly" class="sash-readonly-fieldset">
     <div class="details-body">
       <div class="option-chip-grid compact">
         <OptionToggle v-model="form.glasAttachYn" label="실리콘 마감여부" />
@@ -8,13 +9,13 @@
       <div v-if="glas.sfIn.length || glas.sfOut.length" class="row-flex">
         <div v-if="glas.sfIn.length" class="field">
           <label>SF 유리 (내)</label>
-          <select v-model="form.mtrlCds1">
+          <select class="sash-highlight-input" v-model="form.mtrlCds1">
             <option v-for="g in glas.sfIn" :key="g.mtrlCd" :value="g.mtrlCd">{{ g.mtrlNm }}</option>
           </select>
         </div>
         <div v-if="glas.sfOut.length" class="field">
           <label>SF 유리 (외)</label>
-          <select v-model="form.mtrlCds2">
+          <select class="sash-highlight-input" v-model="form.mtrlCds2">
             <option v-for="g in glas.sfOut" :key="g.mtrlCd" :value="g.mtrlCd">{{ g.mtrlNm }}</option>
           </select>
         </div>
@@ -34,6 +35,7 @@
         </div>
       </div>
     </div>
+    </fieldset>
   </details>
 </template>
 
@@ -44,6 +46,7 @@ import OptionToggle from './common/OptionToggle.vue'
 const props = defineProps({
   form: { type: Object, required: true },
   glas: { type: Object, default: () => ({ sfIn: [], sfOut: [], bfIn: [], bfOut: [] }) },
+  readonly: { type: Boolean, default: false },
 })
 
 const hasAnyGlas = computed(() =>

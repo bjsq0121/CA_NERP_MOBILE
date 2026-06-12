@@ -33,6 +33,10 @@
             <strong>{{ estimateDate }}</strong>
           </div>
           <div>
+            <span>납품예정일</span>
+            <strong>{{ header?.delivryDt ? formatDate(header.delivryDt) : '-' }}</strong>
+          </div>
+          <div>
             <span>담당자</span>
             <strong>{{ header?.jobsNm || header?.empNm || header?.inputEmpNm || '-' }}</strong>
           </div>

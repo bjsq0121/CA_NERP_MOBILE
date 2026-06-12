@@ -78,9 +78,10 @@
         </div>
 
         <div class="estimate-card-meta">
-          <span>{{ row.itgEstiNo }}</span>
-          <span v-if="row.jobsNm">{{ row.jobsNm }}</span>
-          <span v-if="row.bzpcNm">{{ row.bzpcNm }}</span>
+          <span>견적번호: {{ row.itgEstiNo }}</span>
+          <span v-if="row.jobsNm">현장명: {{ row.jobsNm }}</span>
+          <span v-if="row.dplcReqRemSrc" class="estimate-card-meta-note">고객비고: {{ row.dplcReqRemSrc }}</span>
+          <span v-if="row.bzpcNm">영업소: {{ row.bzpcNm }}</span>
         </div>
 
         <div v-if="buildGradeChips(row).length" class="estimate-card-grades">
@@ -98,6 +99,7 @@
           <div class="estimate-card-dates">
             <span>등록 {{ formatDt(row.inputDtm) }}</span>
             <span v-if="row.estiVldDt">유효 {{ formatDate(row.estiVldDt) }}</span>
+          <span v-if="row.delivryDt">납품예정 {{ formatDate(row.delivryDt) }}</span>
           </div>
           <div class="estimate-card-amount">
             <span>총액</span>
@@ -154,7 +156,7 @@ function amountNumber(...values) {
   return 0
 }
 function formatEstimateAmount(row = {}) {
-  const amount = amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt)
+  const amount = amountNumber(row.totCstAmt, row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt)
   return amount ? `${amount.toLocaleString()}원` : '-'
 }
 
@@ -182,7 +184,7 @@ const summaryMetrics = computed(() => {
 
 const totalAmountText = computed(() => {
   const total = rows.value.reduce(
-    (sum, row) => sum + amountNumber(row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt),
+    (sum, row) => sum + amountNumber(row.totCstAmt, row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt),
     0
   )
   return total ? `${total.toLocaleString()}원` : '-'
@@ -218,14 +220,12 @@ onMounted(() => {
       vkgrp: auth.vkgrp,
       vkgrpNm: auth.vkgrpNm,
     }
-    search()
     return
   }
 
   const saved = loadSelectedBzpc()
   if (saved?.bzpc) {
     selectedBzpc.value = saved
-    search()
   }
 })
 

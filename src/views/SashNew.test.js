@@ -1,14 +1,27 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { UNKNOWN_STATUS, isEditableHeaderStatus, isEditableStatus } from '../utils/estimateStatus.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const source = readFileSync(resolve(currentDir, 'SashNew.vue'), 'utf8')
+const estimateApiSource = readFileSync(resolve(currentDir, '../api/estimate.js'), 'utf8')
+const sashPayloadSource = readFileSync(resolve(currentDir, '../utils/sashPayload.js'), 'utf8')
 const formMainSource = readFileSync(resolve(currentDir, '../components/SashFormMain.vue'), 'utf8')
+const handleSource = readFileSync(resolve(currentDir, '../components/SashOptionHandle.vue'), 'utf8')
+const glassSource = readFileSync(resolve(currentDir, '../components/SashOptionGlass.vue'), 'utf8')
 const quickConfigSheetSource = readFileSync(resolve(currentDir, '../components/SashQuickConfigSheet.vue'), 'utf8')
+const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')
+const colorSheetPath = resolve(currentDir, '../components/SashColorPickerSheet.vue')
+const colorSheetSource = existsSync(colorSheetPath) ? readFileSync(colorSheetPath, 'utf8') : ''
+const mobileEstiControllerPath = '/mnt/c/Projects/CA_NERP/workspace/CA_NERP2/src/main/java/kr/co/ca/mobile/contoller/MobileEstiController.java'
+const mobileEstiControllerSource = existsSync(mobileEstiControllerPath) ? readFileSync(mobileEstiControllerPath, 'utf8') : ''
+const mobileEstiServicePath = '/mnt/c/Projects/CA_NERP/workspace/CA_NERP2/src/main/java/kr/co/ca/mobile/service/MobileEstiService.java'
+const mobileEstiServiceSource = existsSync(mobileEstiServicePath) ? readFileSync(mobileEstiServicePath, 'utf8') : ''
+const estiWindInfoPath = '/mnt/c/Projects/CA_NERP/workspace/CA_NERP2/src/main/java/kr/co/ca/domain/EstiWindInfo.java'
+const estiWindInfoSource = existsSync(estiWindInfoPath) ? readFileSync(estiWindInfoPath, 'utf8') : ''
 
 test('SashNew loads bsmf order unit options from common code group 405', () => {
   assert.match(source, /searchCodeList\('405'\)/)
@@ -73,10 +86,99 @@ test('SashNew validates model size lower and upper limits when model data provid
 })
 
 test('SashNew renders order type next to al-glass instead of the main form', () => {
-  const handleSource = readFileSync(resolve(currentDir, '../components/SashOptionHandle.vue'), 'utf8')
   assert.match(handleSource, /알유리견적[\s\S]*발주구분/)
   assert.match(handleSource, /v-model="form\.sashOrdTypCd"/)
   assert.doesNotMatch(formMainSource, /<label>발주구분 \*<\/label>/)
+})
+
+test('SashNew highlights primary sash inputs and selects without changing their bindings', () => {
+  assert.match(formMainSource, /<label>W \(폭\) \*<\/label>[\s\S]*<input[\s\S]*class="sash-highlight-input"[\s\S]*:value="form\.w \?\? ''"/)
+  assert.match(formMainSource, /<label>H \(높이\) \*<\/label>[\s\S]*<input[\s\S]*class="sash-highlight-input"[\s\S]*:value="form\.h \?\? ''"/)
+  assert.match(formMainSource, /<label>수량 \*<\/label>[\s\S]*<input[\s\S]*class="sash-highlight-input"[\s\S]*v-model\.number="form\.qty"/)
+  assert.match(handleSource, /<label>내부 핸들 종류<\/label>[\s\S]*<select[\s\S]*class="sash-highlight-input"[\s\S]*v-model="form\.insdHandleType"/)
+  assert.match(handleSource, /<label>외부 핸들 종류<\/label>[\s\S]*<select[\s\S]*class="sash-highlight-input"[\s\S]*v-model="form\.ousdHandleType"/)
+  assert.match(glassSource, /<label>SF 유리 \(내\)<\/label>[\s\S]*<select[\s\S]*class="sash-highlight-input"[\s\S]*v-model="form\.mtrlCds1"/)
+  assert.match(glassSource, /<label>SF 유리 \(외\)<\/label>[\s\S]*<select[\s\S]*class="sash-highlight-input"[\s\S]*v-model="form\.mtrlCds2"/)
+  assert.match(stylesSource, /\.field input\.sash-highlight-input,\s*\.field select\.sash-highlight-input\s*\{[\s\S]*background-color:\s*#fff7bf;[\s\S]*border-color:\s*#f2c94c;[\s\S]*box-shadow:\s*0 0 0 1px rgba\(242,\s*201,\s*76,\s*0\.35\);/)
+  assert.match(stylesSource, /\.field select\.sash-highlight-input\s*\{[\s\S]*background-color:\s*#fff7bf;[\s\S]*background-image:\s*url/)
+  assert.match(stylesSource, /\.field input\.sash-highlight-input:disabled,\s*\.field select\.sash-highlight-input:disabled\s*\{[\s\S]*background:\s*var\(--c-input-disabled\);/)
+})
+
+test('SashNew opens a mobile color picker sheet from inside and outside color fields', () => {
+  assert.match(formMainSource, /<label>내부색상 \*<\/label>[\s\S]*<button[\s\S]*@click="\$emit\('openColorPicker', 'inner'\)"[\s\S]*색상검색/)
+  assert.match(formMainSource, /<label>외부색상[\s\S]*<button[\s\S]*@click="\$emit\('openColorPicker', 'outer'\)"[\s\S]*색상검색/)
+  assert.match(formMainSource, /:disabled="readonly"/)
+  assert.match(formMainSource, /defineEmits\(\[[\s\S]*'openColorPicker'[\s\S]*\]\)/)
+  assert.match(source, /import SashColorPickerSheet from '\.\.\/components\/SashColorPickerSheet\.vue'/)
+  assert.match(source, /const colorPickerOpen = ref\(false\)/)
+  assert.match(source, /const colorPickerTarget = ref\('inner'\)/)
+  assert.match(source, /@open-color-picker="openColorPicker"/)
+  assert.match(source, /<SashColorPickerSheet[\s\S]*:visible="colorPickerOpen"[\s\S]*:target="colorPickerTarget"[\s\S]*:bftydi-cd="form\.bftydiCd"[\s\S]*:mtrl-co="pickedMdlMtrlCo \|\| form\.mtrlCoNm"[\s\S]*@select="onSelectColor"/)
+})
+
+test('SashNew color picker searches web-compatible color endpoint and preserves selected color metadata', () => {
+  assert.ok(colorSheetSource, 'SashColorPickerSheet.vue should exist')
+  assert.match(estimateApiSource, /export function searchColorSearch\(payload\s*=\s*\{\}\)/)
+  assert.match(estimateApiSource, /\/mobile\/esti\/color\/search/)
+  assert.match(colorSheetSource, /searchCodeList\('976'\)/)
+  assert.match(colorSheetSource, /searchColorSearch\(\{[\s\S]*curPage:[\s\S]*perPage:[\s\S]*commCdGrpId:\s*'975'[\s\S]*addInfo1:\s*'976'[\s\S]*addInfo2:[\s\S]*addInfo9:[\s\S]*commCdNm:[\s\S]*estiType:\s*'P'[\s\S]*kccAsaYn:/)
+  assert.match(colorSheetSource, /props\.bftydiCd === '119' && \['KC', 'LX'\]\.includes\(normalizedMtrlCo\.value\)/)
+  assert.match(colorSheetSource, /props\.bftydiCd === '119' && normalizedMtrlCo\.value === 'CA'/)
+  assert.match(source, /function normalizePickedColor\(row = \{\}\)/)
+  assert.match(source, /commCdId:\s*stringValue\(row\.commCdVal \|\| row\.commCdId\)/)
+  assert.match(source, /commCdVal:\s*stringValue\(row\.commCdVal \|\| row\.commCdId\)/)
+  assert.match(source, /addInfo10:\s*stringValue\(row\.addInfo10\)/)
+  assert.match(source, /addInfo16:\s*stringValue\(row\.addInfo16\)/)
+  assert.match(source, /addInfo39:\s*stringValue\(row\.addInfo39\)/)
+  assert.match(source, /function ensureColorInList\(row\)/)
+  assert.match(source, /colorList\.value = \[[\s\S]*normalized[\s\S]*\.\.\.colorList\.value[\s\S]*\]/)
+})
+
+test('SashColorPickerSheet loads groups and colors immediately when opened by v-if', () => {
+  assert.match(colorSheetSource, /<option\s+v-for="group in colorGroups"\s+:key="group\.commCdVal \|\| group\.commCdId"\s+:value="group\.commCdVal \|\| group\.commCdId"/)
+  assert.match(colorSheetSource, /watch\(\s*\(\) => props\.visible,[\s\S]*await searchFirstPage\(\)[\s\S]*\{ immediate: true \}\s*\)/)
+  assert.match(colorSheetSource, /catch \(e\) \{[\s\S]*error\.value = e\?\.response\?\.data\?\.message \|\| e\.message \|\| '색상그룹을 조회하지 못했습니다\.'[\s\S]*colorGroups\.value = \[\][\s\S]*\}[\s\S]*await searchFirstPage\(\)/)
+})
+
+test('SashNew color picker updates inside and outside colors without changing save payload shape', () => {
+  assert.match(source, /function onSelectColor\(row\)/)
+  assert.match(source, /if \(colorPickerTarget\.value === 'inner'\) \{[\s\S]*form\.value\.insdColrCd = color\.commCdVal[\s\S]*if \(syncOusd\.value\) form\.value\.ousdColrCd = color\.commCdVal/)
+  assert.match(source, /else \{[\s\S]*form\.value\.ousdColrCd = color\.commCdVal[\s\S]*syncOusd\.value = form\.value\.ousdColrCd === form\.value\.insdColrCd[\s\S]*\}/)
+  assert.doesNotMatch(source, /colorPickerTarget\.value === 'outer'[\s\S]*form\.value\.insdColrCd =/)
+  assert.match(source, /colorPickerOpen\.value = false/)
+  assert.match(sashPayloadSource, /insdColrCd: form\.insdColrCd/)
+  assert.match(sashPayloadSource, /ousdColrCd: form\.ousdColrCd \|\| form\.insdColrCd/)
+})
+
+test('mobile backend exposes web-compatible sash color search endpoint', () => {
+  assert.ok(mobileEstiControllerSource, 'MobileEstiController.java should exist')
+  assert.match(mobileEstiControllerSource, /@PostMapping\("\/color\/search"\)/)
+  assert.match(mobileEstiControllerSource, /searchColorCodeList\(@RequestBody Code param\)/)
+  assert.match(mobileEstiControllerSource, /return ResponseEntity\.ok\(codeService\.colorCodeList\(param\)\)/)
+})
+
+test('mobile sash list response includes exact drawing file fields for immediate preview', () => {
+  assert.ok(mobileEstiServiceSource, 'MobileEstiService.java should exist')
+  assert.ok(estiWindInfoSource, 'EstiWindInfo.java should exist')
+  assert.match(estiWindInfoSource, /private String ventLoc;/)
+  assert.match(estiWindInfoSource, /private String drwgCd;/)
+  assert.match(estiWindInfoSource, /private String srvFileNm;/)
+  assert.match(estiWindInfoSource, /private String fileExtNm;/)
+  assert.match(estiWindInfoSource, /private String drwgFilePath;/)
+  assert.match(mobileEstiServiceSource, /private final DrwgService drwgService;/)
+  assert.match(mobileEstiServiceSource, /Map<String, Object> result = itgEstiOneService\.searchEstiAjax\(info\);[\s\S]*enrichSashListDrawingFiles\(result\);[\s\S]*return result;/)
+  assert.match(mobileEstiServiceSource, /private void enrichSashListDrawingFiles\(Map<String, Object> result\)/)
+  assert.match(mobileEstiServiceSource, /private DrwgMst resolveDrawingLookup\(EstiWindInfo row\)/)
+  assert.match(mobileEstiServiceSource, /itgEstiOneMapper\.selectEstiClWindInfo2\(param\)/)
+  assert.match(mobileEstiServiceSource, /row\.setWintydiCd\(detail\.getWintydiCd\(\)\)/)
+  assert.match(mobileEstiServiceSource, /row\.setVentLoc\(detail\.getVentLoc\(\)\)/)
+  assert.match(mobileEstiServiceSource, /row\.setDrwgCd\(detail\.getDrwgCd\(\)\)/)
+  assert.match(mobileEstiServiceSource, /if \(!isEmpty\(row\.getDrwgCd\(\)\)\) \{[\s\S]*lookup\.setDrwgCd\(row\.getDrwgCd\(\)\);/)
+  assert.match(mobileEstiServiceSource, /if \(!isEmpty\(row\.getWintydiCd\(\)\) && !isEmpty\(row\.getVentLoc\(\)\)\) \{[\s\S]*lookup\.setWintydiCd\(row\.getWintydiCd\(\)\);[\s\S]*lookup\.setVentLoc\(row\.getVentLoc\(\)\);/)
+  assert.match(mobileEstiServiceSource, /drwgService\.selectDrwg\(lookup\)/)
+  assert.match(mobileEstiServiceSource, /row\.setSrvFileNm\(drwg\.getSrvFileNm\(\)\)/)
+  assert.match(mobileEstiServiceSource, /row\.setFileExtNm\(drwg\.getFileExtNm\(\)\)/)
+  assert.match(mobileEstiServiceSource, /row\.setDrwgFilePath\("\/data\/drwg\/sash\/" \+ drwg\.getSrvFileNm\(\) \+ "\." \+ drwg\.getFileExtNm\(\)\)/)
 })
 
 test('SashNew restores al-glass and bracket height fields in edit mode', () => {
@@ -140,7 +242,7 @@ test('SashNew places estimate identifiers at the bottom and production options a
 })
 
 test('SashNew title distinguishes add and edit mode and shows sequence separately', () => {
-  assert.match(source, /{{ isEditMode \? '샤시 항목 수정' : '샤시 항목 추가' }}/)
+  assert.match(source, /{{ isReadonly \? '샤시 항목 상세' : \(isEditMode \? '샤시 항목 수정' : '샤시 항목 추가'\) }}/)
   assert.match(source, /class="page-subtitle"[\s\S]*견적순번:\s*{{ editEstiSeq \|\| '\(신규\)' }}/)
   assert.doesNotMatch(source, /샤시 견적 #/)
 })
@@ -380,7 +482,7 @@ test('SashOptionVent aligns screen select and safety net toggle heights', () => 
 test('SashNew renders BF SF MF option section and restores saved factory options', () => {
   const factorySource = readFileSync(resolve(currentDir, '../components/SashOptionFactory.vue'), 'utf8')
   assert.match(source, /import SashOptionFactory/)
-  assert.match(source, /<SashOptionFactory :form="form" \/>/)
+  assert.match(source, /<SashOptionFactory :form="form" :readonly="isReadonly" \/>/)
   assert.match(factorySource, /생산옵션/)
   assert.match(factorySource, /배수홀/)
   assert.match(factorySource, /밀링유형/)
@@ -668,10 +770,13 @@ test('EstimateDetail separates al-glass rows from editable sash rows', () => {
   assert.match(detailSource, /row\.ctgr2Cd === 'P8'/)
   assert.match(detailSource, /glassRows\.value = rows\.filter\(isGlassEstimateRow\)/)
   assert.match(detailSource, /const sashOnlyRows = rows\.filter\(\(row\) => !isGlassEstimateRow\(row\)\)/)
+  assert.match(detailSource, /sashRows\.value = sashOnlyRows/)
+  assert.match(detailSource, /ensureSelectedSashKey\(sashRows\.value\)/)
   assert.match(detailSource, /const detailRows = await hydrateSashDetailRows\(sashOnlyRows\)/)
   assert.match(detailSource, /hydrateSashDrawingFiles\(detailRows\)/)
   assert.match(detailSource, /loadSashPanelNameMaps\(detailRows\)/)
-  assert.match(detailSource, /sashRows\.value = drawingRows/)
+  assert.match(detailSource, /sashRows\.value = preservePriorityHydratedRows\(drawingRows\)/)
+  assert.match(detailSource, /ensureSelectedSashKey\(drawingRows\)/)
 })
 
 test('EstimateDetail fails closed unless header and rows are editable status 10', () => {
@@ -685,6 +790,7 @@ test('EstimateDetail fails closed unless header and rows are editable status 10'
   assert.match(detailSource, /const editable = isSashEditable\(row\)/)
   assert.match(detailSource, /readonly: editable \? '' : 'Y'/)
   assert.match(detailSource, /stCd: cd === UNKNOWN_STATUS \? '' : cd/)
+  assert.match(detailSource, /resolveEffectiveStatus\(row\.stCd, row\.igStCd, headerStatus\.value\)/)
   assert.doesNotMatch(detailSource, /if \(!sashRows\.value\.length\) return true/)
   assert.doesNotMatch(detailSource, /sashRows\.value\.every/)
 })
@@ -862,18 +968,80 @@ test('EstimateDetail sends every right-panel section from selectedSashRow', () =
   for (const binding of expectedBindings) assert.match(detailSource, binding)
 })
 
-test('EstimateDetail hydrates list rows with sash detail before drawing and panel mapping', () => {
+test('EstimateDetail renders sash list from sash/list before running detail drawing and panel hydration', () => {
   const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const initialRowsIndex = detailSource.indexOf('sashRows.value = sashOnlyRows')
+  const initialSelectIndex = detailSource.indexOf('ensureSelectedSashKey(sashRows.value)', initialRowsIndex)
+  const initialLoadingOffIndex = detailSource.indexOf('loading.value = false', initialRowsIndex)
+  const hydrateIndex = detailSource.indexOf('const detailRows = await hydrateSashDetailRows(sashOnlyRows)')
+  const finalRowsIndex = detailSource.indexOf('sashRows.value = preservePriorityHydratedRows(drawingRows)', hydrateIndex)
+
   assert.match(detailSource, /selectSashDetail/)
   assert.match(detailSource, /mergeSashDetailRow/)
   assert.match(detailSource, /async function hydrateSashDetailRows\(rows\)/)
   assert.match(detailSource, /await selectSashDetail\(\{[\s\S]*itgEstiNo,[\s\S]*estiNo: row\.estiNo \|\| row\.windEstiNo \|\| wEstiNo\.value,[\s\S]*estiNos: row\.estiNos \|\| '1',[\s\S]*estiSeq: row\.estiSeq,[\s\S]*\}\)/)
   assert.match(detailSource, /return mergeSashDetailRow\(row, detail\)/)
+  assert.ok(initialRowsIndex > -1)
+  assert.ok(initialSelectIndex > initialRowsIndex && initialSelectIndex < hydrateIndex)
+  assert.ok(initialLoadingOffIndex > initialRowsIndex && initialLoadingOffIndex < hydrateIndex)
+  assert.ok(hydrateIndex > initialRowsIndex)
+  assert.ok(finalRowsIndex > hydrateIndex)
   assert.match(detailSource, /const detailRows = await hydrateSashDetailRows\(sashOnlyRows\)/)
   assert.match(detailSource, /const \[drawingRows, panelNameMaps\] = await Promise\.all/)
   assert.match(detailSource, /hydrateSashDrawingFiles\(detailRows\)/)
   assert.match(detailSource, /loadSashPanelNameMaps\(detailRows\)/)
-  assert.match(detailSource, /sashRows\.value = drawingRows/)
+  assert.match(detailSource, /sashRows\.value = preservePriorityHydratedRows\(drawingRows\)/)
+  assert.match(detailSource, /ensureSelectedSashKey\(drawingRows\)/)
+})
+
+test('EstimateDetail priority hydrates the selected sash drawing before full row hydration', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  const initialRowsIndex = detailSource.indexOf('sashRows.value = sashOnlyRows')
+  const priorityCallIndex = detailSource.indexOf('hydrateSelectedSashDrawing(initialSelectedSashRow)', initialRowsIndex)
+  const fullHydrateIndex = detailSource.indexOf('const detailRows = await hydrateSashDetailRows(sashOnlyRows)')
+  const sashListIndex = detailSource.indexOf('const { data: sashData } = await searchSashList')
+  const initialLoadingOffIndex = detailSource.indexOf('loading.value = false', initialRowsIndex)
+  const commonCodeIndex = detailSource.indexOf('loadSashCommonCodeLists()', initialRowsIndex)
+
+  assert.match(detailSource, /const priorityHydratingKeys = new Set\(\)/)
+  assert.match(detailSource, /const priorityHydratedKeys = new Set\(\)/)
+  assert.match(detailSource, /import \{ normalizeDrwgFileAjaxResult \} from '\.\.\/utils\/sashDrawingState'/)
+  assert.match(detailSource, /searchDrwgFileAjax/)
+  assert.match(detailSource, /async function loadSashCommonCodeLists\(\)/)
+  assert.match(detailSource, /const \{ data: sashData \} = await searchSashList\(\{ itgEstiNo, estiNo: wEstiNo\.value \}\)/)
+  assert.ok(sashListIndex > -1 && sashListIndex < initialRowsIndex)
+  assert.ok(initialLoadingOffIndex > initialRowsIndex && initialLoadingOffIndex < commonCodeIndex)
+  assert.ok(priorityCallIndex > initialRowsIndex && priorityCallIndex < commonCodeIndex)
+  assert.match(detailSource, /async function hydrateSelectedSashDrawing\(row\)/)
+  assert.match(detailSource, /priorityHydratingKeys\.has\(key\) \|\| priorityHydratedKeys\.has\(key\)/)
+  assert.match(detailSource, /await selectSashDetail\(\{[\s\S]*itgEstiNo,[\s\S]*estiNo: row\.estiNo \|\| row\.windEstiNo \|\| wEstiNo\.value,[\s\S]*estiNos: row\.estiNos \|\| '1',[\s\S]*estiSeq: row\.estiSeq,[\s\S]*\}\)/)
+  assert.match(detailSource, /const detailRow = mergeSashDetailRow\(row, data\?\.resultData \|\| \{\}\)/)
+  assert.match(detailSource, /await searchDrwgFileAjax\(\{[\s\S]*wintydiCd: detailRow\.wintydiCd,[\s\S]*ventLoc: detailRow\.ventLoc,[\s\S]*\}\)/)
+  assert.match(detailSource, /const apiRow = normalizeDrwgFileAjaxResult\(drawingData\)/)
+  assert.match(detailSource, /if \(buildSashDrawingUrl\(apiRow\)\) \{[\s\S]*_displaySrvFileNm: apiRow\.srvFileNm,[\s\S]*_displayFileExtNm: apiRow\.fileExtNm,[\s\S]*_displayDrwgFilePath: apiRow\.drwgFilePath,[\s\S]*_displayDrwgCd: apiRow\.drwgCd,[\s\S]*replaceSashRow\(key, drawingRow\)[\s\S]*return[\s\S]*\}/)
+  assert.match(detailSource, /searchModelList\(\{[\s\S]*searchMdlCd: detailRow\.mdlCd,[\s\S]*searchUseYn: 'Y',[\s\S]*startRowNum: 0,[\s\S]*endRowNum: 99,[\s\S]*\}\)/)
+  assert.match(detailSource, /drawingRow = mergeSashDrawingFiles\(\[detailRow\], \{\s*\[detailRow\.mdlCd\]: drawingData\?\.resultList \|\| \[\],\s*\}\)\[0\]/)
+  assert.match(detailSource, /function replaceSashRow\(key, row\)/)
+  assert.match(detailSource, /sashRows\.value = sashRows\.value\.map\(\(item\) =>[\s\S]*sashRowKey\(item\) === key \? \{ \.\.\.item, \.\.\.row \} : item[\s\S]*\)/)
+  assert.match(detailSource, /function preservePriorityHydratedRows\(rows\)/)
+  assert.match(detailSource, /sashRows\.value = preservePriorityHydratedRows\(drawingRows\)/)
+  assert.match(detailSource, /priorityHydratedKeys\.add\(key\)/)
+  assert.doesNotMatch(detailSource, /const priorityDrawingPromise = hydrateSelectedSashDrawing\(initialSelectedSashRow\)/)
+  assert.doesNotMatch(detailSource, /await priorityDrawingPromise/)
+  assert.ok(priorityCallIndex > initialRowsIndex && priorityCallIndex < fullHydrateIndex)
+})
+
+test('EstimateDetail starts priority hydrate in the background after the list is visible', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /const initialSelectedSashRow = selectedSashRow\.value/)
+  assert.match(detailSource, /loading\.value = false[\s\S]*const initialSelectedSashRow = selectedSashRow\.value[\s\S]*hydrateSelectedSashDrawing\(initialSelectedSashRow\)[\s\S]*loadSashCommonCodeLists\(\)/)
+  assert.doesNotMatch(detailSource, /priorityDrawingPromise/)
+})
+
+test('SashDetailPanel loads the selected drawing image eagerly', () => {
+  const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
+  assert.match(panelSource, /<img[\s\S]*loading="eager"[\s\S]*fetchpriority="high"[\s\S]*decoding="async"/)
+  assert.doesNotMatch(panelSource, /loading="lazy"/)
 })
 
 test('EstimateDetail hydrates model drawings even when saved row already has an image', () => {
@@ -889,10 +1057,21 @@ test('EstimateDetail uses mobile detail panel and tablet split view classes', ()
   assert.match(detailSource, /class="card sash-list-pane"/)
   assert.match(detailSource, /class="sash-detail-pane"/)
   assert.match(detailSource, /<SashDetailPanel/)
+  assert.match(stylesSource, /\.sash-list-pane\s*\{[\s\S]*order:\s*2;[\s\S]*\}/)
+  assert.match(stylesSource, /\.sash-detail-pane\s*\{[\s\S]*order:\s*1;[\s\S]*\}/)
+  assert.match(stylesSource, /@media \(min-width:\s*768px\)[\s\S]*\.sash-list-pane\s*\{[\s\S]*order:\s*1;[\s\S]*\}[\s\S]*\.sash-detail-pane\s*\{[\s\S]*order:\s*2;[\s\S]*\}/)
   assert.match(stylesSource, /@media \(min-width:\s*768px\)[\s\S]*\.sash-detail-layout/)
   assert.match(stylesSource, /grid-template-columns:\s*minmax\(280px,\s*360px\)\s*minmax\(0,\s*1fr\)/)
   assert.match(stylesSource, /@media \(min-width:\s*1024px\)[\s\S]*\.sash-detail-layout/)
   assert.match(stylesSource, /grid-template-columns:\s*minmax\(320px,\s*420px\)\s*minmax\(0,\s*1fr\)/)
+})
+
+test('EstimateDetail scrolls the mobile detail pane into view when selecting a sash row', () => {
+  const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+  assert.match(detailSource, /function selectSash\(row\) \{[\s\S]*selectedSashKey\.value = sashRowKey\(row\)/)
+  assert.match(detailSource, /window\.matchMedia\('\(max-width: 767px\)'\)\.matches/)
+  assert.match(detailSource, /requestAnimationFrame\(\(\) => \{[\s\S]*document\.querySelector\('\.sash-detail-pane'\)\?\.scrollIntoView\(\{[\s\S]*behavior:\s*'smooth',[\s\S]*block:\s*'start',[\s\S]*\}\)/)
+  assert.match(detailSource, /if \(!sashDrawingUrl\(row\)\) hydrateSelectedSashDrawing\(row\)/)
 })
 
 test('EstimateDetail compact action buttons override default button min height', () => {
@@ -927,7 +1106,9 @@ test('SashDetailPanel owns edit action and keeps internal production info collap
   const panelSource = readFileSync(resolve(currentDir, '../components/SashDetailPanel.vue'), 'utf8')
   assert.match(panelSource, /defineEmits\(\['edit', 'image-error'\]\)/)
   assert.match(panelSource, /@click="\$emit\('edit'\)"/)
-  assert.match(panelSource, /v-if="editable"/)
+  assert.doesNotMatch(panelSource, /<button[^>]*v-if="editable"/)
+  assert.match(panelSource, /\{\{\s*editable \? '수정' : '상세보기'\s*\}\}/)
+  assert.match(panelSource, /:class="\['btn btn-xs', editable \? 'accent' : 'secondary'\]"/)
   assert.match(panelSource, /도면/)
   assert.match(panelSource, /공급가/)
   assert.match(panelSource, /고객확인/)
@@ -1010,6 +1191,30 @@ test('SashNew fails closed for readonly or unknown estimate status', () => {
   assert.doesNotMatch(source, /resolveEffectiveStatus\(route\.query\.stCd/)
 })
 
+test('SashNew presents readonly detail UX and passes readonly to sash input sections', () => {
+  const ventSource = readFileSync(resolve(currentDir, '../components/SashOptionVent.vue'), 'utf8')
+  const handleSource = readFileSync(resolve(currentDir, '../components/SashOptionHandle.vue'), 'utf8')
+  const glassSource = readFileSync(resolve(currentDir, '../components/SashOptionGlass.vue'), 'utf8')
+  const factorySource = readFileSync(resolve(currentDir, '../components/SashOptionFactory.vue'), 'utf8')
+
+  assert.match(source, /isReadonly \? '샤시 항목 상세' : \(isEditMode \? '샤시 항목 수정' : '샤시 항목 추가'\)/)
+  assert.match(source, /:readonly="isReadonly"/)
+  assert.match(source, /@open-model="openModelSearch"/)
+  assert.match(source, /function openModelSearch\(\)[\s\S]*if \(isReadonly\.value\) return[\s\S]*modelModal\.value\?\.open\(\)/)
+  assert.match(source, /function openQuickSashSheet\(\)[\s\S]*if \(isReadonly\.value\) return/)
+  assert.match(source, /async function handleQuickSashSelect\(card\)[\s\S]*if \(isReadonly\.value\) return/)
+  assert.match(formMainSource, /readonly: \{ type: Boolean, default: false \}/)
+  assert.match(formMainSource, /<fieldset :disabled="readonly" class="sash-readonly-fieldset">/)
+  assert.match(ventSource, /readonly: \{ type: Boolean, default: false \}/)
+  assert.match(ventSource, /<fieldset :disabled="readonly" class="sash-readonly-fieldset">/)
+  assert.match(handleSource, /readonly: \{ type: Boolean, default: false \}/)
+  assert.match(handleSource, /<fieldset :disabled="readonly" class="sash-readonly-fieldset">/)
+  assert.match(glassSource, /readonly: \{ type: Boolean, default: false \}/)
+  assert.match(glassSource, /<fieldset :disabled="readonly" class="sash-readonly-fieldset">/)
+  assert.match(factorySource, /readonly: \{ type: Boolean, default: false \}/)
+  assert.match(factorySource, /<fieldset :disabled="readonly" class="sash-readonly-fieldset">/)
+})
+
 test('SashNew trusts API status over route query for editability', () => {
   assert.match(source, /const rowStatus = resolveEffectiveStatus\(r\.stCd, r\.igStCd\)/)
   assert.match(source, /estimateStatus\.value = rowStatus === UNKNOWN_STATUS \? headerStatus\.value : rowStatus/)
@@ -1066,7 +1271,7 @@ test('SashNew captures and restores saved edit values around model master reload
 })
 
 test('SashNew uses polished mobile sections and bottom action bar without changing save flow', () => {
-  assert.match(source, /{{ isEditMode \? '샤시 항목 수정' : '샤시 항목 추가' }}/)
+  assert.match(source, /{{ isReadonly \? '샤시 항목 상세' : \(isEditMode \? '샤시 항목 수정' : '샤시 항목 추가'\) }}/)
   assert.match(source, /견적순번/)
   assert.match(source, /class="form-section-title"[\s\S]*할인등급/)
   assert.match(source, /현재 상태에서는 샤시 항목을 수정할 수 없습니다/)

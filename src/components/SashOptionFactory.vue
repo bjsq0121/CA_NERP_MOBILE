@@ -1,6 +1,7 @@
 <template>
   <details class="card">
     <summary>생산옵션</summary>
+    <fieldset :disabled="readonly" class="sash-readonly-fieldset">
     <div class="details-body">
       <section class="option-group">
         <div class="option-group-head">
@@ -402,6 +403,7 @@
         </div>
       </section>
     </div>
+    </fieldset>
   </details>
 </template>
 
@@ -410,6 +412,7 @@ import OptionToggle from './common/OptionToggle.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
+  readonly: { type: Boolean, default: false },
 })
 
 function onMillingTypeChange() {

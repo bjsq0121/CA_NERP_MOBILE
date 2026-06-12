@@ -11,16 +11,28 @@ const stylesSource = readFileSync(resolve(currentDir, '../styles.css'), 'utf8')
 const estimateApiSource = readFileSync(resolve(currentDir, '../api/estimate.js'), 'utf8')
 const routerSource = readFileSync(resolve(currentDir, '../router/index.js'), 'utf8')
 const detailSource = readFileSync(resolve(currentDir, 'EstimateDetail.vue'), 'utf8')
+const summarySource = readFileSync(resolve(currentDir, 'SashEstimateSummary.vue'), 'utf8')
 const editSourcePath = resolve(currentDir, 'EstimateEdit.vue')
 const editSource = existsSync(editSourcePath) ? readFileSync(editSourcePath, 'utf8') : ''
 
 test('EstimateList restores the selected branch for admins and keeps non-admin default branch', () => {
   assert.match(source, /import \{ loadSelectedBzpc, saveSelectedBzpc \} from '\.\.\/utils\/selectedBzpcStorage'/)
-  assert.match(source, /if \(!auth\.isAdmin && auth\.bzpc\) \{[\s\S]*bzpc: auth\.bzpc[\s\S]*bzpcNm: auth\.bzpcNm[\s\S]*vkbur: auth\.vkbur[\s\S]*vkgrp: auth\.vkgrp[\s\S]*search\(\)[\s\S]*return[\s\S]*\}/)
+  assert.match(source, /if \(!auth\.isAdmin && auth\.bzpc\) \{[\s\S]*bzpc: auth\.bzpc[\s\S]*bzpcNm: auth\.bzpcNm[\s\S]*vkbur: auth\.vkbur[\s\S]*vkgrp: auth\.vkgrp[\s\S]*return[\s\S]*\}/)
   assert.match(source, /const saved = loadSelectedBzpc\(\)/)
-  assert.match(source, /if \(saved\?\.bzpc\) \{[\s\S]*selectedBzpc\.value = saved[\s\S]*search\(\)[\s\S]*\}/)
+  assert.match(source, /if \(saved\?\.bzpc\) \{[\s\S]*selectedBzpc\.value = saved[\s\S]*\}/)
   assert.match(source, /saveSelectedBzpc\(v\)/)
   assert.doesNotMatch(source, /sessionStorage\.setItem\('mobile_selected_bzpc'/)
+})
+
+test('EstimateList runs initial branch lookup through the selected branch watcher only once', () => {
+  const mountedStart = source.indexOf('onMounted(() => {')
+  const mountedEnd = source.indexOf('watch(selectedBzpc', mountedStart)
+  const mountedSource = source.slice(mountedStart, mountedEnd)
+
+  assert.ok(mountedStart > -1)
+  assert.ok(mountedEnd > mountedStart)
+  assert.doesNotMatch(mountedSource, /search\(\)/)
+  assert.match(source, /watch\(selectedBzpc, \(v\) => \{[\s\S]*if \(v\?\.bzpc\) \{[\s\S]*saveSelectedBzpc\(v\)[\s\S]*search\(\)[\s\S]*\}[\s\S]*\}\)/)
 })
 
 test('EstimateNew locks the branch from shared selected branch storage', () => {
@@ -28,6 +40,36 @@ test('EstimateNew locks the branch from shared selected branch storage', () => {
   assert.match(newSource, /const saved = loadSelectedBzpc\(\)/)
   assert.match(newSource, /if \(saved\?\.bzpc\) \{[\s\S]*selectedBzpc\.value = saved[\s\S]*bzpcLocked\.value = true[\s\S]*\}/)
   assert.doesNotMatch(newSource, /sessionStorage\.getItem\('mobile_selected_bzpc'\)/)
+})
+
+test('EstimateNew focuses and scrolls the estimate title when title validation fails', () => {
+  assert.match(newSource, /import \{[^}]*nextTick[^}]*\} from 'vue'/)
+  assert.match(newSource, /ref="titleInput"[\s\S]*v-model="form\.itgEstiNm"/)
+  assert.match(newSource, /const titleInput = ref\(null\)/)
+  assert.match(newSource, /async function focusTitleInput\(\)/)
+  assert.match(newSource, /await nextTick\(\)[\s\S]*titleInput\.value\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'center' \}\)[\s\S]*titleInput\.value\?\.focus\?\.\(\{ preventScroll: true \}\)/)
+  assert.match(newSource, /if \(!form\.value\.itgEstiNm\)\s*\{[\s\S]*error\.value = '견적제목을 입력하세요'[\s\S]*focusTitleInput\(\)[\s\S]*return[\s\S]*\}/)
+  assert.match(newSource, /<button class="btn accent" :disabled="loading" @click="submit">/)
+  assert.doesNotMatch(newSource, /:disabled="loading \|\| !canSubmit"/)
+})
+
+test('EstimateNew focuses and scrolls the customer picker when customer validation fails', () => {
+  assert.match(newSource, /ref="dplcInput"[\s\S]*:value="dplcDisplay"/)
+  assert.match(newSource, /const dplcInput = ref\(null\)/)
+  assert.match(newSource, /async function focusDplcInput\(\)/)
+  assert.match(newSource, /await nextTick\(\)[\s\S]*dplcInput\.value\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'center' \}\)[\s\S]*dplcInput\.value\?\.focus\?\.\(\{ preventScroll: true \}\)/)
+  assert.match(newSource, /if \(!form\.value\.dplcCd\)\s*\{[\s\S]*error\.value = '거래처를 선택하세요'[\s\S]*focusDplcInput\(\)[\s\S]*return[\s\S]*\}/)
+})
+
+test('EstimateEdit focuses and scrolls the estimate title when title validation fails', () => {
+  assert.match(editSource, /import \{[^}]*nextTick[^}]*\} from 'vue'/)
+  assert.match(editSource, /ref="titleInput"[\s\S]*v-model="form\.itgEstiNm"/)
+  assert.match(editSource, /const titleInput = ref\(null\)/)
+  assert.match(editSource, /async function focusTitleInput\(\)/)
+  assert.match(editSource, /await nextTick\(\)[\s\S]*titleInput\.value\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'center' \}\)[\s\S]*titleInput\.value\?\.focus\?\.\(\{ preventScroll: true \}\)/)
+  assert.match(editSource, /if \(!form\.value\.itgEstiNm\)\s*\{[\s\S]*error\.value = '견적제목을 입력하세요'[\s\S]*focusTitleInput\(\)[\s\S]*return[\s\S]*\}/)
+  assert.match(editSource, /<button class="btn accent" :disabled="saving" @click="submit">/)
+  assert.doesNotMatch(editSource, /:disabled="saving \|\| !canSubmit"/)
 })
 
 test('global design tokens expose the B2B mobile app palette aliases', () => {
@@ -57,6 +99,10 @@ test('EstimateList renders B2B estimate rows as clear touch cards', () => {
   assert.match(source, /class="estimate-card-head"/)
   assert.match(source, /class="estimate-card-title"/)
   assert.match(source, /class="estimate-card-meta"/)
+  assert.match(source, /견적번호:\s*{{ row\.itgEstiNo }}/)
+  assert.match(source, /v-if="row\.jobsNm"[\s\S]*현장명:\s*{{ row\.jobsNm }}/)
+  assert.match(source, /v-if="row\.dplcReqRemSrc"[\s\S]*고객비고:\s*{{ row\.dplcReqRemSrc }}/)
+  assert.match(source, /v-if="row\.bzpcNm"[\s\S]*영업소:\s*{{ row\.bzpcNm }}/)
   assert.match(source, /class="estimate-card-grades"/)
   assert.match(source, /class="estimate-card-amount"/)
   assert.match(source, /formatEstimateAmount\(row\)/)
@@ -64,8 +110,27 @@ test('EstimateList renders B2B estimate rows as clear touch cards', () => {
   assert.doesNotMatch(source, /시공비|철거비|프로모션|소비자/)
 })
 
+test('EstimateList keeps long customer remarks constrained in card metadata', () => {
+  assert.match(source, /class="estimate-card-meta-note"/)
+  assert.match(stylesSource, /\.estimate-card-meta-note\s*\{[\s\S]*display:\s*-webkit-box/)
+  assert.match(stylesSource, /\.estimate-card-meta-note\s*\{[\s\S]*-webkit-line-clamp:\s*2/)
+  assert.match(stylesSource, /\.estimate-card-meta-note\s*\{[\s\S]*overflow:\s*hidden/)
+})
+
+test('Estimate header cards display delivery scheduled date', () => {
+  assert.match(source, /납품예정 {{ formatDate\(row\.delivryDt\) }}/)
+  assert.match(detailSource, /납품예정 {{ formatDate\(header\.delivryDt\) }}/)
+  assert.match(detailSource, /<span>납품예정일<\/span>[\s\S]*header\.delivryDt \? formatDate\(header\.delivryDt\) : '-'/)
+  assert.match(summarySource, /<span>납품예정일<\/span>[\s\S]*header\?\.delivryDt \? formatDate\(header\.delivryDt\) : '-'/)
+})
+
 test('EstimateList displays customer discount grade chips from header rows', () => {
+  const gradesStyleStart = stylesSource.indexOf('.estimate-card-grades {')
+  const gradesStyleEnd = stylesSource.indexOf('}', gradesStyleStart)
+  const gradesStyle = stylesSource.slice(gradesStyleStart, gradesStyleEnd)
+
   assert.match(source, /buildGradeChips\(row\)/)
+  assert.doesNotMatch(source, /formatGradeSummary\(row\)/)
   assert.match(source, /gradeValue\(row,\s*'dplcDcGrdNm',\s*'dplcDcGrd'\)/)
   for (const key of [
     'dplcDcGrdNm',
@@ -86,10 +151,22 @@ test('EstimateList displays customer discount grade chips from header rows', () 
     'dplcDcGrdMoldCr',
     'dplcDcGrdDtbtMtrlCr',
     'dplcDcGrdDtbtGoodsCr',
+    'dplcDcGrdDoorCrNm',
+    'dplcDcGrdMoldCrNm',
+    'dplcDcGrdDtbtMtrlCrNm',
+    'dplcDcGrdDtbtGoodsCrNm',
   ]) {
     assert.doesNotMatch(source, new RegExp(key))
   }
-  assert.match(stylesSource, /\.estimate-card-grades\s*\{[\s\S]*flex-wrap:\s*wrap/)
+  assert.match(source, /v-for="chip in buildGradeChips\(row\)"/)
+  assert.match(source, /class="estimate-grade-chip"/)
+  assert.doesNotMatch(source, /class="estimate-grade-summary-text"/)
+  assert.ok(gradesStyleStart > -1)
+  assert.match(gradesStyle, /display:\s*flex/)
+  assert.match(gradesStyle, /flex-wrap:\s*wrap/)
+  assert.doesNotMatch(gradesStyle, /overflow-x:\s*auto/)
+  assert.doesNotMatch(gradesStyle, /white-space:\s*nowrap/)
+  assert.doesNotMatch(stylesSource, /\.estimate-grade-summary-text/)
   assert.match(stylesSource, /\.estimate-grade-chip/)
   assert.doesNotMatch(source, /시공비|철거비|프로모션|소비자/)
 })
@@ -107,6 +184,14 @@ test('EstimateList exposes a demo-ready hero with summary metrics and new estima
   assert.match(source, /진행중/)
   assert.match(source, /summaryMetrics/)
   assert.match(source, /totalAmountText/)
+})
+
+test('EstimateList uses web total amount field first for card and summary totals', () => {
+  assert.match(source, /function amountNumber\(\.\.\.values\)/)
+  assert.match(source, /replace\(\/,\/g,\s*''\)/)
+  assert.match(source, /return amount \? `\$\{amount\.toLocaleString\(\)\}원` : '-'/)
+  assert.match(source, /const amount = amountNumber\(row\.totCstAmt,\s*row\.vatTotCstAmt,\s*row\.totAmt,\s*row\.chrgAmt,\s*row\.estAmt,\s*row\.sumAmt\)/)
+  assert.match(source, /\(sum,\s*row\) => sum \+ amountNumber\(row\.totCstAmt,\s*row\.vatTotCstAmt,\s*row\.totAmt,\s*row\.chrgAmt,\s*row\.estAmt,\s*row\.sumAmt\)/)
 })
 
 test('EstimateList empty state includes a new estimate call to action', () => {
@@ -365,6 +450,7 @@ test('EstimateDetail shows labeled project and customer estimate remarks in the 
   assert.match(detailSource, /class="estimate-header-info"/)
   assert.match(detailSource, /<span>거래처<\/span>[\s\S]*header\.dplcNm/)
   assert.match(detailSource, /<span>현장명<\/span>[\s\S]*header\.jobsNm/)
+  assert.match(detailSource, /<span>납품예정일<\/span>[\s\S]*header\.delivryDt/)
   assert.match(detailSource, /<span>고객견적비고<\/span>[\s\S]*header\.dplcReqRemSrc/)
   assert.doesNotMatch(detailSource, /v-if="header\.dplcReqRemSrc" class="estimate-hero-note"/)
   assert.match(stylesSource, /\.estimate-header-info\s*\{[\s\S]*grid-template-columns/)
