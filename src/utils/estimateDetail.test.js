@@ -59,6 +59,17 @@ test('buildSashDrawingUrl prefers display-only drawing fields over saved row ima
   )
 })
 
+test('buildSashModelText prefers stable list model name over display drawing model name', () => {
+  assert.equal(
+    buildSashModelText({
+      mdlNm: '목록모형',
+      _displayMdlNm: '도면매칭모형',
+      mdlCd: 'M1',
+    }),
+    '목록모형'
+  )
+})
+
 test('buildSashMeta separates quantity and bsmf display values', () => {
   const meta = buildSashMeta({ qty: 3, bsmfOrdUtmNm: '틀짝망', bsmfOrdUtmCd: '104' })
   assert.equal(meta.qtyText, '3')
@@ -181,7 +192,7 @@ test('detail raw codes enable exact vent drawing match and normalize string comp
   assert.equal(merged._displayDrwgCd, 'VENT2_DWG')
 })
 
-test('mergeSashDrawingFiles exposes matched model name only for exact vent drawing match', () => {
+test('mergeSashDrawingFiles keeps stable model text even when exact vent drawing has model name', () => {
   const [merged] = mergeSashDrawingFiles(
     [{ mdlCd: 'M1', mdlNm: '저장모형', wintydiCd: 'W1', ventLoc: 'L', estiSeq: '1' }],
     {
@@ -194,7 +205,7 @@ test('mergeSashDrawingFiles exposes matched model name only for exact vent drawi
 
   assert.equal(buildSashDrawingUrl(merged), '/data/drwg/sash/LEFT.png')
   assert.equal(merged._displayMdlNm, '좌측 VENT 모형')
-  assert.equal(buildSashModelText(merged), '좌측 VENT 모형')
+  assert.equal(buildSashModelText(merged), '저장모형')
 })
 
 test('mergeSashDrawingFiles uses exact vent match as display-only drawing even when saved image exists', () => {

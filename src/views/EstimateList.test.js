@@ -98,40 +98,52 @@ test('EstimateList renders B2B estimate rows as clear touch cards', () => {
   assert.match(source, /class="estimate-card"/)
   assert.match(source, /class="estimate-card-head"/)
   assert.match(source, /class="estimate-card-title"/)
-  assert.match(source, /class="estimate-card-meta"/)
-  assert.match(source, /견적번호:\s*{{ row\.itgEstiNo }}/)
-  assert.match(source, /v-if="row\.jobsNm"[\s\S]*현장명:\s*{{ row\.jobsNm }}/)
-  assert.match(source, /v-if="row\.dplcReqRemSrc"[\s\S]*고객비고:\s*{{ row\.dplcReqRemSrc }}/)
-  assert.match(source, /v-if="row\.bzpcNm"[\s\S]*영업소:\s*{{ row\.bzpcNm }}/)
-  assert.match(source, /class="estimate-card-grades"/)
+  assert.match(source, /<strong>{{ row\.itgEstiNm \|\| '\(제목없음\)' }}<\/strong>/)
+  assert.match(source, /<span>{{ row\.dplcNm \|\| '거래처 미지정' }}<\/span>/)
+  assert.match(source, /v-if="row\.jobsNm"[\s\S]*class="estimate-card-title-sub"[\s\S]*현장명:\s*{{ row\.jobsNm }}/)
+  assert.match(source, /v-if="row\.dplcReqRemSrc"[\s\S]*class="estimate-card-title-note"[\s\S]*고객비고:\s*{{ row\.dplcReqRemSrc }}/)
+  assert.match(source, /class="estimate-card-title-dates"[\s\S]*등록 {{ formatDt\(row\.inputDtm\) }}[\s\S]*유효 {{ formatDate\(row\.estiVldDt\) }}[\s\S]*납품예정 {{ formatDate\(row\.delivryDt\) }}/)
+  assert.doesNotMatch(source, /class="estimate-card-meta"/)
+  assert.match(source, /class="estimate-card-foot-info"[\s\S]*견적번호:\s*{{ row\.itgEstiNo }}[\s\S]*v-if="row\.bzpcNm"[\s\S]*영업소:\s*{{ row\.bzpcNm }}[\s\S]*견적 {{ countText\(row\.estiCnt\) }}건[\s\S]*class="estimate-count-chip estimate-count-chip-wait"[\s\S]*대기 {{ countText\(row\.cartCnt\) }}건[\s\S]*class="estimate-count-chip estimate-count-chip-order"[\s\S]*주문 {{ countText\(row\.ordCnt\) }}건/)
+  assert.doesNotMatch(source, /class="estimate-card-grades"/)
+  assert.doesNotMatch(source, /할인등급/)
+  assert.doesNotMatch(source, /buildGradeChips\(row\)/)
   assert.match(source, /class="estimate-card-amount"/)
   assert.match(source, /formatEstimateAmount\(row\)/)
-  assert.match(source, /상태/)
+  assert.match(source, /function countText\(value\)/)
+  assert.match(source, /row\.stNm \|\| row\.igStNm \|\| '견적'/)
   assert.doesNotMatch(source, /시공비|철거비|프로모션|소비자/)
 })
 
-test('EstimateList keeps long customer remarks constrained in card metadata', () => {
-  assert.match(source, /class="estimate-card-meta-note"/)
-  assert.match(stylesSource, /\.estimate-card-meta-note\s*\{[\s\S]*display:\s*-webkit-box/)
-  assert.match(stylesSource, /\.estimate-card-meta-note\s*\{[\s\S]*-webkit-line-clamp:\s*2/)
-  assert.match(stylesSource, /\.estimate-card-meta-note\s*\{[\s\S]*overflow:\s*hidden/)
+test('EstimateList keeps long customer remarks constrained below the customer name', () => {
+  assert.match(source, /class="estimate-card-title-note"/)
+  assert.match(stylesSource, /\.estimate-card-title-note\s*\{[\s\S]*display:\s*-webkit-box/)
+  assert.match(stylesSource, /\.estimate-card-title-note\s*\{[\s\S]*-webkit-line-clamp:\s*2/)
+  assert.match(stylesSource, /\.estimate-card-title-note\s*\{[\s\S]*overflow:\s*hidden/)
+  assert.match(stylesSource, /\.estimate-card-title-dates\s*\{[\s\S]*white-space:\s*nowrap/)
+  assert.match(stylesSource, /\.estimate-card-title-dates\s*\{[\s\S]*overflow:\s*hidden/)
+  assert.match(stylesSource, /\.estimate-card-title-dates\s*\{[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(stylesSource, /\.estimate-card-foot-info\s*\{[\s\S]*display:\s*flex/)
+  assert.match(stylesSource, /\.estimate-card-foot-info\s*\{[\s\S]*flex-wrap:\s*wrap/)
+  assert.match(stylesSource, /\.estimate-card-foot-info \.estimate-count-chip-wait\s*\{[\s\S]*background:\s*#fffbeb;[\s\S]*color:\s*#92400e;[\s\S]*border:\s*1px solid #fde68a;/)
+  assert.match(stylesSource, /\.estimate-card-foot-info \.estimate-count-chip-order\s*\{[\s\S]*background:\s*#ecfdf5;[\s\S]*color:\s*#065f46;[\s\S]*border:\s*1px solid #a7f3d0;/)
 })
 
 test('Estimate header cards display delivery scheduled date', () => {
   assert.match(source, /납품예정 {{ formatDate\(row\.delivryDt\) }}/)
+  assert.doesNotMatch(source, /class="estimate-card-dates"/)
   assert.match(detailSource, /납품예정 {{ formatDate\(header\.delivryDt\) }}/)
   assert.match(detailSource, /<span>납품예정일<\/span>[\s\S]*header\.delivryDt \? formatDate\(header\.delivryDt\) : '-'/)
   assert.match(summarySource, /<span>납품예정일<\/span>[\s\S]*header\?\.delivryDt \? formatDate\(header\.delivryDt\) : '-'/)
 })
 
-test('EstimateList displays customer discount grade chips from header rows', () => {
-  const gradesStyleStart = stylesSource.indexOf('.estimate-card-grades {')
-  const gradesStyleEnd = stylesSource.indexOf('}', gradesStyleStart)
-  const gradesStyle = stylesSource.slice(gradesStyleStart, gradesStyleEnd)
-
-  assert.match(source, /buildGradeChips\(row\)/)
-  assert.doesNotMatch(source, /formatGradeSummary\(row\)/)
-  assert.match(source, /gradeValue\(row,\s*'dplcDcGrdNm',\s*'dplcDcGrd'\)/)
+test('EstimateList does not render customer discount grade chips on list cards', () => {
+  assert.doesNotMatch(source, /buildGradeChips/)
+  assert.doesNotMatch(source, /function gradeValue/)
+  assert.doesNotMatch(source, /class="estimate-card-grades"/)
+  assert.doesNotMatch(source, /estimate-grade-label/)
+  assert.doesNotMatch(source, /estimate-grade-chip/)
+  assert.doesNotMatch(source, /할인등급/)
   for (const key of [
     'dplcDcGrdNm',
     'dplcDcGrdDoorNm',
@@ -142,7 +154,7 @@ test('EstimateList displays customer discount grade chips from header rows', () 
     'dplcDcGrdDtbtMtrlNm',
     'dplcDcGrdDtbtGoodsNm',
   ]) {
-    assert.match(source, new RegExp(key))
+    assert.doesNotMatch(source, new RegExp(key))
   }
   for (const key of [
     'buildCrossGradeChips',
@@ -158,16 +170,10 @@ test('EstimateList displays customer discount grade chips from header rows', () 
   ]) {
     assert.doesNotMatch(source, new RegExp(key))
   }
-  assert.match(source, /v-for="chip in buildGradeChips\(row\)"/)
-  assert.match(source, /class="estimate-grade-chip"/)
   assert.doesNotMatch(source, /class="estimate-grade-summary-text"/)
-  assert.ok(gradesStyleStart > -1)
-  assert.match(gradesStyle, /display:\s*flex/)
-  assert.match(gradesStyle, /flex-wrap:\s*wrap/)
-  assert.doesNotMatch(gradesStyle, /overflow-x:\s*auto/)
-  assert.doesNotMatch(gradesStyle, /white-space:\s*nowrap/)
+  assert.doesNotMatch(stylesSource, /\.estimate-card-grades/)
   assert.doesNotMatch(stylesSource, /\.estimate-grade-summary-text/)
-  assert.match(stylesSource, /\.estimate-grade-chip/)
+  assert.doesNotMatch(stylesSource, /\.estimate-grade-chip/)
   assert.doesNotMatch(source, /시공비|철거비|프로모션|소비자/)
 })
 
@@ -399,19 +405,11 @@ test('EstimateEdit loads an existing header and saves only mobile-editable heade
   assert.doesNotMatch(editSource, /dplcGrpGrade\[item\.field\]\s*=\s*option\.rate/)
 })
 
-test('EstimateDetail exposes header edit action and a clear discount grade section title', () => {
+test('EstimateDetail exposes header edit action without discount grade summary in the hero card', () => {
   assert.match(detailSource, /v-if="canEditHeader"[\s\S]*헤더 수정/)
   assert.match(detailSource, /const canEditHeader = computed\(\(\) => \['0', '10'\]\.includes\(headerStatus\.value\)\)/)
-  assert.match(detailSource, /<div class="section-title">할인등급<\/div>/)
-  assert.match(detailSource, /class="estimate-grade-summary grade-row"/)
-  for (const field of [
-    'dplcDcGrdDoorCr',
-    'dplcDcGrdMoldCr',
-    'dplcDcGrdDtbtMtrlCr',
-    'dplcDcGrdDtbtGoodsCr',
-  ]) {
-    assert.doesNotMatch(detailSource, new RegExp(field))
-  }
+  assert.doesNotMatch(detailSource, /<div class="section-title">할인등급<\/div>/)
+  assert.doesNotMatch(detailSource, /class="estimate-grade-summary grade-row"/)
 })
 
 test('EstimateDetail keeps summary and back in the title actions and header actions in the hero card', () => {
@@ -438,6 +436,11 @@ test('EstimateDetail keeps summary and back in the title actions and header acti
   assert.doesNotMatch(actionSource, /샤시 요약|sash-summary/)
 })
 
+test('EstimateDetail spaces the estimate title label and value vertically', () => {
+  assert.match(detailSource, /class="estimate-hero-title-block"[\s\S]*<div class="detail-label">견적제목<\/div>[\s\S]*<div class="detail-title">{{ header\.itgEstiNm \|\| header\.dplcNm \|\| '견적 상세' }}<\/div>/)
+  assert.match(stylesSource, /\.estimate-hero-title-block\s*\{[\s\S]*display:\s*grid[\s\S]*gap:\s*6px/)
+})
+
 test('EstimateDetail does not duplicate estimate summary inside the sash list section', () => {
   const listPaneStart = detailSource.indexOf('<div class="card sash-list-pane">')
   const detailPaneStart = detailSource.indexOf('<div class="sash-detail-pane">', listPaneStart)
@@ -446,20 +449,25 @@ test('EstimateDetail does not duplicate estimate summary inside the sash list se
   assert.doesNotMatch(listPaneSource, /견적요약|샤시 요약|sash-summary/)
 })
 
-test('EstimateDetail shows labeled project and customer estimate remarks in the header hero', () => {
+test('EstimateDetail shows customer and project on one line in the header hero', () => {
   assert.match(detailSource, /class="estimate-header-info"/)
-  assert.match(detailSource, /<span>거래처<\/span>[\s\S]*header\.dplcNm/)
-  assert.match(detailSource, /<span>현장명<\/span>[\s\S]*header\.jobsNm/)
+  assert.match(detailSource, /class="estimate-header-info-wide estimate-customer-block"[\s\S]*class="estimate-header-customer-line"[\s\S]*<span>거래처<\/span>[\s\S]*header\.dplcNm[\s\S]*<span>현장명<\/span>[\s\S]*header\.jobsNm[\s\S]*<span>고객비고<\/span>[\s\S]*header\.dplcReqRemSrc/)
   assert.match(detailSource, /<span>납품예정일<\/span>[\s\S]*header\.delivryDt/)
-  assert.match(detailSource, /<span>고객견적비고<\/span>[\s\S]*header\.dplcReqRemSrc/)
+  assert.doesNotMatch(detailSource, /<span>고객견적비고<\/span>/)
   assert.doesNotMatch(detailSource, /v-if="header\.dplcReqRemSrc" class="estimate-hero-note"/)
   assert.match(stylesSource, /\.estimate-header-info\s*\{[\s\S]*grid-template-columns/)
-  assert.match(stylesSource, /\.estimate-header-info-value\s*\{[\s\S]*white-space:\s*pre-wrap/)
+  assert.match(stylesSource, /\.estimate-customer-block\s*\{[\s\S]*display:\s*grid/)
+  assert.match(stylesSource, /\.estimate-header-customer-line\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/)
+  assert.match(detailSource, /class="estimate-header-subinfo estimate-header-note-line"[\s\S]*<span>고객비고<\/span>[\s\S]*class="estimate-header-info-value"/)
+  assert.match(stylesSource, /\.estimate-header-note-line\s*\{[\s\S]*display:\s*flex[\s\S]*gap:\s*8px/)
+  assert.match(stylesSource, /\.estimate-header-note-line \.estimate-header-info-value\s*\{[\s\S]*white-space:\s*nowrap[\s\S]*text-overflow:\s*ellipsis/)
+  assert.match(stylesSource, /@media \(max-width:\s*420px\)[\s\S]*\.estimate-header-customer-line\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/)
 })
 
 test('sash detail and summary typography is large enough for mobile review', () => {
-  assert.match(stylesSource, /\.sash-list-chip\s*\{[\s\S]*font-size:\s*12px/)
-  assert.match(stylesSource, /\.sash-list-card-meta span\s*\{[\s\S]*font-size:\s*12px/)
+  assert.match(stylesSource, /\.sash-list-card-meta\s*\{[\s\S]*gap:\s*8px/)
+  assert.match(stylesSource, /\.sash-list-card-meta span\s*\{[\s\S]*padding:\s*9px 10px[\s\S]*font-size:\s*14px/)
+  assert.match(stylesSource, /\.sash-list-chip\s*\{[\s\S]*min-height:\s*28px[\s\S]*font-size:\s*14px/)
   assert.match(stylesSource, /\.sash-panel-grid strong\s*\{[\s\S]*font-size:\s*14px/)
   assert.match(stylesSource, /\.sash-panel-amounts strong\s*\{[\s\S]*font-size:\s*14px/)
   assert.match(stylesSource, /\.sash-panel-section-title,[\s\S]*\.sash-panel-internal summary\s*\{[\s\S]*font-size:\s*13px/)

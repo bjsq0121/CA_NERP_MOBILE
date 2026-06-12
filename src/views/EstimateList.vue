@@ -7,7 +7,7 @@
           <p class="page-subtitle">거래처별 모바일 견적을 빠르게 조회하고 작성합니다</p>
         </div>
         <div class="page-hero-actions">
-          <button type="button" class="btn accent" @click="goNewEstimate">신규 견적</button>
+          <button type="button" class="btn accent" @click="goNewEstimate">견적 헤더</button>
         </div>
       </div>
       <div class="metric-grid">
@@ -73,33 +73,24 @@
           <div class="estimate-card-title">
             <strong>{{ row.itgEstiNm || '(제목없음)' }}</strong>
             <span>{{ row.dplcNm || '거래처 미지정' }}</span>
+            <span v-if="row.jobsNm" class="estimate-card-title-sub">현장명: {{ row.jobsNm }}</span>
+            <span v-if="row.dplcReqRemSrc" class="estimate-card-title-note">고객비고: {{ row.dplcReqRemSrc }}</span>
+            <span class="estimate-card-title-dates">
+              등록 {{ formatDt(row.inputDtm) }}
+              <template v-if="row.estiVldDt"> · 유효 {{ formatDate(row.estiVldDt) }}</template>
+              <template v-if="row.delivryDt"> · 납품예정 {{ formatDate(row.delivryDt) }}</template>
+            </span>
           </div>
-          <span class="badge">{{ row.stNm || row.igStNm || '상태' }}</span>
-        </div>
-
-        <div class="estimate-card-meta">
-          <span>견적번호: {{ row.itgEstiNo }}</span>
-          <span v-if="row.jobsNm">현장명: {{ row.jobsNm }}</span>
-          <span v-if="row.dplcReqRemSrc" class="estimate-card-meta-note">고객비고: {{ row.dplcReqRemSrc }}</span>
-          <span v-if="row.bzpcNm">영업소: {{ row.bzpcNm }}</span>
-        </div>
-
-        <div v-if="buildGradeChips(row).length" class="estimate-card-grades">
-          <span class="estimate-grade-label">할인등급</span>
-          <span
-            v-for="chip in buildGradeChips(row)"
-            :key="chip.label"
-            class="estimate-grade-chip"
-          >
-            {{ chip.label }} {{ chip.value }}
-          </span>
+          <span class="badge">{{ row.stNm || row.igStNm || '견적' }}</span>
         </div>
 
         <div class="estimate-card-foot">
-          <div class="estimate-card-dates">
-            <span>등록 {{ formatDt(row.inputDtm) }}</span>
-            <span v-if="row.estiVldDt">유효 {{ formatDate(row.estiVldDt) }}</span>
-          <span v-if="row.delivryDt">납품예정 {{ formatDate(row.delivryDt) }}</span>
+          <div class="estimate-card-foot-info">
+            <span>견적번호: {{ row.itgEstiNo }}</span>
+            <span v-if="row.bzpcNm">영업소: {{ row.bzpcNm }}</span>
+            <span>견적 {{ countText(row.estiCnt) }}건</span>
+            <span class="estimate-count-chip estimate-count-chip-wait">대기 {{ countText(row.cartCnt) }}건</span>
+            <span class="estimate-count-chip estimate-count-chip-order">주문 {{ countText(row.ordCnt) }}건</span>
           </div>
           <div class="estimate-card-amount">
             <span>총액</span>
@@ -159,6 +150,11 @@ function formatEstimateAmount(row = {}) {
   const amount = amountNumber(row.totCstAmt, row.vatTotCstAmt, row.totAmt, row.chrgAmt, row.estAmt, row.sumAmt)
   return amount ? `${amount.toLocaleString()}원` : '-'
 }
+function countText(value) {
+  if (value === '' || value == null) return '0'
+  const numeric = Number(String(value).replace(/,/g, ''))
+  return Number.isFinite(numeric) ? numeric.toLocaleString() : String(value)
+}
 
 function statusValue(row = {}) {
   return [row.stNm, row.igStNm, row.stCd, row.igStCd].map((value) => String(value ?? '').trim()).filter(Boolean)
@@ -189,26 +185,6 @@ const totalAmountText = computed(() => {
   )
   return total ? `${total.toLocaleString()}원` : '-'
 })
-
-function gradeValue(row, nameKey, codeKey) {
-  const name = String(row?.[nameKey] ?? '').trim()
-  const code = String(row?.[codeKey] ?? '').trim()
-  if (name && name !== code) return name
-  return code
-}
-
-function buildGradeChips(row = {}) {
-  return [
-    { label: '샤시', value: gradeValue(row, 'dplcDcGrdNm', 'dplcDcGrd') },
-    { label: '도어', value: gradeValue(row, 'dplcDcGrdDoorNm', 'dplcDcGrdDoor') },
-    { label: '알유리', value: gradeValue(row, 'dplcDcGrdGlasNm', 'dplcDcGrdGlas') },
-    { label: '몰딩', value: gradeValue(row, 'dplcDcGrdMoldNm', 'dplcDcGrdMold') },
-    { label: '판넬', value: gradeValue(row, 'dplcDcGrdPannelNm', 'dplcDcGrdPannel') },
-    { label: '타사', value: gradeValue(row, 'dplcDcGrdOtherCompNm', 'dplcDcGrdOtherComp') },
-    { label: '유통자재', value: gradeValue(row, 'dplcDcGrdDtbtMtrlNm', 'dplcDcGrdDtbtMtrl') },
-    { label: '유통상품', value: gradeValue(row, 'dplcDcGrdDtbtGoodsNm', 'dplcDcGrdDtbtGoods') },
-  ].filter((chip) => chip.value)
-}
 
 onMounted(() => {
   if (!auth.isAdmin && auth.bzpc) {

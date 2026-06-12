@@ -1,25 +1,25 @@
 <template>
   <div class="card">
     <fieldset :disabled="readonly" class="sash-readonly-fieldset">
-    <!-- 모형 -->
-    <div class="field">
-      <label>모형 *</label>
-      <input
-        readonly
-        data-clickable
-        :value="modelDisplay"
-        placeholder="터치해서 모형 검색"
-        @click="$emit('openModel')"
-      />
-      <div v-if="form.mdlCd" class="text-xs mt-xs">
-        자재사 {{ form.mtrlCoNm || '-' }} / 사이즈코드 {{ form.sizCd || '-' }}
-      </div>
-    </div>
-
-    <!-- 창형태 -->
     <div class="sash-form-drawing-row">
       <div class="sash-form-drawing-controls">
-        <div class="row-flex">
+        <!-- 모형 -->
+        <div class="field sash-model-full-row">
+          <label>모형 *</label>
+          <input
+            readonly
+            data-clickable
+            :value="modelDisplay"
+            placeholder="터치해서 모형 검색"
+            @click="$emit('openModel')"
+          />
+          <div v-if="form.mdlCd" class="text-xs mt-xs">
+            자재사 {{ form.mtrlCoNm || '-' }} / 사이즈코드 {{ form.sizCd || '-' }}
+          </div>
+        </div>
+
+        <div class="sash-main-basic-grid">
+          <!-- 창형태 -->
           <div class="field">
             <label>창형태 *</label>
             <select :value="form.wintydiCd" @change="$emit('wintydiChange', $event.target.value)">
@@ -29,12 +29,26 @@
               </option>
             </select>
           </div>
+
           <div class="field">
             <label>틀짝망 *</label>
             <select v-model="form.bsmfOrdUtmCd">
               <option value="">선택</option>
               <option v-for="b in bsmfList" :key="b.commCdId" :value="b.commCdId">
                 {{ b.commCdNm }}
+              </option>
+            </select>
+          </div>
+          <div class="field sash-discount-grade-field">
+            <label>할인등급 *</label>
+            <select v-model="form.dplcDcGrd" :disabled="readonly">
+              <option value="">선택</option>
+              <option
+                v-for="grade in discountGradeList"
+                :key="grade.commCdId"
+                :value="grade.commCdVal || grade.commCdId"
+              >
+                {{ grade.commCdNm || grade.commCdVal || grade.commCdId }}
               </option>
             </select>
           </div>
@@ -253,6 +267,7 @@ const props = defineProps({
   wintydiList: { type: Array, default: () => [] },
   wintydiMap: { type: Object, default: () => ({}) },
   bsmfList: { type: Array, default: () => [] },
+  discountGradeList: { type: Array, default: () => [] },
   insdSfList: { type: Array, default: () => [] },
   ousdSfList: { type: Array, default: () => [] },
   colorList: { type: Array, default: () => [] },

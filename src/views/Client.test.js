@@ -172,22 +172,10 @@ test('EstimateNew sends flat ItgEstiH grade fields with the header payload', () 
   assert.doesNotMatch(estimateNewSource, /dplcDoorCrRt|dplcMoldCrRt|dplcDtbtMtrlCrRt|dplcDtbtGoodsCrRt/)
 })
 
-test('EstimateDetail shows saved customer grade fields in the header card', () => {
-  assert.match(estimateDetailSource, /headerGradeItems/)
-  assert.match(estimateDetailSource, /class="[^"]*estimate-grade-summary/)
-  assert.match(estimateDetailSource, /formatGradeValue/)
-  for (const field of [
-    'dplcDcGrd',
-    'dplcDcGrdDoor',
-    'dplcDcGrdPannel',
-    'dplcDcGrdOtherComp',
-    'dplcDcGrdGlas',
-    'dplcDcGrdMold',
-    'dplcDcGrdDtbtMtrl',
-    'dplcDcGrdDtbtGoods',
-  ]) {
-    assert.match(estimateDetailSource, new RegExp(field))
-  }
+test('EstimateDetail omits customer discount grade fields from the header card', () => {
+  assert.doesNotMatch(estimateDetailSource, /headerGradeItems/)
+  assert.doesNotMatch(estimateDetailSource, /class="[^"]*estimate-grade-summary/)
+  assert.doesNotMatch(estimateDetailSource, /formatGradeValue/)
 })
 
 test('ClientList renders customers as estimate-style cards with registration CTA empty state', () => {

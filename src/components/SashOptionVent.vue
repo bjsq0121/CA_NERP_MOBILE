@@ -3,21 +3,21 @@
     <summary>VENT / 스크린 / 안전망</summary>
     <fieldset :disabled="readonly" class="sash-readonly-fieldset">
     <div class="details-body">
-      <div class="field">
-        <label>VENT 위치</label>
-        <select v-model="form.ventLoc" @change="$emit('ventChange', form.ventLoc)">
-          <option value="">없음</option>
-          <option v-for="v in ventOptions" :key="v.commCdId" :value="v.commCdId">
-            {{ v.commCdNm }}
-          </option>
-        </select>
-        <div v-if="form.wintydiCd && !ventOptions.length" class="text-xs text-muted mt-xs">
-          이 창형태에는 VENT 옵션이 없습니다
+      <div class="vent-option-main-row">
+        <div class="field">
+          <label>VENT 위치</label>
+          <select v-model="form.ventLoc" @change="$emit('ventChange', form.ventLoc)">
+            <option value="">없음</option>
+            <option v-for="v in ventOptions" :key="v.commCdId" :value="v.commCdId">
+              {{ v.commCdNm }}
+            </option>
+          </select>
+          <div v-if="form.wintydiCd && !ventOptions.length" class="text-xs text-muted mt-xs">
+            이 창형태에는 VENT 옵션이 없습니다
+          </div>
         </div>
-      </div>
 
-      <div class="row-flex option-row">
-        <div class="field" style="flex:2">
+        <div class="field">
           <label>스크린 종류</label>
           <select v-model="form.screenType">
             <option value="">선택</option>
@@ -26,6 +26,7 @@
             </option>
           </select>
         </div>
+
         <div class="field option-toggle-field">
           <label>안전망</label>
           <button
@@ -38,7 +39,7 @@
       </div>
 
       <div v-if="form.isAluMf" class="option-panel safety-panel">
-        <div class="option-select-grid">
+        <div class="safety-net-option-row">
           <div class="field">
             <label>안전망 핸들</label>
             <select v-model="form.aluMfHandleType" @change="onAluMfHandleChange">
@@ -47,15 +48,6 @@
                 {{ h.commCdNm }}
               </option>
             </select>
-          </div>
-          <div class="field option-toggle-field">
-            <label>중간고정</label>
-            <button
-              type="button"
-              class="toggle-btn"
-              :class="form.aluMfMdlYn === 'Y' ? 'toggle-on' : 'toggle-off'"
-              @click="toggleAluMfHeight"
-            >{{ form.aluMfMdlYn === 'Y' ? 'ON' : 'OFF' }}</button>
           </div>
           <div class="field">
             <label>높이</label>
@@ -67,10 +59,19 @@
               :disabled="!form.aluMfHandleType || form.aluMfHandleType === '4' || form.aluMfMdlYn === 'Y'"
             />
           </div>
+          <div class="field option-toggle-field">
+            <label>중간고정</label>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="form.aluMfMdlYn === 'Y' ? 'toggle-on' : 'toggle-off'"
+              @click="toggleAluMfHeight"
+            >{{ form.aluMfMdlYn === 'Y' ? 'ON' : 'OFF' }}</button>
+          </div>
         </div>
       </div>
 
-      <div class="field mt-sm">
+      <!-- <div class="field mt-sm">
         <label>실리콘 마감</label>
         <button
           type="button"
@@ -80,7 +81,7 @@
           style="max-width:120px"
           @click="toggleSiliconeFinish"
         >{{ form.slcnFnshYn ? 'ON' : 'OFF' }}</button>
-      </div>
+      </div> -->
     </div>
     </fieldset>
   </details>

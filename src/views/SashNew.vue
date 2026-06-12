@@ -16,29 +16,12 @@
         </div>
       </div>
 
-      <!-- 필수 필드 -->
-      <div class="card">
-        <div class="form-section-title">할인등급</div>
-        <div class="field">
-          <label>할인등급 *</label>
-          <select v-model="form.dplcDcGrd" :disabled="isReadonly">
-            <option value="">선택</option>
-            <option
-              v-for="grade in discountGradeList"
-              :key="grade.commCdId"
-              :value="grade.commCdVal || grade.commCdId"
-            >
-              {{ grade.commCdNm || grade.commCdVal || grade.commCdId }}
-            </option>
-          </select>
-        </div>
-      </div>
-
       <SashFormMain
         :form="form"
         :wintydi-list="wintydiList"
         :wintydi-map="wintydiMap"
         :bsmf-list="bsmfList"
+        :discount-grade-list="discountGradeList"
         :insd-sf-list="insdSfList"
         :ousd-sf-list="ousdSfList"
         :color-list="colorList"
@@ -1076,10 +1059,12 @@ function clearSecondFloorOptionFields() {
 
 function onInsdColorChange() {
   if (syncOusd.value) form.value.ousdColrCd = form.value.insdColrCd
+  applyVentHoleColorRule(findColorOption(form.value.insdColrCd), 'inner')
 }
 
 function onOusdColorChange() {
   syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
+  applyVentHoleColorRule(findColorOption(form.value.ousdColrCd), 'outer')
 }
 
 function openColorPicker(target) {
@@ -1115,6 +1100,20 @@ function ensureColorInList(row) {
   return normalized
 }
 
+function findColorOption(value) {
+  if (!value) return null
+  return colorList.value.find((item) => item.commCdVal === value || item.commCdId === value) || null
+}
+
+function applyVentHoleColorRule(color, target) {
+  refreshVentHoleState({ autoSelect: isVentHoleColor(color, target) })
+}
+
+function isVentHoleColor(color, target) {
+  return color?.addInfo10 === 'Y' &&
+    (target === 'inner' || (target === 'outer' && form.value.dblWindYn === 'Y'))
+}
+
 function onSelectColor(row) {
   const color = ensureColorInList(row)
   if (!color.commCdVal) return
@@ -1125,6 +1124,7 @@ function onSelectColor(row) {
     form.value.ousdColrCd = color.commCdVal
     syncOusd.value = form.value.ousdColrCd === form.value.insdColrCd
   }
+  applyVentHoleColorRule(color, colorPickerTarget.value)
   colorPickerOpen.value = false
 }
 
@@ -1366,7 +1366,24 @@ function syncSafetyNetHandleName() {
 }
 
 function isVentHoleAllowed() {
-  return form.value.bftydiCd === '119'
+  return form.value.bftydiCd === '119' || selectedColorAllowsVentHole()
+}
+
+function selectedColorAllowsVentHole() {
+  return isVentHoleColor(findColorOption(form.value.insdColrCd), 'inner') ||
+    isVentHoleColor(findColorOption(form.value.ousdColrCd), 'outer')
+}
+
+function refreshVentHoleState({ autoSelect = false } = {}) {
+  const allowed = isVentHoleAllowed()
+  form.value.ventHoleEnabled = allowed
+  if (!allowed) {
+    form.value.ventHoleYn = false
+    return
+  }
+  if (autoSelect || selectedColorAllowsVentHole()) {
+    form.value.ventHoleYn = true
+  }
 }
 
 function isSiliconeFinishAllowedByBsmf() {
@@ -1374,8 +1391,7 @@ function isSiliconeFinishAllowedByBsmf() {
 }
 
 function applyProductionOptionRules() {
-  form.value.ventHoleEnabled = isVentHoleAllowed() || form.value.ventHoleYn
-  if (!form.value.ventHoleEnabled) form.value.ventHoleYn = false
+  refreshVentHoleState()
   if (!alGlassEnabled.value) form.value.alGlass = false
   if (!siliconeFinishEnabled.value) form.value.slcnFnshYn = false
   if (!form.value.bfTurnDoorOneSideWrapType) form.value.bfOneSideWrapColrNm = ''
@@ -1446,7 +1462,9 @@ async function applyStandardSpec() {
 
 function applyProductionOptionDefaults(row = {}) {
   form.value.drnHoleYn = !String(row.drnHoleDefaultOffYn || '').includes('Y')
-  form.value.ventHoleYn = false
+  const ventHoleDefaultOn = row.bftydiCd === '119' || form.value.bftydiCd === '119' || selectedColorAllowsVentHole()
+  form.value.ventHoleYn = ventHoleDefaultOn
+  form.value.ventHoleEnabled = ventHoleDefaultOn
   form.value.bfMillingType = stringifyOptionValue(row.bfMillingType || row.bfmillingWing || '0')
   form.value.bfArmatureType = ''
   form.value.bfLockCnt = ''

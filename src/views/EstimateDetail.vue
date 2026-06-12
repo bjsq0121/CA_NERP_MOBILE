@@ -20,9 +20,8 @@
     <template v-else>
       <section class="card estimate-detail-hero">
         <div class="estimate-hero-main">
-          <div>
-            <div class="detail-label">통합견적번호</div>
-            <div class="detail-value">{{ header.itgEstiNo }}</div>
+          <div class="estimate-hero-title-block">
+            <div class="detail-label">견적제목</div>
             <div class="detail-title">{{ header.itgEstiNm || header.dplcNm || '견적 상세' }}</div>
           </div>
           <div class="estimate-hero-status">
@@ -31,39 +30,32 @@
           </div>
         </div>
 
-        <div class="estimate-hero-meta">
+        <!-- <div class="estimate-hero-meta">
           <span>{{ header.dplcNm || '-' }}</span>
           <span>{{ header.bzpcNm || header.bzpc || '-' }}</span>
           <span>등록 {{ formatDt(header.inputDtm) }}</span>
-          <span v-if="header.estiVldDt">유효 {{ formatDate(header.estiVldDt) }}</span>
-          <span v-if="header.delivryDt">납품예정 {{ formatDate(header.delivryDt) }}</span>
-        </div>
+          <span v-if="header.estiVldDt">견적유효일 {{ formatDate(header.estiVldDt) }}</span>
+          <span v-if="header.delivryDt">납품예정일 {{ formatDate(header.delivryDt) }}</span>
+          <span v-if="header.itgEstiNo">통합견적번호 {{ header.itgEstiNo}}</span>
+        </div> -->
 
         <div class="estimate-header-info">
-          <div>
-            <span>거래처</span>
-            <strong>{{ header.dplcNm || '-' }}</strong>
+          <div class="estimate-header-info-wide estimate-customer-block">
+            <div class="estimate-header-customer-line">
+              <div>
+                <span>거래처</span>
+                <strong>{{ header.dplcNm || '-' }}</strong>
+              </div>
+            </div>
           </div>
           <div>
             <span>현장명</span>
             <strong>{{ header.jobsNm || '-' }}</strong>
           </div>
-          <div>
-            <span>납품예정일</span>
-            <strong>{{ header.delivryDt ? formatDate(header.delivryDt) : '-' }}</strong>
-          </div>
-          <div class="estimate-header-info-wide">
-            <span>고객견적비고</span>
-            <strong class="estimate-header-info-value">{{ header.dplcReqRemSrc || '-' }}</strong>
-          </div>
-        </div>
-
-        <div class="section-title">할인등급</div>
-        <div class="estimate-grade-summary grade-row">
-          <div v-for="item in headerGradeItems" :key="item.label" class="grade-item">
-            <span class="grade-label">{{ item.label }}</span>
-            <span class="grade-value">{{ item.value || '-' }}</span>
-          </div>
+          <div class="estimate-header-subinfo estimate-header-note-line">
+              <span>고객비고</span>
+              <strong class="estimate-header-info-value">{{ header.dplcReqRemSrc || '-' }}</strong>
+            </div>
         </div>
 
         <div class="summary-amounts">
@@ -80,6 +72,14 @@
           <span>샤시 {{ fmtPrice(categoryTotals.sash) }}원</span>
           <span>알유리 {{ fmtPrice(categoryTotals.glass) }}원</span>
           <span>{{ sashRows.length + glassRows.length }}개 품목</span>
+        </div>
+        <div class="estimate-hero-meta">
+          <span>{{ header.dplcNm || '-' }}</span>
+          <span>{{ header.bzpcNm || header.bzpc || '-' }}</span>
+          <span>등록 {{ formatDt(header.inputDtm) }}</span>
+          <span v-if="header.estiVldDt">견적유효일 {{ formatDate(header.estiVldDt) }}</span>
+          <span v-if="header.delivryDt">납품예정일 {{ formatDate(header.delivryDt) }}</span>
+          <span v-if="header.itgEstiNo">통합견적번호 {{ header.itgEstiNo}}</span>
         </div>
         <div class="estimate-action-row">
           <button v-if="canEditHeader" class="btn secondary" @click="router.push(`/estimates/${itgEstiNo}/edit`)">헤더 수정</button>
@@ -303,19 +303,6 @@ const categoryTotals = computed(() => ({
   sash: sumRows(sashRows.value).total,
   glass: sumRows(glassRows.value).total,
 }))
-const headerGradeItems = computed(() => {
-  const h = header.value || {}
-  return [
-    { label: '샤시', value: formatGradeValue(h, 'dplcDcGrd', 'dplcDcGrdNm') },
-    { label: '도어', value: formatGradeValue(h, 'dplcDcGrdDoor', 'dplcDcGrdDoorNm') },
-    { label: '판넬', value: formatGradeValue(h, 'dplcDcGrdPannel', 'dplcDcGrdPannelNm') },
-    { label: '타사', value: formatGradeValue(h, 'dplcDcGrdOtherComp', 'dplcDcGrdOtherCompNm') },
-    { label: '알유리', value: formatGradeValue(h, 'dplcDcGrdGlas', 'dplcDcGrdGlasNm') },
-    { label: '몰딩', value: formatGradeValue(h, 'dplcDcGrdMold', 'dplcDcGrdMoldNm') },
-    { label: '유통자재', value: formatGradeValue(h, 'dplcDcGrdDtbtMtrl', 'dplcDcGrdDtbtMtrlNm') },
-    { label: '유통상품', value: formatGradeValue(h, 'dplcDcGrdDtbtGoods', 'dplcDcGrdDtbtGoodsNm') },
-  ]
-})
 const selectedSashRow = computed(() =>
   sashRows.value.find((row) => sashRowKey(row) === selectedSashKey.value) || sashRows.value[0] || null
 )
@@ -347,13 +334,6 @@ function formatDate(s) {
 }
 function formatDt(s) { return s ? String(s).slice(0, 10) : '' }
 function fmtPrice(v) { return Number(v || 0).toLocaleString() }
-
-function formatGradeValue(row, codeKey, nameKey) {
-  const code = firstText(row?.[codeKey])
-  const name = firstText(row?.[nameKey])
-  if (name && name !== code) return name
-  return code || '-'
-}
 
 function amountNumber(...values) {
   for (const value of values) {

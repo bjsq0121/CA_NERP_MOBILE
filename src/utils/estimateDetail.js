@@ -224,7 +224,7 @@ export function mergeSashDrawingFiles(rows = [], drawingsByMdlCd = {}) {
 }
 
 export function buildSashModelText(row = {}) {
-  return firstValue(row._displayMdlNm, row.mdlNm, row.MDL_NM, row.modelNm, row.mdlCd) || '-'
+  return firstValue(row.mdlNm, row.MDL_NM, row.modelNm, row._displayMdlNm, row.mdlCd) || '-'
 }
 
 export function buildSashMeta(row = {}) {
